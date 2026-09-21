@@ -20,10 +20,11 @@ export default function App() {
     return getCurrentSession();
   });
 
-  // Animación de bienvenida con logo Camposol antes de ingresar a la pantalla principal
-  const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(() => {
-    return Boolean(getCurrentSession());
-  });
+  const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(false);
+
+  const handleFinishSplash = React.useCallback(() => {
+    setShowWelcomeSplash(false);
+  }, []);
 
   const [currentScreen, setCurrentScreen] = useState<'home' | 'new-request' | 'my-requests'>('home');
   const [requerimientos, setRequerimientos] = useState<Requerimiento[]>([]);
@@ -59,7 +60,7 @@ export default function App() {
   const handleLogout = () => {
     logoutSession();
     setCurrentUser(null);
-    setShowWelcomeSplash(true);
+    setShowWelcomeSplash(false);
     setCurrentScreen('home');
     setSelectedRequirement(null);
   };
@@ -98,21 +99,19 @@ export default function App() {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Animación oficial de bienvenida antes de entrar a la pantalla principal
-  if (showWelcomeSplash) {
-    return (
-      <WelcomeSplashScreen
-        currentUser={currentUser}
-        onFinish={() => setShowWelcomeSplash(false)}
-      />
-    );
-  }
-
   // Check if role is desktop-oriented (admin or receptor)
   const isDesktopRole = userRole === 'admin' || userRole === 'receptor';
 
   return (
-    <div className="w-full min-h-screen bg-[#F3F4F6] font-sans antialiased selection:bg-[#00843D] selection:text-white">
+    <div className="w-full min-h-screen bg-[#F3F4F6] font-sans antialiased selection:bg-[#00843D] selection:text-white relative">
+      {/* Animación oficial de bienvenida antes de ingresar a la pantalla principal */}
+      {showWelcomeSplash && (
+        <WelcomeSplashScreen
+          currentUser={currentUser}
+          onFinish={handleFinishSplash}
+        />
+      )}
+
       {/* ------------------------------------------------------------- */}
       {/* 1. VISTA ADMINISTRADOR / RECEPTOR: SISTEMA WEB DE ESCRITORIO   */}
       {/* ------------------------------------------------------------- */}
