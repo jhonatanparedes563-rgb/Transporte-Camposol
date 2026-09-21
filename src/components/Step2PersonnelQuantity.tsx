@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   ArrowRight,
   ArrowLeft,
@@ -11,7 +11,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { RequerimientoDraft, MaestroParadero, ComedorPersonalDraft } from '../types';
-import { getStoredParaderos, subscribeToDataChanges } from '../services/storageService';
+import { getStoredParaderos, getStoredComedores, subscribeToDataChanges } from '../services/storageService';
 
 interface Step2PersonnelQuantityProps {
   draft: RequerimientoDraft;
@@ -67,12 +67,14 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     }
   }, [isAddingColumn]);
 
-  // Extract initial columns from draft comedores or default to ['57', '63', '65', 'G1']
+  // Extract initial columns from draft comedores or default to stored comedores / DEFAULT_COLUMNS
   const initialColumns = useMemo(() => {
     if (draft.comedores && draft.comedores.length > 0) {
       const names = draft.comedores.map((c) => c.comedor).filter(Boolean);
       if (names.length > 0) return names;
     }
+    const stored = getStoredComedores();
+    if (stored.length > 0) return stored.slice(0, 4).map((c) => c.comedor);
     return DEFAULT_COLUMNS;
   }, [draft.comedores]);
 
@@ -86,7 +88,14 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     if (draft.matrizCantidades && Object.keys(draft.matrizCantidades).length > 0) {
       Object.entries(draft.matrizCantidades).forEach(([paradero, colMap]) => {
         if (colMap && typeof colMap === 'object') {
-          initial[paradero] = { ...(colMap as Record<string, number>) };
+          const validCols: Record<string, number> = {};
+          Object.entries(colMap).forEach(([c, v]) => {
+            const num = Number(v) || 0;
+            if (num > 0) validCols[c] = num;
+          });
+          if (Object.keys(validCols).length > 0) {
+            initial[paradero] = validCols;
+          }
         }
       });
       return initial;
@@ -98,18 +107,23 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
         const colName = c.comedor || '57';
         Object.entries(c.paraderosCantidades || {}).forEach(([paradero, rawQty]) => {
           const qty = Number(rawQty) || 0;
-          if (!initial[paradero]) initial[paradero] = {};
-          initial[paradero][colName] = qty;
+          if (qty > 0) {
+            if (!initial[paradero]) initial[paradero] = {};
+            initial[paradero][colName] = qty;
+          }
         });
       });
       return initial;
     }
 
-    // 3. Or fallback to cantidadesPorParadero (assign to '57')
+    // 3. Or fallback to cantidadesPorParadero (assign to first column)
     if (draft.cantidadesPorParadero && Object.keys(draft.cantidadesPorParadero).length > 0) {
+      const defaultCol = initialColumns[0] || '57';
       Object.entries(draft.cantidadesPorParadero).forEach(([paradero, rawQty]) => {
-        const qty = Number(rawQty) || 0;
-        initial[paradero] = { '57': qty };
+        const qty = typeof rawQty === 'number' ? rawQty : Number(rawQty) || 0;
+        if (qty > 0) {
+          initial[paradero] = { [defaultCol]: qty };
+        }
       });
       return initial;
     }
@@ -127,7 +141,7 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
   }, [paraderosMaster, searchTerm]);
 
   // Sync state to parent draft
-  const syncToDraft = (
+  const syncToDraft = useCallback((
     newMatrix: Record<string, Record<string, number>>,
     currentCols: string[]
   ) => {
@@ -160,7 +174,12 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
       matrizCantidades: newMatrix,
       cantidadesPorParadero: consolidatedTotals,
     });
-  };
+  }, [onUpdateDraft]);
+
+  // Synchronize whenever matrix or columns change
+  useEffect(() => {
+    syncToDraft(matrix, columns);
+  }, [matrix, columns, syncToDraft]);
 
   // Handle cell quantity change
   const handleCellChange = (paradero: string, col: string, rawVal: string) => {
@@ -172,12 +191,15 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
       const curRow = { ...(next[paradero] || {}) };
       if (num === 0) {
         delete curRow[col];
+        if (Object.keys(curRow).length === 0) {
+          delete next[paradero];
+        } else {
+          next[paradero] = curRow;
+        }
       } else {
         curRow[col] = num;
+        next[paradero] = curRow;
       }
-      next[paradero] = curRow;
-
-      syncToDraft(next, columns);
       return next;
     });
   };
@@ -188,10 +210,9 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     return columns.reduce((acc, col) => acc + (row[col] || 0), 0);
   };
 
-  const getColTotal = (col: string) => {
-    return paraderosMaster.reduce((acc, p) => {
-      const row = matrix[p.paradero] || {};
-      return acc + (row[col] || 0);
+  const getColTotal = (col: string): number => {
+    return Object.values(matrix).reduce<number>((acc, row) => {
+      return acc + (Number(row[col]) || 0);
     }, 0);
   };
 
@@ -297,7 +318,11 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     setColToDelete(null);
   };
 
-  const grandTotal = paraderosMaster.reduce((acc, p) => acc + getRowTotal(p.paradero), 0);
+  const grandTotal = useMemo(() => {
+    return Object.values(matrix).reduce<number>((acc, row) => {
+      return acc + Object.values(row).reduce<number>((s, v) => s + (Number(v) || 0), 0);
+    }, 0);
+  }, [matrix]);
 
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col space-y-3 pb-8">
@@ -570,7 +595,10 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
         <button
           type="button"
           id="btn-paraderos-siguiente"
-          onClick={onNext}
+          onClick={() => {
+            syncToDraft(matrix, columns);
+            onNext();
+          }}
           className="flex-1 py-3 px-4 bg-[#00843D] hover:bg-[#007034] active:bg-[#005c2b] text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
         >
           <span>Siguiente</span>

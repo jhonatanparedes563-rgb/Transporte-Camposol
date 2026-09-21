@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { RequerimientoDraft, Requerimiento, AppUser } from '../types';
+import { RequerimientoDraft, Requerimiento, AppUser, ComedorPersonalDraft } from '../types';
 import { Step1ServiceData } from './Step1ServiceData';
 import { Step2PersonnelQuantity } from './Step2PersonnelQuantity';
 import { Step3Summary } from './Step3Summary';
 import { Step4Confirmation } from './Step4Confirmation';
-import { saveNewRequerimiento } from '../services/storageService';
+import { saveNewRequerimiento, getStoredComedores } from '../services/storageService';
 
 interface NewRequirementWizardProps {
   onCancel: () => void;
@@ -31,69 +31,43 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
 
   const todayDate = new Date().toISOString().split('T')[0];
 
-  const [draft, setDraft] = useState<RequerimientoDraft>({
-    fecha: todayDate,
-    area: currentUser?.area || 'PRODUCCIÓN',
-    fundo:
-      currentUser?.fundo && currentUser.fundo !== 'TODOS LOS FUNDOS'
-        ? currentUser.fundo
-        : 'AGRICULTOR 1',
-    cultivo:
-      currentUser?.cultivo && currentUser.cultivo !== 'TODOS LOS CULTIVOS'
-        ? currentUser.cultivo
-        : 'ARÁNDANO',
-    movimiento: 'Programa personal por tarea',
-    horaRecojo: '13:00',
-    horaSalida: '14:00',
-    observaciones: '',
-    cantidadesPorParadero: {
-      Chao: 6,
-      'Nuevo Chao': 4,
-      'Valle de Dios': 7,
-      'Viviendas MV': 1,
-      'Victor Raúl (La Brasil)': 1,
-      'Puente (Grifo Chimu)': 2,
-      'San Luis': 1,
-      'Plazuela (S. José)': 6,
-    },
-    matrizCantidades: {
-      Chao: { '57': 6 },
-      'Nuevo Chao': { '57': 4 },
-      'Valle de Dios': { '57': 7 },
-      'Viviendas MV': { '57': 1 },
-      'Victor Raúl (La Brasil)': { '57': 1 },
-      'Puente (Grifo Chimu)': { '57': 2 },
-      'San Luis': { '57': 1 },
-      'Plazuela (S. José)': { '57': 6 },
-    },
-    comedores: [
-      {
-        comedor: '57',
-        paraderosCantidades: {
-          Chao: 6,
-          'Nuevo Chao': 4,
-          'Valle de Dios': 7,
-          'Viviendas MV': 1,
-          'Victor Raúl (La Brasil)': 1,
-          'Puente (Grifo Chimu)': 2,
-          'San Luis': 1,
-          'Plazuela (S. José)': 6,
-        },
-      },
-      {
-        comedor: '63',
-        paraderosCantidades: {},
-      },
-      {
-        comedor: '65',
-        paraderosCantidades: {},
-      },
-      {
-        comedor: 'G1',
-        paraderosCantidades: {},
-      },
-    ],
-  });
+  const buildInitialDraft = (): RequerimientoDraft => {
+    const storedComedores = getStoredComedores();
+    const initialComedores: ComedorPersonalDraft[] =
+      storedComedores.length > 0
+        ? storedComedores.slice(0, 4).map((c) => ({
+            comedor: c.comedor,
+            paraderosCantidades: {},
+          }))
+        : [
+            { comedor: '57', paraderosCantidades: {} },
+            { comedor: '63', paraderosCantidades: {} },
+            { comedor: '65', paraderosCantidades: {} },
+            { comedor: 'G1', paraderosCantidades: {} },
+          ];
+
+    return {
+      fecha: todayDate,
+      area: currentUser?.area || 'PRODUCCIÓN',
+      fundo:
+        currentUser?.fundo && currentUser.fundo !== 'TODOS LOS FUNDOS'
+          ? currentUser.fundo
+          : 'AGRICULTOR 1',
+      cultivo:
+        currentUser?.cultivo && currentUser.cultivo !== 'TODOS LOS CULTIVOS'
+          ? currentUser.cultivo
+          : 'ARÁNDANO',
+      movimiento: 'Programa personal por tarea',
+      horaRecojo: '13:00',
+      horaSalida: '14:00',
+      observaciones: '',
+      cantidadesPorParadero: {},
+      matrizCantidades: {},
+      comedores: initialComedores,
+    };
+  };
+
+  const [draft, setDraft] = useState<RequerimientoDraft>(buildInitialDraft);
 
   const handleUpdateDraft = (partial: Partial<RequerimientoDraft>) => {
     setDraft((prev) => ({ ...prev, ...partial }));
@@ -114,27 +88,7 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   };
 
   const handleResetForNew = () => {
-    setDraft({
-      fecha: todayDate,
-      area: currentUser?.area || 'PRODUCCIÓN',
-      fundo:
-        currentUser?.fundo && currentUser.fundo !== 'TODOS LOS FUNDOS'
-          ? currentUser.fundo
-          : 'AGRICULTOR 1',
-      cultivo: 'ARÁNDANO',
-      movimiento: 'Programa personal por tarea',
-      horaRecojo: '13:00',
-      horaSalida: '14:00',
-      observaciones: '',
-      cantidadesPorParadero: {},
-      matrizCantidades: {},
-      comedores: [
-        { comedor: '57', paraderosCantidades: {} },
-        { comedor: '63', paraderosCantidades: {} },
-        { comedor: '65', paraderosCantidades: {} },
-        { comedor: 'G1', paraderosCantidades: {} },
-      ],
-    });
+    setDraft(buildInitialDraft());
     setCreatedRequirement(null);
     setCurrentStep(1);
   };
