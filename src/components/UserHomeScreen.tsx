@@ -326,7 +326,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
         <Info className="w-4 h-4 text-[#00843D] shrink-0 mt-0.5" />
         <div className="text-[11px] text-[#173B56] leading-relaxed">
           <span className="font-bold text-[#00843D]">Coordinación de Transporte: </span>
-          El horario regular de recepción de solicitudes finaliza a las 18:00 hrs para programación de turnos.
+          El horario regular de recepción de solicitudes para la salida del mismo día es hasta las <strong className="font-bold text-[#173B56]">09:00 AM</strong> y para el día siguiente es hasta las <strong className="font-bold text-[#173B56]">14:00 PM</strong>.
         </div>
       </div>
     </div>

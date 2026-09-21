@@ -598,6 +598,39 @@ export function saveStoredFundos(fundos: MaestroFundo[]): void {
 }
 
 export function inferParaderoZona(name: string): 'NORTE' | 'SUR' {
+  const cleanName = (name || '').trim().toLowerCase();
+  try {
+    const raw = localStorage.getItem(PARADEROS_STORAGE_KEY);
+    if (raw) {
+      const list: MaestroParadero[] = JSON.parse(raw);
+      // 1. Coincidencia exacta
+      const found = list.find((p) => p.paradero.trim().toLowerCase() === cleanName);
+      if (found?.zona === 'NORTE' || found?.zona === 'SUR') {
+        return found.zona;
+      }
+
+      // 2. Coincidencia normalizada (sin tildes, signos ni espacios extras)
+      const normalize = (s: string) =>
+        (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const cleanNorm = normalize(cleanName);
+      const foundNorm = list.find((p) => normalize(p.paradero) === cleanNorm);
+      if (foundNorm?.zona === 'NORTE' || foundNorm?.zona === 'SUR') {
+        return foundNorm.zona;
+      }
+
+      // 3. Coincidencia parcial o substring en maestro
+      const foundPartial = list.find((p) => {
+        const pNorm = normalize(p.paradero);
+        return (pNorm.length >= 3 && cleanNorm.includes(pNorm)) || (cleanNorm.length >= 3 && pNorm.includes(cleanNorm));
+      });
+      if (foundPartial?.zona === 'NORTE' || foundPartial?.zona === 'SUR') {
+        return foundPartial.zona;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
   const upper = (name || '').toUpperCase();
   if (
     upper.includes('CHAO') ||

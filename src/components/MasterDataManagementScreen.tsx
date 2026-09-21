@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Download,
+  ArrowLeftRight,
+  Compass,
 } from 'lucide-react';
 import {
   MaestroArea,
@@ -33,6 +35,7 @@ import {
   saveStoredComedores,
   resetMasterDataToDefault,
   exportToCSV,
+  inferParaderoZona,
 } from '../services/storageService';
 
 type MasterCategory = 'paraderos' | 'fundos' | 'areas' | 'comedores';
@@ -57,11 +60,16 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
   // Creation state
   const [newItemName, setNewItemName] = useState('');
+  const [newParaderoZona, setNewParaderoZona] = useState<'NORTE' | 'SUR'>('NORTE');
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Filter for Paraderos: 'TODOS' | 'NORTE' | 'SUR'
+  const [selectedZonaFilter, setSelectedZonaFilter] = useState<'TODOS' | 'NORTE' | 'SUR'>('TODOS');
 
   // Inline editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [editingZona, setEditingZona] = useState<'NORTE' | 'SUR'>('NORTE');
 
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -89,11 +97,26 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     }, 2800);
   };
 
-  // Filtered lists based on search
+  // Paradero zone counters
+  const countNorte = useMemo(() => {
+    return paraderos.filter((p) => (p.zona || inferParaderoZona(p.paradero)) === 'NORTE').length;
+  }, [paraderos]);
+
+  const countSur = useMemo(() => {
+    return paraderos.filter((p) => (p.zona || inferParaderoZona(p.paradero)) === 'SUR').length;
+  }, [paraderos]);
+
+  // Filtered lists based on search & zone
   const filteredParaderos = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    return q ? paraderos.filter((p) => p.paradero.toLowerCase().includes(q)) : paraderos;
-  }, [paraderos, searchQuery]);
+    return paraderos.filter((p) => {
+      const matchesQuery = !q || p.paradero.toLowerCase().includes(q);
+      const paraderoZona = p.zona || inferParaderoZona(p.paradero);
+      const matchesZona =
+        selectedZonaFilter === 'TODOS' || paraderoZona === selectedZonaFilter;
+      return matchesQuery && matchesZona;
+    });
+  }, [paraderos, searchQuery, selectedZonaFilter]);
 
   const filteredFundos = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -165,10 +188,10 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         setFormError('Ya existe un paradero con este nombre.');
         return;
       }
-      const updated = [...paraderos, { id: newId, paradero: cleanName }];
+      const updated = [...paraderos, { id: newId, paradero: cleanName, zona: newParaderoZona }];
       setParaderos(updated);
       saveStoredParaderos(updated);
-      showNotification(`Paradero "${cleanName}" agregado con éxito`);
+      showNotification(`Paradero "${cleanName}" agregado a ZONA ${newParaderoZona}`);
     } else if (activeTab === 'fundos') {
       if (fundos.some((f) => f.fundo.toLowerCase() === cleanName.toLowerCase())) {
         setFormError('Ya existe un fundo con este nombre.');
@@ -201,10 +224,28 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     setNewItemName('');
   };
 
+  // Toggle paradero zone directly from the card
+  const handleToggleParaderoZona = (id: string) => {
+    const target = paraderos.find((p) => p.id === id);
+    if (!target) return;
+    const currentZona = target.zona || inferParaderoZona(target.paradero);
+    const newZona: 'NORTE' | 'SUR' = currentZona === 'SUR' ? 'NORTE' : 'SUR';
+    const updated = paraderos.map((p) =>
+      p.id === id ? { ...p, zona: newZona } : p
+    );
+    setParaderos(updated);
+    saveStoredParaderos(updated);
+    showNotification(`"${target.paradero}" ahora pertenece a ZONA ${newZona}`);
+  };
+
   // Start inline editing
   const startEditing = (id: string, name: string) => {
     setEditingId(id);
     setEditingName(name);
+    if (activeTab === 'paraderos') {
+      const p = paraderos.find((item) => item.id === id);
+      setEditingZona((p?.zona || inferParaderoZona(name)) as 'NORTE' | 'SUR');
+    }
   };
 
   const cancelEditing = () => {
@@ -218,7 +259,9 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     if (!cleanName) return;
 
     if (activeTab === 'paraderos') {
-      const updated = paraderos.map((p) => (p.id === id ? { ...p, paradero: cleanName } : p));
+      const updated = paraderos.map((p) =>
+        p.id === id ? { ...p, paradero: cleanName, zona: editingZona } : p
+      );
       setParaderos(updated);
       saveStoredParaderos(updated);
     } else if (activeTab === 'fundos') {
@@ -396,6 +439,11 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     <div className={`text-[10px] font-medium leading-tight mt-1 truncate ${isCurrent ? 'text-emerald-100' : 'text-gray-500'}`}>
                       {t.label}
                     </div>
+                    {t.id === 'paraderos' && (
+                      <div className={`text-[9px] font-bold mt-1 tracking-tight ${isCurrent ? 'text-white/90' : 'text-gray-400'}`}>
+                        {countNorte}N • {countSur}S
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -425,7 +473,11 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   type="text"
                   value={newItemName}
                   onChange={(e) => {
-                    setNewItemName(e.target.value);
+                    const val = e.target.value;
+                    setNewItemName(val);
+                    if (activeTab === 'paraderos' && val.trim().length >= 3) {
+                      setNewParaderoZona(inferParaderoZona(val));
+                    }
                     if (formError) setFormError(null);
                   }}
                   placeholder={currentTabInfo.placeholder}
@@ -440,6 +492,44 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   <span>Agregar</span>
                 </button>
               </div>
+
+              {/* Zona selector when adding a new Paradero */}
+              {activeTab === 'paraderos' && (
+                <div className="flex items-center justify-between bg-[#F5F8F7] px-3 py-2 rounded-xl border border-gray-200/80">
+                  <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                    <Compass className="w-3.5 h-3.5 text-[#00843D]" />
+                    <span>Zona asignada:</span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      id="btn-select-new-norte"
+                      onClick={() => setNewParaderoZona('NORTE')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                        newParaderoZona === 'NORTE'
+                          ? 'bg-indigo-600 text-white shadow-2xs'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${newParaderoZona === 'NORTE' ? 'bg-indigo-300' : 'bg-indigo-500'}`} />
+                      <span>Zona Norte</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-select-new-sur"
+                      onClick={() => setNewParaderoZona('SUR')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                        newParaderoZona === 'SUR'
+                          ? 'bg-amber-600 text-white shadow-2xs'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${newParaderoZona === 'SUR' ? 'bg-amber-300' : 'bg-amber-500'}`} />
+                      <span>Zona Sur</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {formError && (
                 <p className="text-xs text-red-600 font-medium flex items-center gap-1">
@@ -491,6 +581,69 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             })}
           </div>
 
+          {/* Quick Zone Distribution & Filter when on Paraderos */}
+          {activeTab === 'paraderos' && (
+            <div className="bg-white rounded-2xl p-3 border border-gray-200/80 shadow-xs flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#E8F5EF] text-[#00843D] flex items-center justify-center font-bold shrink-0">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-[#173B56] uppercase tracking-wide">
+                    Distribución por Zona
+                  </div>
+                  <div className="text-[11px] text-gray-500">
+                    Total: <strong className="text-gray-800">{paraderos.length}</strong> • Zona Norte:{' '}
+                    <strong className="text-indigo-700 font-bold">{countNorte}</strong> • Zona Sur:{' '}
+                    <strong className="text-amber-700 font-bold">{countSur}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Filter Buttons */}
+              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  id="filter-zona-todos"
+                  onClick={() => setSelectedZonaFilter('TODOS')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    selectedZonaFilter === 'TODOS'
+                      ? 'bg-white text-gray-800 shadow-2xs font-black'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  Todos ({paraderos.length})
+                </button>
+                <button
+                  type="button"
+                  id="filter-zona-norte"
+                  onClick={() => setSelectedZonaFilter('NORTE')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                    selectedZonaFilter === 'NORTE'
+                      ? 'bg-indigo-600 text-white shadow-2xs font-black'
+                      : 'text-indigo-700 hover:bg-indigo-50'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
+                  <span>Norte ({countNorte})</span>
+                </button>
+                <button
+                  type="button"
+                  id="filter-zona-sur"
+                  onClick={() => setSelectedZonaFilter('SUR')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                    selectedZonaFilter === 'SUR'
+                      ? 'bg-amber-600 text-white shadow-2xs font-black'
+                      : 'text-amber-700 hover:bg-amber-50'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+                  <span>Sur ({countSur})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Search and List Header */}
           <div className="space-y-2">
             <div className="relative">
@@ -513,7 +666,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               )}
             </div>
 
-            <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+            <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 px-1 gap-1">
               <span>
                 Mostrando <strong>
                   {activeTab === 'paraderos'
@@ -524,6 +677,12 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     ? filteredAreas.length
                     : filteredComedores.length}
                 </strong> {currentTabInfo.label.toLowerCase()}
+                {activeTab === 'paraderos' && (
+                  <span className="ml-1 text-[11px] text-gray-600">
+                    (<strong className="text-indigo-700">{countNorte} Norte</strong>,{' '}
+                    <strong className="text-amber-700">{countSur} Sur</strong>)
+                  </span>
+                )}
               </span>
               {searchQuery && (
                 <span className="text-[#00843D] font-semibold">
@@ -546,21 +705,28 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   />
                 </div>
               ) : (
-                filteredParaderos.map((item, index) => (
-                  <MasterListItem
-                    key={item.id}
-                    id={item.id}
-                    index={index + 1}
-                    name={item.paradero}
-                    isEditing={editingId === item.id}
-                    editingValue={editingName}
-                    onStartEdit={() => startEditing(item.id, item.paradero)}
-                    onChangeEdit={(val) => setEditingName(val)}
-                    onSaveEdit={() => saveEditing(item.id)}
-                    onCancelEdit={cancelEditing}
-                    onDelete={() => setItemToDelete({ id: item.id, name: item.paradero })}
-                  />
-                ))
+                filteredParaderos.map((item, index) => {
+                  const itemZona = item.zona || inferParaderoZona(item.paradero);
+                  return (
+                    <MasterListItem
+                      key={item.id}
+                      id={item.id}
+                      index={index + 1}
+                      name={item.paradero}
+                      zona={itemZona}
+                      onToggleZona={() => handleToggleParaderoZona(item.id)}
+                      isEditing={editingId === item.id}
+                      editingValue={editingName}
+                      editingZona={editingZona}
+                      onChangeEditingZona={setEditingZona}
+                      onStartEdit={() => startEditing(item.id, item.paradero)}
+                      onChangeEdit={(val) => setEditingName(val)}
+                      onSaveEdit={() => saveEditing(item.id)}
+                      onCancelEdit={cancelEditing}
+                      onDelete={() => setItemToDelete({ id: item.id, name: item.paradero })}
+                    />
+                  );
+                })
               ))}
 
             {/* FUNDOS LIST */}
@@ -736,6 +902,11 @@ interface MasterListItemProps {
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onDelete: () => void;
+  // Paradero zone support
+  zona?: 'NORTE' | 'SUR';
+  onToggleZona?: () => void;
+  editingZona?: 'NORTE' | 'SUR';
+  onChangeEditingZona?: (z: 'NORTE' | 'SUR') => void;
 }
 
 const MasterListItem: React.FC<MasterListItemProps> = ({
@@ -749,6 +920,10 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
   onSaveEdit,
   onCancelEdit,
   onDelete,
+  zona,
+  onToggleZona,
+  editingZona,
+  onChangeEditingZona,
 }) => {
   return (
     <div
@@ -761,34 +936,82 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
         </span>
 
         {isEditing ? (
-          <div className="flex items-center gap-1.5 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
             <input
               type="text"
               value={editingValue}
               onChange={(e) => onChangeEdit(e.target.value)}
               autoFocus
-              className="flex-1 px-3 py-1.5 rounded-lg border border-[#00843D] text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00843D]"
+              className="flex-1 min-w-[120px] px-3 py-1.5 rounded-lg border border-[#00843D] text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00843D]"
             />
-            <button
-              onClick={onSaveEdit}
-              className="p-1.5 bg-[#00843D] text-white rounded-lg hover:bg-[#006e33] transition-colors"
-              title="Guardar cambios"
-            >
-              <Check className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onCancelEdit}
-              className="p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-              title="Cancelar"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {editingZona && onChangeEditingZona && (
+              <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onChangeEditingZona('NORTE')}
+                  className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                    editingZona === 'NORTE'
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  Norte
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangeEditingZona('SUR')}
+                  className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                    editingZona === 'SUR'
+                      ? 'bg-amber-600 text-white shadow-2xs'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  Sur
+                </button>
+              </div>
+            )}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={onSaveEdit}
+                className="p-1.5 bg-[#00843D] text-white rounded-lg hover:bg-[#006e33] transition-colors cursor-pointer"
+                title="Guardar cambios"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onCancelEdit}
+                className="p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                title="Cancelar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-bold text-[#173B56] block truncate">
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-2 pr-1">
+            <span className="text-sm font-bold text-[#173B56] truncate" title={name}>
               {name}
             </span>
+            {zona && (
+              <button
+                type="button"
+                id={`btn-toggle-zona-${id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleZona?.();
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 shrink-0 transition-all border shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
+                  zona === 'SUR'
+                    ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                    : 'bg-indigo-100 text-indigo-900 border-indigo-300 hover:bg-indigo-200'
+                }`}
+                title={`Zona: ${zona}. Haz clic para cambiar a ${zona === 'SUR' ? 'NORTE' : 'SUR'}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${zona === 'SUR' ? 'bg-amber-600' : 'bg-indigo-600'}`} />
+                <span>{zona}</span>
+                <ArrowLeftRight className="w-2.5 h-2.5 opacity-60 ml-0.5" />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -798,7 +1021,7 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
           <button
             id={`btn-edit-${id}`}
             onClick={onStartEdit}
-            className="p-2 text-gray-500 hover:text-[#00843D] hover:bg-[#E8F5EF] rounded-xl transition-colors"
+            className="p-2 text-gray-500 hover:text-[#00843D] hover:bg-[#E8F5EF] rounded-xl transition-colors cursor-pointer"
             title="Editar nombre"
           >
             <Edit2 className="w-4 h-4" />
@@ -806,7 +1029,7 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
           <button
             id={`btn-delete-${id}`}
             onClick={onDelete}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
             title="Eliminar"
           >
             <Trash2 className="w-4 h-4" />

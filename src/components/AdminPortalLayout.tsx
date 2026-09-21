@@ -9,6 +9,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Search,
   Filter,
   Calendar,
@@ -34,11 +36,15 @@ import {
   CloudCheck,
   Trash2,
   AlertTriangle,
+  FileSpreadsheet,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, UserRole, AppUser } from '../types';
 import {
   getStoredAreas,
   getStoredFundos,
+  getStoredDetalles,
   getDetallesByRequerimientoId,
   updateRequerimientoEstado,
   deleteRequerimiento,
@@ -47,10 +53,13 @@ import {
   syncWithServerNow,
   getSyncInfo,
 } from '../services/storageService';
+import { consolidarParaderos, exportarRequerimientoIndividualExcel } from '../services/excelExportService';
 import { MasterDataManagementScreen } from './MasterDataManagementScreen';
 import { PowerBIAnalyticsView } from './PowerBIAnalyticsView';
 import { NewRequirementWizard } from './NewRequirementWizard';
 import { UserManagementScreen } from './UserManagementScreen';
+import { SupervisorParaderosModal } from './SupervisorParaderosModal';
+import { ExportExcelOptionsModal } from './ExportExcelOptionsModal';
 
 interface AdminPortalLayoutProps {
   requerimientos: Requerimiento[];
@@ -103,6 +112,12 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   const [reqToDelete, setReqToDelete] = useState<Requerimiento | null>(null);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
 
+  // Estados para resumen de paraderos y exportación a Excel
+  const [expandedReqIds, setExpandedReqIds] = useState<string[]>([]);
+  const [supervisorModalReq, setSupervisorModalReq] = useState<Requerimiento | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [copiedReqId, setCopiedReqId] = useState<string | null>(null);
+
   const areas = useMemo(() => getStoredAreas(), []);
   const fundos = useMemo(() => getStoredFundos(), []);
 
@@ -118,6 +133,68 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const toggleExpandReq = (id: string) => {
+    setExpandedReqIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleCopyReqSummary = (req: Requerimiento) => {
+    const details = getDetallesByRequerimientoId(req.id);
+    const agrupados = consolidarParaderos(details);
+    const surList = agrupados.filter((p) => p.zona === 'SUR');
+    const norteList = agrupados.filter((p) => p.zona === 'NORTE');
+    const totalSur = surList.reduce((acc, p) => acc + p.totalPersonas, 0);
+    const totalNorte = norteList.reduce((acc, p) => acc + p.totalPersonas, 0);
+    const totalGen = agrupados.reduce((acc, p) => acc + p.totalPersonas, 0);
+
+    let text = `🚌 *RESUMEN DE TRANSPORTE - CAMPOSOL*\n`;
+    text += `📋 *Requerimiento:* ${req.numeroRequerimiento}\n`;
+    text += `👤 *Supervisor:* ${req.usuario || 'Supervisor'}\n`;
+    text += `📅 *Fecha:* ${req.fecha} | *Turno:* ${req.horaRecojo} - ${req.horaSalida}\n`;
+    text += `🏢 *Área:* ${req.area} | *Fundo:* ${req.fundo}\n`;
+    text += `🔄 *Movimiento:* ${req.movimiento}\n`;
+    text += `👥 *Total Solicitado:* ${totalGen} personas\n\n`;
+
+    if (totalSur > 0) {
+      text += `🟡 *ZONA SUR (${totalSur} personas - ${surList.length} paraderos):*\n`;
+      surList.forEach((p, idx) => {
+        text += `  ${idx + 1}. *${p.paradero}*: ${p.totalPersonas} pers.`;
+        if (p.comedoresDetalle.length > 1) {
+          text += ` [${p.comedoresDetalle.map((c) => `${c.comedor}: ${c.cantidad}`).join(', ')}]`;
+        }
+        text += `\n`;
+      });
+      text += `  👉 *Subtotal Zona Sur: ${totalSur} personas*\n\n`;
+    }
+
+    if (totalNorte > 0) {
+      text += `🔵 *ZONA NORTE (${totalNorte} personas - ${norteList.length} paraderos):*\n`;
+      norteList.forEach((p, idx) => {
+        text += `  ${idx + 1}. *${p.paradero}*: ${p.totalPersonas} pers.`;
+        if (p.comedoresDetalle.length > 1) {
+          text += ` [${p.comedoresDetalle.map((c) => `${c.comedor}: ${c.cantidad}`).join(', ')}]`;
+        }
+        text += `\n`;
+      });
+      text += `  👉 *Subtotal Zona Norte: ${totalNorte} personas*\n\n`;
+    }
+
+    text += `📊 *TOTAL CONSOLIDADO:*\n`;
+    text += `• Total Zona Sur: *${totalSur} personas* (${surList.length} paraderos)\n`;
+    text += `• Total Zona Norte: *${totalNorte} personas* (${norteList.length} paraderos)\n`;
+    text += `• Gran Total: *${totalGen} personas*\n`;
+
+    if (req.observaciones) {
+      text += `\n📝 *Observaciones:* ${req.observaciones}\n`;
+    }
+
+    navigator.clipboard.writeText(text);
+    setCopiedReqId(req.id);
+    setTimeout(() => setCopiedReqId(null), 2500);
+    showToast('¡Resumen de paraderos con subtotales Norte y Sur copiado para WhatsApp!');
   };
 
   const handleManualSync = async () => {
@@ -863,11 +940,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   <span>Limpiar Filtros</span>
                 </button>
                 <button
-                  onClick={handleExportFilteredCSV}
-                  className="px-3.5 py-1.5 text-xs font-bold text-[#00843D] bg-[#E8F5EF] hover:bg-[#d5eee0] rounded-xl transition-colors flex items-center gap-1.5 shadow-2xs"
+                  id="btn-export-excel-header"
+                  onClick={() => setShowExportModal(true)}
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+                  title="Descargar en Excel optimizado con números listos para sumar"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Exportar Reporte (CSV)</span>
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Exportar a Excel (Para Sumas)</span>
                 </button>
                 <button
                   onClick={onNewRequirement}
@@ -1096,129 +1175,335 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       const paraderosCount = detalles.length;
 
                       return (
-                        <tr
-                          key={req.id}
-                          className={`hover:bg-emerald-50/30 transition-colors ${
-                            isSelected ? 'bg-[#E8F5EF]/40' : ''
-                          }`}
-                        >
-                          <td className="py-3.5 px-4">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleToggleSelectRow(req.id)}
-                              className="rounded-sm border-gray-300 text-[#00843D] focus:ring-[#00843D]"
-                            />
-                          </td>
-                          <td className="py-3.5 px-4 font-mono font-bold text-[#00843D]">
-                            <button
-                              onClick={() => onOpenRequirementDetail(req)}
-                              className="hover:underline flex items-center gap-1 text-left"
-                            >
-                              <span>{req.numeroRequerimiento}</span>
-                            </button>
-                            <span className="text-[10px] text-gray-400 block font-sans font-normal">
-                              Reg: {req.fechaRegistro.slice(0, 10)}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="font-bold text-[#173B56]">{req.fecha}</div>
-                            <span className="text-[10px] text-gray-500">
-                              {paraderosCount} paradero{paraderosCount !== 1 ? 's' : ''}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="font-bold text-[#173B56]">{req.area}</div>
-                            <span className="text-[11px] text-gray-500 flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-gray-400" />
-                              <span>{req.fundo}</span>
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                req.movimiento === 'INGRESO'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-blue-100 text-blue-800'
-                              }`}
-                            >
-                              {req.movimiento}
-                            </span>
-                            <div className="text-[10px] text-gray-500 mt-1">
-                              Recojo: {req.horaRecojo} | Salida: {req.horaSalida}
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="font-black text-base text-[#173B56]">
-                              {req.totalPersonas}{' '}
-                              <span className="text-xs font-normal text-gray-500">pers.</span>
-                            </div>
-                            <span className="text-[10px] text-gray-400">
-                              ~{Math.ceil(req.totalPersonas / 40)} bus(es)
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className="font-semibold text-gray-700 block truncate max-w-[120px]">
-                              {req.usuario || 'Supervisor'}
-                            </span>
-                            {req.observaciones && (
-                              <span
-                                className="text-[10px] text-gray-400 italic block truncate max-w-[120px]"
-                                title={req.observaciones}
-                              >
-                                {req.observaciones}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 text-center">
-                            {renderEstadoBadge(req.estado)}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center justify-center gap-1">
-                              {/* Ver Detalle */}
+                        <React.Fragment key={req.id}>
+                          <tr
+                            className={`hover:bg-emerald-50/30 transition-colors ${
+                              isSelected ? 'bg-[#E8F5EF]/40' : ''
+                            }`}
+                          >
+                            <td className="py-3.5 px-4">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleSelectRow(req.id)}
+                                className="rounded-sm border-gray-300 text-[#00843D] focus:ring-[#00843D]"
+                              />
+                            </td>
+                            <td className="py-3.5 px-4 font-mono font-bold text-[#00843D]">
                               <button
                                 onClick={() => onOpenRequirementDetail(req)}
-                                className="p-1.5 text-gray-500 hover:text-[#00843D] hover:bg-gray-100 rounded-lg transition-colors"
-                                title="Ver detalles y desglose de paraderos"
+                                className="hover:underline flex items-center gap-1 text-left"
                               >
-                                <Eye className="w-4 h-4" />
+                                <span>{req.numeroRequerimiento}</span>
                               </button>
-
-                              {/* Aprobar rápido */}
-                              {req.estado !== 'APROBADO' && req.estado !== 'ATENDIDO' && (
-                                <button
-                                  onClick={() => handleQuickStatusChange(req.id, 'APROBADO')}
-                                  className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#00843D] border border-emerald-300 rounded-lg text-[10px] font-black transition-colors"
-                                  title="Aprobar requerimiento"
-                                >
-                                  Aprobar
-                                </button>
-                              )}
-
-                              {/* Atender rápido */}
-                              {req.estado === 'APROBADO' && (
-                                <button
-                                  onClick={() => handleQuickStatusChange(req.id, 'ATENDIDO')}
-                                  className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-[10px] font-black transition-colors"
-                                  title="Marcar como atendido"
-                                >
-                                  Atender
-                                </button>
-                              )}
-
-                              {/* Eliminar requerimiento (Botón solicitado explícitamente en la tabla con icono circular rojo) */}
+                              <span className="text-[10px] text-gray-400 block font-sans font-normal">
+                                Reg: {req.fechaRegistro.slice(0, 10)}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-[#173B56]">{req.fecha}</div>
                               <button
-                                id={`btn-eliminar-req-${req.id}`}
-                                onClick={() => setReqToDelete(req)}
-                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors border border-transparent hover:border-red-200"
-                                title="Eliminar requerimiento"
-                                aria-label="Eliminar requerimiento"
+                                type="button"
+                                onClick={() => toggleExpandReq(req.id)}
+                                className="text-[10px] font-bold text-[#00843D] hover:underline flex items-center gap-0.5 cursor-pointer mt-0.5"
+                                title="Haz clic para desplegar el resumen de paraderos"
                               >
-                                <XCircle className="w-4 h-4 text-red-500 hover:text-red-700" />
+                                <span>{paraderosCount} paradero{paraderosCount !== 1 ? 's' : ''}</span>
+                                {expandedReqIds.includes(req.id) ? (
+                                  <ChevronUp className="w-3 h-3 text-[#00843D]" />
+                                ) : (
+                                  <ChevronDown className="w-3 h-3 text-[#00843D]" />
+                                )}
                               </button>
-                            </div>
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-[#173B56]">{req.area}</div>
+                              <span className="text-[11px] text-gray-500 flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-gray-400" />
+                                <span>{req.fundo}</span>
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                  req.movimiento === 'INGRESO'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-blue-100 text-blue-800'
+                                }`}
+                              >
+                                {req.movimiento}
+                              </span>
+                              <div className="text-[10px] text-gray-500 mt-1">
+                                Recojo: {req.horaRecojo} | Salida: {req.horaSalida}
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="font-black text-base text-[#173B56]">
+                                {req.totalPersonas}{' '}
+                                <span className="text-xs font-normal text-gray-500">pers.</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSupervisorModalReq(req);
+                                }}
+                                className="group flex items-center gap-1.5 text-left p-1 -m-1 rounded-xl hover:bg-emerald-50 text-[#173B56] hover:text-[#00843D] transition-all cursor-pointer"
+                                title="Haz clic aquí para ver el resumen de paraderos solicitados por este usuario"
+                              >
+                                <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#00843D] group-hover:bg-[#00843D] group-hover:text-white flex items-center justify-center shrink-0 transition-colors shadow-2xs font-black text-xs">
+                                  {(req.usuario || 'S').slice(0, 1).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-bold text-xs text-gray-800 group-hover:text-[#00843D] block truncate max-w-[125px]">
+                                    {req.usuario || 'Supervisor'}
+                                  </span>
+                                  <span className="text-[10px] text-[#00843D] font-extrabold flex items-center gap-0.5">
+                                    <span>Ver paraderos</span>
+                                    <ChevronRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
+                                  </span>
+                                </div>
+                              </button>
+                              {req.observaciones && (
+                                <span
+                                  className="text-[10px] text-gray-400 italic block truncate max-w-[125px] mt-0.5"
+                                  title={req.observaciones}
+                                >
+                                  {req.observaciones}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              {renderEstadoBadge(req.estado)}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center justify-center gap-1">
+                                {/* Ver Detalle */}
+                                <button
+                                  onClick={() => onOpenRequirementDetail(req)}
+                                  className="p-1.5 text-gray-500 hover:text-[#00843D] hover:bg-gray-100 rounded-lg transition-colors"
+                                  title="Ver detalles y desglose de paraderos"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+
+                                {/* Aprobar rápido */}
+                                {req.estado !== 'APROBADO' && req.estado !== 'ATENDIDO' && (
+                                  <button
+                                    onClick={() => handleQuickStatusChange(req.id, 'APROBADO')}
+                                    className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#00843D] border border-emerald-300 rounded-lg text-[10px] font-black transition-colors"
+                                    title="Aprobar requerimiento"
+                                  >
+                                    Aprobar
+                                  </button>
+                                )}
+
+                                {/* Atender rápido */}
+                                {req.estado === 'APROBADO' && (
+                                  <button
+                                    onClick={() => handleQuickStatusChange(req.id, 'ATENDIDO')}
+                                    className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-[10px] font-black transition-colors"
+                                    title="Marcar como atendido"
+                                  >
+                                    Atender
+                                  </button>
+                                )}
+
+                                {/* Eliminar requerimiento (Botón solicitado explícitamente en la tabla con icono circular rojo) */}
+                                <button
+                                  id={`btn-eliminar-req-${req.id}`}
+                                  onClick={() => setReqToDelete(req)}
+                                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors border border-transparent hover:border-red-200"
+                                  title="Eliminar requerimiento"
+                                  aria-label="Eliminar requerimiento"
+                                >
+                                  <XCircle className="w-4 h-4 text-red-500 hover:text-red-700" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Fila expandible con resumen de paraderos para suma rápida */}
+                          {expandedReqIds.includes(req.id) && (
+                            <tr key={`expand-${req.id}`} className="bg-emerald-50/40 border-b-2 border-emerald-200 animate-in fade-in duration-150">
+                              <td colSpan={9} className="p-3 sm:p-4">
+                                <div className="bg-white rounded-2xl border border-emerald-200 shadow-xs p-4 space-y-3">
+                                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-xl bg-emerald-100 text-[#00843D] flex items-center justify-center font-bold">
+                                        <User className="w-4 h-4" />
+                                      </div>
+                                      <div>
+                                        <div className="text-xs font-black text-[#173B56] flex items-center gap-2">
+                                          <span>Resumen por Paradero: {req.usuario || 'Supervisor'}</span>
+                                          <span className="font-mono text-[#00843D] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]">
+                                            {req.numeroRequerimiento}
+                                          </span>
+                                        </div>
+                                        <span className="text-[11px] text-gray-500">
+                                          {req.area} • {req.fundo} • Turno {req.horaRecojo}-{req.horaSalida} • Total: <strong className="text-[#00843D] font-black">{req.totalPersonas} personas</strong>
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopyReqSummary(req)}
+                                        className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
+                                        title="Copiar resumen para WhatsApp"
+                                      >
+                                        <Copy className="w-3.5 h-3.5" />
+                                        <span>{copiedReqId === req.id ? '¡Copiado!' : 'Copiar WhatsApp'}</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => exportarRequerimientoIndividualExcel(req, detalles)}
+                                        className="px-2.5 py-1.5 bg-[#00843D] hover:bg-[#006e33] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors shadow-2xs"
+                                        title="Descargar este requerimiento a Excel con números listos para sumar"
+                                      >
+                                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                                        <span>Descargar en Excel</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setSupervisorModalReq(req)}
+                                        className="px-2.5 py-1.5 bg-[#173B56] hover:bg-[#122e43] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
+                                        title="Abrir resumen completo en ventana emergente"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                        <span>Ver Detalle</span>
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Grid de paraderos sumados con Subtotales por Zona */}
+                                  {(() => {
+                                    const agrupados = consolidarParaderos(detalles);
+                                    if (agrupados.length === 0) {
+                                      return (
+                                        <p className="text-xs text-gray-400 italic py-2">
+                                          No hay desglose de paraderos registrado para este requerimiento.
+                                        </p>
+                                      );
+                                    }
+
+                                    const surList = agrupados.filter((p) => p.zona === 'SUR');
+                                    const norteList = agrupados.filter((p) => p.zona === 'NORTE');
+                                    const totalSur = surList.reduce((acc, p) => acc + p.totalPersonas, 0);
+                                    const totalNorte = norteList.reduce((acc, p) => acc + p.totalPersonas, 0);
+                                    const totalGen = agrupados.reduce((acc, p) => acc + p.totalPersonas, 0);
+                                    const busesSur = Math.ceil(totalSur / 40);
+                                    const busesNorte = Math.ceil(totalNorte / 40);
+                                    const busesTot = Math.ceil(totalGen / 40);
+
+                                    return (
+                                      <div className="space-y-3">
+                                         {/* Barra de Subtotales por Zona Limpia */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                          <div className="flex items-center justify-between p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+                                            <div className="flex items-center gap-1.5 font-bold">
+                                              <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                              <span>Zona Sur:</span>
+                                            </div>
+                                            <div className="font-mono">
+                                              <strong className="text-sm font-black text-amber-950">{totalSur}</strong>{' '}
+                                              <span className="text-[10px] text-amber-800">({surList.length} paraderos)</span>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center justify-between p-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900">
+                                            <div className="flex items-center gap-1.5 font-bold">
+                                              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                              <span>Zona Norte:</span>
+                                            </div>
+                                            <div className="font-mono">
+                                              <strong className="text-sm font-black text-indigo-950">{totalNorte}</strong>{' '}
+                                              <span className="text-[10px] text-indigo-800">({norteList.length} paraderos)</span>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900">
+                                            <div className="flex items-center gap-1.5 font-bold">
+                                              <span className="w-2 h-2 rounded-full bg-[#00843D]" />
+                                              <span>Total:</span>
+                                            </div>
+                                            <div className="font-mono">
+                                              <strong className="text-sm font-black text-[#00843D]">{totalGen}</strong>{' '}
+                                              <span className="text-[10px] text-emerald-800">({agrupados.length} paraderos)</span>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                                          {agrupados.map((p, pIdx) => (
+                                            <div
+                                              key={pIdx}
+                                              className={`p-2.5 rounded-xl border transition-colors ${
+                                                p.zona === 'SUR'
+                                                  ? 'bg-amber-50/40 border-amber-200 hover:border-amber-400'
+                                                  : 'bg-indigo-50/40 border-indigo-200 hover:border-indigo-400'
+                                              }`}
+                                            >
+                                              <div className="flex items-center justify-between text-[10px] text-gray-600 mb-1">
+                                                <span className="font-bold truncate max-w-[85px]" title={p.paradero}>
+                                                  {p.paradero}
+                                                </span>
+                                                <span
+                                                  className={`px-1 py-0.2 rounded text-[8px] font-black uppercase ${
+                                                    p.zona === 'SUR'
+                                                      ? 'bg-amber-100 text-amber-800'
+                                                      : 'bg-indigo-100 text-indigo-800'
+                                                  }`}
+                                                >
+                                                  {p.zona}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-baseline justify-between">
+                                                <span className="text-base font-mono font-black text-[#00843D]">
+                                                  {p.totalPersonas}
+                                                  <span className="text-[10px] font-normal text-gray-400 ml-0.5">pers.</span>
+                                                </span>
+                                                <span className="text-[10px] font-mono text-gray-500">{p.porcentaje}%</span>
+                                              </div>
+                                              {p.comedoresDetalle.length > 1 && (
+                                                <div
+                                                  className="text-[9px] text-gray-400 mt-1 truncate"
+                                                  title={p.comedoresDetalle.map((c) => `${c.comedor}: ${c.cantidad}`).join(', ')}
+                                                >
+                                                  {p.comedoresDetalle.map((c) => `${c.comedor}: ${c.cantidad}`).join(', ')}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <div className="flex flex-wrap items-center justify-between text-[11px] pt-1 text-gray-500 border-t border-gray-100">
+                                          <span>Totales agrupados de todos los comedores (clasificados por zona según catálogo maestro)</span>
+                                          <div className="flex items-center gap-3">
+                                            <span className="text-amber-800 font-bold">
+                                              Sur: <strong>{totalSur}</strong> pers.
+                                            </span>
+                                            <span className="text-indigo-800 font-bold">
+                                              Norte: <strong>{totalNorte}</strong> pers.
+                                            </span>
+                                            <span className="font-bold text-[#173B56]">
+                                              Suma Total:{' '}
+                                              <strong className="text-[#00843D] font-black text-xs">
+                                                {totalGen} personas
+                                              </strong>
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })
                   )}
@@ -1256,7 +1541,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500 font-medium">Personal:</span>
-                    <span className="font-bold text-[#173B56]">{reqToDelete.totalPersonas} pers. (~{Math.ceil(reqToDelete.totalPersonas / 40)} buses)</span>
+                    <span className="font-bold text-[#173B56]">{reqToDelete.totalPersonas} personas</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500 font-medium">Supervisor:</span>
@@ -1342,6 +1627,27 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               </div>
             </div>
           )}
+
+          {/* Modal de Resumen de Paraderos por Solicitante / Supervisor */}
+          <SupervisorParaderosModal
+            isOpen={!!supervisorModalReq}
+            requerimiento={supervisorModalReq}
+            detalles={supervisorModalReq ? getDetallesByRequerimientoId(supervisorModalReq.id) : []}
+            onClose={() => setSupervisorModalReq(null)}
+            onOpenFullDetail={(req) => {
+              setSupervisorModalReq(null);
+              onOpenRequirementDetail(req);
+            }}
+          />
+
+          {/* Modal de Exportación Optimizada para Sumas en Excel */}
+          <ExportExcelOptionsModal
+            isOpen={showExportModal}
+            requerimientos={filteredRequerimientos}
+            detalles={getStoredDetalles()}
+            onClose={() => setShowExportModal(false)}
+            onSuccessToast={showToast}
+          />
         </>
       )}
     </main>
