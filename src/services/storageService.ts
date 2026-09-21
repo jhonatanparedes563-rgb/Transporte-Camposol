@@ -567,9 +567,34 @@ export function getStoredAreas(): MaestroArea[] {
   }
 }
 
+export async function serverSaveMasterData(data: {
+  areas?: MaestroArea[];
+  fundos?: MaestroFundo[];
+  paraderos?: MaestroParadero[];
+  comedores?: MaestroComedor[];
+}): Promise<void> {
+  try {
+    const res = await fetch('/api/maestros', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) {
+      const resJson = await res.json();
+      if (resJson.revision) {
+        localStorage.setItem(LAST_REVISION_KEY, String(resJson.revision));
+      }
+      console.log('[ServerSync] Catálogos maestros persistidos en servidor para la versión publicada.');
+    }
+  } catch (err) {
+    console.warn('[ServerSync] No se pudo enviar catálogos maestros al servidor:', err);
+  }
+}
+
 export function saveStoredAreas(areas: MaestroArea[]): void {
   localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(areas));
   broadcastLocalChange();
+  serverSaveMasterData({ areas });
   firestoreSaveMasterData({ areas }).catch((err) => {
     console.warn('[Firestore] Error guardando áreas:', err);
   });
@@ -592,6 +617,7 @@ export function getStoredFundos(): MaestroFundo[] {
 export function saveStoredFundos(fundos: MaestroFundo[]): void {
   localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(fundos));
   broadcastLocalChange();
+  serverSaveMasterData({ fundos });
   firestoreSaveMasterData({ fundos }).catch((err) => {
     console.warn('[Firestore] Error guardando fundos:', err);
   });
@@ -669,6 +695,7 @@ export function getStoredParaderos(): MaestroParadero[] {
 export function saveStoredParaderos(paraderos: MaestroParadero[]): void {
   localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(paraderos));
   broadcastLocalChange();
+  serverSaveMasterData({ paraderos });
   firestoreSaveMasterData({ paraderos }).catch((err) => {
     console.warn('[Firestore] Error guardando paraderos:', err);
   });
@@ -691,6 +718,7 @@ export function getStoredComedores(): MaestroComedor[] {
 export function saveStoredComedores(comedores: MaestroComedor[]): void {
   localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(comedores));
   broadcastLocalChange();
+  serverSaveMasterData({ comedores });
   firestoreSaveMasterData({ comedores }).catch((err) => {
     console.warn('[Firestore] Error guardando comedores:', err);
   });

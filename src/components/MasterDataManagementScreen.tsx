@@ -735,7 +735,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
     setShowImportModal(false);
     setImportData(null);
-    showNotification(`¡Datos importados con éxito desde Excel!`);
+    showNotification('¡Paraderos guardados y sincronizados con la publicación y la nube con éxito!');
   };
 
   return (

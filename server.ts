@@ -10,7 +10,16 @@ import {
   MAESTRO_COMEDORES,
 } from './src/data/masterData';
 import { INITIAL_USERS } from './src/services/authService';
-import { Requerimiento, DetalleRequerimiento, AppUser, RequerimientoDraft } from './src/types';
+import {
+  Requerimiento,
+  DetalleRequerimiento,
+  AppUser,
+  RequerimientoDraft,
+  MaestroParadero,
+  MaestroArea,
+  MaestroFundo,
+  MaestroComedor,
+} from './src/types';
 
 interface ServerDb {
   version: number;
@@ -19,10 +28,10 @@ interface ServerDb {
   requerimientos: Requerimiento[];
   detalles: DetalleRequerimiento[];
   users: AppUser[];
-  areas: typeof MAESTRO_AREAS;
-  fundos: typeof MAESTRO_FUNDOS;
-  paraderos: typeof MAESTRO_PARADEROS;
-  comedores: typeof MAESTRO_COMEDORES;
+  areas: MaestroArea[];
+  fundos: MaestroFundo[];
+  paraderos: MaestroParadero[];
+  comedores: MaestroComedor[];
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -406,6 +415,56 @@ async function startServer() {
       db.users = db.users.filter((u) => u.id !== id);
       persistDb(db);
       res.json({ success: true, deletedId: id, revision: db.revision });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Master catalogs synchronization (Paraderos, Fundos, Áreas, Comedores)
+  app.post('/api/maestros', (req, res) => {
+    try {
+      const { paraderos, fundos, areas, comedores } = req.body;
+      const db = getDb();
+
+      if (Array.isArray(paraderos)) {
+        db.paraderos = paraderos;
+      }
+      if (Array.isArray(fundos)) {
+        db.fundos = fundos;
+      }
+      if (Array.isArray(areas)) {
+        db.areas = areas;
+      }
+      if (Array.isArray(comedores)) {
+        db.comedores = comedores;
+      }
+
+      persistDb(db);
+      console.log(`[Server] Catálogos maestros persistidos en disco. Paraderos: ${db.paraderos?.length || 0}`);
+      res.json({
+        success: true,
+        revision: db.revision,
+        paraderosCount: db.paraderos.length,
+        fundosCount: db.fundos.length,
+        areasCount: db.areas.length,
+      });
+    } catch (err: any) {
+      console.error('[Server] Error guardando catálogos maestros:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/maestros/paraderos', (req, res) => {
+    try {
+      const { paraderos } = req.body;
+      if (!Array.isArray(paraderos)) {
+        return res.status(400).json({ error: 'paraderos array required' });
+      }
+      const db = getDb();
+      db.paraderos = paraderos;
+      persistDb(db);
+      console.log(`[Server] ${paraderos.length} paraderos guardados en db.json para sincronización.`);
+      res.json({ success: true, count: paraderos.length, revision: db.revision });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

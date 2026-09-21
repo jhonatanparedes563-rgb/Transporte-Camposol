@@ -370,12 +370,18 @@ export async function firestoreSaveMasterData(data: {
   const path = 'system_metadata/master_data';
   try {
     const metaRef = doc(db, 'system_metadata', 'master_data');
-    await updateDoc(metaRef, {
-      ...data,
-      lastUpdated: new Date().toISOString(),
-    });
-    console.log('[Firestore] Catálogos maestros actualizados en la nube.');
+    // Sanitizar datos para remover valores 'undefined' incompatibles con Firestore
+    const cleanData = JSON.parse(JSON.stringify(data));
+    await setDoc(
+      metaRef,
+      {
+        ...cleanData,
+        lastUpdated: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+    console.log('[Firestore] Catálogos maestros actualizados y sincronizados en la nube.');
   } catch (err) {
-    handleFirestoreError(err, OperationType.UPDATE, path);
+    handleFirestoreError(err, OperationType.WRITE, path);
   }
 }

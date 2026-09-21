@@ -11,7 +11,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { RequerimientoDraft, MaestroParadero, ComedorPersonalDraft } from '../types';
-import { getStoredParaderos } from '../services/storageService';
+import { getStoredParaderos, subscribeToDataChanges } from '../services/storageService';
 
 interface Step2PersonnelQuantityProps {
   draft: RequerimientoDraft;
@@ -28,8 +28,16 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
   onNext,
   onPrev,
 }) => {
-  const [paraderosMaster] = useState<MaestroParadero[]>(() => getStoredParaderos());
+  const [paraderosMaster, setParaderosMaster] = useState<MaestroParadero[]>(() => getStoredParaderos());
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Sincronizar paraderos si cambian o se importan
+  useEffect(() => {
+    const unsub = subscribeToDataChanges(() => {
+      setParaderosMaster(getStoredParaderos());
+    });
+    return unsub;
+  }, []);
 
   // Inline editing for column headers
   const [editingCol, setEditingCol] = useState<string | null>(null);
