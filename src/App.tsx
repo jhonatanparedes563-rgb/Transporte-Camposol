@@ -9,7 +9,6 @@ import { DatabaseManagementModal } from './components/DatabaseManagementModal';
 import { AdminPortalLayout } from './components/AdminPortalLayout';
 import { UserMobileLayout } from './components/UserMobileLayout';
 import { LoginScreen } from './components/LoginScreen';
-import { WelcomeSplashScreen } from './components/WelcomeSplashScreen';
 import { Requerimiento, UserRole, AppUser } from './types';
 import { getStoredRequerimientos, subscribeToDataChanges } from './services/storageService';
 import { getCurrentSession, logoutSession, restoreMainAdminUser } from './services/authService';
@@ -19,12 +18,6 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
     return getCurrentSession();
   });
-
-  const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(false);
-
-  const handleFinishSplash = React.useCallback(() => {
-    setShowWelcomeSplash(false);
-  }, []);
 
   const [currentScreen, setCurrentScreen] = useState<'home' | 'new-request' | 'my-requests'>('home');
   const [requerimientos, setRequerimientos] = useState<Requerimiento[]>([]);
@@ -52,7 +45,6 @@ export default function App() {
 
   const handleLoginSuccess = (user: AppUser) => {
     setCurrentUser(user);
-    setShowWelcomeSplash(true);
     setCurrentScreen('home');
     loadData();
   };
@@ -60,7 +52,6 @@ export default function App() {
   const handleLogout = () => {
     logoutSession();
     setCurrentUser(null);
-    setShowWelcomeSplash(false);
     setCurrentScreen('home');
     setSelectedRequirement(null);
   };
@@ -103,15 +94,7 @@ export default function App() {
   const isDesktopRole = userRole === 'admin' || userRole === 'receptor';
 
   return (
-    <div className="w-full min-h-screen bg-[#F3F4F6] font-sans antialiased selection:bg-[#00843D] selection:text-white relative">
-      {/* Animación oficial de bienvenida antes de ingresar a la pantalla principal */}
-      {showWelcomeSplash && (
-        <WelcomeSplashScreen
-          currentUser={currentUser}
-          onFinish={handleFinishSplash}
-        />
-      )}
-
+    <div className="w-full min-h-screen bg-[#F3F4F6] font-sans antialiased selection:bg-[#00843D] selection:text-white">
       {/* ------------------------------------------------------------- */}
       {/* 1. VISTA ADMINISTRADOR / RECEPTOR: SISTEMA WEB DE ESCRITORIO   */}
       {/* ------------------------------------------------------------- */}
@@ -138,7 +121,6 @@ export default function App() {
           userRole={userRole}
           currentUser={currentUser}
           onLogout={handleLogout}
-          onShowWelcomeSplash={() => setShowWelcomeSplash(true)}
         />
       )}
 
