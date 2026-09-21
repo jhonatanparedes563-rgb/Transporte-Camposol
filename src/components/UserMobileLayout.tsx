@@ -15,6 +15,7 @@ interface UserMobileLayoutProps {
   userRole: UserRole;
   currentUser?: AppUser;
   onLogout?: () => void;
+  onShowWelcomeSplash?: () => void;
 }
 
 export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
@@ -27,6 +28,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
   userRole,
   currentUser,
   onLogout,
+  onShowWelcomeSplash,
 }) => {
   const totalReqs = requerimientos.length;
 
@@ -41,15 +43,26 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               <button
                 id="btn-mobile-back"
                 onClick={() => onNavigate('home')}
-                className="p-1.5 -ml-1.5 rounded-xl hover:bg-[#006e33] active:bg-[#005728] transition-colors focus:outline-none"
+                className="p-1.5 -ml-1.5 rounded-xl hover:bg-[#006e33] active:bg-[#005728] transition-colors focus:outline-none cursor-pointer"
                 aria-label="Volver al inicio"
               >
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
             ) : (
-              <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-xs shrink-0">
-                <Bus className="w-5 h-5 text-[#00843D]" />
-              </div>
+              <button
+                id="btn-header-welcome-splash"
+                type="button"
+                onClick={onShowWelcomeSplash}
+                title="Ver animación de bienvenida TDP CAMPOSOL"
+                className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+              >
+                <img
+                  src="/camposol-emblem.svg"
+                  alt="CAMPOSOL"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              </button>
             )}
 
             <div>
@@ -75,7 +88,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               <button
                 id="btn-mobile-logout"
                 onClick={onLogout}
-                className="flex items-center gap-1.5 bg-black/20 hover:bg-black/35 active:scale-95 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border border-white/15"
+                className="flex items-center gap-1.5 bg-black/20 hover:bg-black/35 active:scale-95 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border border-white/15 cursor-pointer"
                 title="Cerrar sesión"
               >
                 <LogOut className="w-3.5 h-3.5 text-emerald-100" />
@@ -94,6 +107,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               requerimientos={requerimientos}
               onSelectRequirement={onOpenRequirementDetail}
               currentUser={currentUser}
+              onShowWelcomeSplash={onShowWelcomeSplash}
             />
           )}
 

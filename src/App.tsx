@@ -9,6 +9,7 @@ import { DatabaseManagementModal } from './components/DatabaseManagementModal';
 import { AdminPortalLayout } from './components/AdminPortalLayout';
 import { UserMobileLayout } from './components/UserMobileLayout';
 import { LoginScreen } from './components/LoginScreen';
+import { WelcomeSplashScreen } from './components/WelcomeSplashScreen';
 import { Requerimiento, UserRole, AppUser } from './types';
 import { getStoredRequerimientos, subscribeToDataChanges } from './services/storageService';
 import { getCurrentSession, logoutSession, restoreMainAdminUser } from './services/authService';
@@ -17,6 +18,11 @@ export default function App() {
   // Authentication State: Si no hay sesión activa, el usuario debe autenticarse en LoginScreen
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
     return getCurrentSession();
+  });
+
+  // Animación de bienvenida con logo Camposol antes de ingresar a la pantalla principal
+  const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(() => {
+    return Boolean(getCurrentSession());
   });
 
   const [currentScreen, setCurrentScreen] = useState<'home' | 'new-request' | 'my-requests'>('home');
@@ -45,6 +51,7 @@ export default function App() {
 
   const handleLoginSuccess = (user: AppUser) => {
     setCurrentUser(user);
+    setShowWelcomeSplash(true);
     setCurrentScreen('home');
     loadData();
   };
@@ -52,6 +59,7 @@ export default function App() {
   const handleLogout = () => {
     logoutSession();
     setCurrentUser(null);
+    setShowWelcomeSplash(true);
     setCurrentScreen('home');
     setSelectedRequirement(null);
   };
@@ -90,6 +98,16 @@ export default function App() {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
+  // Animación oficial de bienvenida antes de entrar a la pantalla principal
+  if (showWelcomeSplash) {
+    return (
+      <WelcomeSplashScreen
+        currentUser={currentUser}
+        onFinish={() => setShowWelcomeSplash(false)}
+      />
+    );
+  }
+
   // Check if role is desktop-oriented (admin or receptor)
   const isDesktopRole = userRole === 'admin' || userRole === 'receptor';
 
@@ -121,6 +139,7 @@ export default function App() {
           userRole={userRole}
           currentUser={currentUser}
           onLogout={handleLogout}
+          onShowWelcomeSplash={() => setShowWelcomeSplash(true)}
         />
       )}
 

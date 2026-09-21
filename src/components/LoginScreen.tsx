@@ -105,11 +105,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         {/* Card Principal de Autenticación / Recuperación */}
         <div className="bg-white rounded-3xl shadow-xl border border-gray-200/90 overflow-hidden">
           {/* Cabecera Oficial CAMPOSOL */}
-          <div className="bg-[#00843D] p-7 text-center text-white relative">
+          <div className="bg-[#58A33E] p-7 text-center text-white relative shadow-inner">
             <div className="flex flex-col items-center">
-              {/* Logo / Emblema */}
-              <div className="w-16 h-16 rounded-2xl bg-white text-[#00843D] flex items-center justify-center shadow-md mb-3">
-                <Bus className="w-9 h-9" />
+              {/* Emblema Oficial CAMPOSOL con borde dorado */}
+              <div className="w-24 h-24 rounded-full overflow-hidden shadow-xl mb-3 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
+                <img
+                  src="/camposol-emblem.svg"
+                  alt="CAMPOSOL"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
               </div>
 
               <span className="text-xs font-black uppercase tracking-widest text-emerald-100">

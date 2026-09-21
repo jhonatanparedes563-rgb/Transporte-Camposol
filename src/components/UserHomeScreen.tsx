@@ -24,6 +24,7 @@ interface UserHomeScreenProps {
   onSelectRequirement: (req: Requerimiento) => void;
   onOpenRoleSwitcher?: () => void;
   currentUser?: AppUser;
+  onShowWelcomeSplash?: () => void;
 }
 
 export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
@@ -32,6 +33,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
   requerimientos,
   onSelectRequirement,
   currentUser,
+  onShowWelcomeSplash,
 }) => {
   // Count user metrics (user only sees their own summary, no admin KPIs)
   const totalReqs = requerimientos.length;
@@ -102,9 +104,19 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
         </div>
 
         <div className="flex items-center gap-3 mb-1.5">
-          <div className="w-11 h-11 rounded-2xl bg-[#E8F5EF] flex items-center justify-center text-[#00843D] shadow-xs shrink-0">
-            <Bus className="w-6 h-6" />
-          </div>
+          <button
+            type="button"
+            onClick={onShowWelcomeSplash}
+            title="Ver animación de bienvenida TDP CAMPOSOL"
+            className="w-12 h-12 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          >
+            <img
+              src="/camposol-emblem.svg"
+              alt="CAMPOSOL"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+          </button>
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-[#00843D] block">
               CAMPOSOL

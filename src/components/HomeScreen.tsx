@@ -71,8 +71,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </div>
 
             {/* Brand Header */}
-            <div className="inline-flex items-center justify-center p-3.5 bg-[#E8F5EF] rounded-2xl mb-3 text-[#00843D] shadow-xs">
-              <Bus className="w-10 h-10 sm:w-12 sm:h-12 text-[#00843D]" />
+            <div className="inline-flex items-center justify-center mb-3">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-lg border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
+                <img
+                  src="/camposol-emblem.svg"
+                  alt="CAMPOSOL"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
 
             <div className="space-y-1">

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="600" height="300">
+  <defs>
+    <!-- Text path for "Camposol" arc centered at x=300, y=140 -->
+    <path id="bannerCamposolArc" d="M 168 135 A 148 148 0 0 1 432 135" fill="none" />
+    
+    <!-- Clip path for central field circle (r=88, cx=300, cy=170) -->
+    <clipPath id="bannerFieldClip">
+      <circle cx="300" cy="170" r="88" />
+    </clipPath>
+  </defs>
+
+  <!-- Solid Brand Green Background (Matching Image 2) -->
+  <rect width="600" height="300" fill="#58A33E" />
+
+  <!-- Curved "Camposol®" Typography -->
+  <text fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-weight="700" font-size="50" letter-spacing="1">
+    <textPath href="#bannerCamposolArc" startOffset="50%" text-anchor="middle">
+      Camposol<tspan font-size="22" dy="-20">®</tspan>
+    </textPath>
+  </text>
+
+  <!-- Central Field & Sun Graphic -->
+  <g clip-path="url(#bannerFieldClip)">
+    <rect x="200" y="70" width="200" height="200" fill="#58A33E" />
+
+    <!-- Golden Sun rising behind the hill -->
+    <circle cx="300" cy="136" r="26" fill="#F8A51D" stroke="#E5900C" stroke-width="1" />
+
+    <!-- Rolling Green Hill Base -->
+    <path d="M 200 178 Q 272 140 400 166 L 400 270 L 200 270 Z" fill="#58A33E" />
+
+    <!-- Furrow stripes -->
+    <path d="M 252 216 Q 266 178 286 158 Q 282 161 245 224 Z" fill="#0C6534" />
+    <path d="M 270 248 Q 278 193 293 154 Q 289 156 262 251 Z" fill="#0C6534" />
+    <path d="M 297 258 Q 295 200 302 153 Q 297 154 289 258 Z" fill="#0C6534" />
+    <path d="M 324 258 Q 314 200 309 153 Q 314 154 332 258 Z" fill="#0C6534" />
+    <path d="M 354 252 Q 335 202 316 156 Q 321 157 362 247 Z" fill="#0C6534" />
+    <path d="M 378 230 Q 355 195 324 162 Q 329 164 384 221 Z" fill="#0C6534" />
+  </g>
+
+  <!-- Central White Circle Ring -->
+  <circle cx="300" cy="170" r="88" fill="none" stroke="#FFFFFF" stroke-width="5" />
+</svg>

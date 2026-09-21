@@ -472,12 +472,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
         <div>
           <div className="h-20 px-4 flex items-center justify-between border-b border-gray-100">
             <div className="flex items-center gap-3 overflow-hidden">
-              {/* Circular Camposol Corporate Badge */}
-              <div className="w-12 h-12 rounded-full bg-[#00843D] flex items-center justify-center p-1 shadow-xs shrink-0 border-2 border-emerald-600">
-                <div className="w-full h-full rounded-full border border-white/40 flex flex-col items-center justify-center text-white">
-                  <span className="text-[8px] font-black tracking-tighter leading-none">CAMPOSOL</span>
-                  <div className="w-5 h-1.5 border-b-2 border-amber-300 rounded-full mt-0.5 opacity-90"></div>
-                </div>
+              {/* Camposol Corporate Badge */}
+              <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs shrink-0 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
+                <img
+                  src="/camposol-emblem.svg"
+                  alt="CAMPOSOL"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
               </div>
               {!sidebarCollapsed && (
                 <div className="truncate">
