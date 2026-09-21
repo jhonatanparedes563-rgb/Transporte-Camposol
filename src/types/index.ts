@@ -43,6 +43,13 @@ export interface MaestroParadero {
   id: string;
   paradero: string;
   zona?: ZonaParadero;
+  codigo?: string;
+  macrozona?: string;
+  zonaEspecifica?: string;
+  agrupador?: string;
+  referencia?: string;
+  latitud?: number;
+  longitud?: number;
 }
 
 export interface MaestroComedor {

@@ -17,12 +17,14 @@ import {
   Download,
   ArrowLeftRight,
   Compass,
+  Upload,
+  FileSpreadsheet,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import {
   MaestroArea,
   MaestroFundo,
   MaestroParadero,
-  MaestroComedor,
 } from '../types';
 import {
   getStoredAreas,
@@ -31,18 +33,32 @@ import {
   saveStoredFundos,
   getStoredParaderos,
   saveStoredParaderos,
-  getStoredComedores,
-  saveStoredComedores,
   resetMasterDataToDefault,
   exportToCSV,
   inferParaderoZona,
 } from '../services/storageService';
 
-type MasterCategory = 'paraderos' | 'fundos' | 'areas' | 'comedores';
+type MasterCategory = 'paraderos' | 'fundos' | 'areas';
 
 interface MasterDataManagementScreenProps {
   onBack: () => void;
   onNavigateToNewRequest?: () => void;
+}
+
+interface ParsedMasterImport {
+  paraderos: {
+    paradero: string;
+    zona: 'NORTE' | 'SUR';
+    codigo?: string;
+    macrozona?: string;
+    zonaEspecifica?: string;
+    agrupador?: string;
+    referencia?: string;
+    latitud?: number;
+    longitud?: number;
+  }[];
+  fundos: { fundo: string }[];
+  areas: { area: string }[];
 }
 
 export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProps> = ({
@@ -56,7 +72,13 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   const [paraderos, setParaderos] = useState<MaestroParadero[]>([]);
   const [fundos, setFundos] = useState<MaestroFundo[]>([]);
   const [areas, setAreas] = useState<MaestroArea[]>([]);
-  const [comedores, setComedores] = useState<MaestroComedor[]>([]);
+
+  // Excel Import state
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFileName, setImportFileName] = useState('');
+  const [importData, setImportData] = useState<ParsedMasterImport | null>(null);
+  const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
 
   // Creation state
   const [newItemName, setNewItemName] = useState('');
@@ -87,14 +109,13 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     setParaderos(getStoredParaderos());
     setFundos(getStoredFundos());
     setAreas(getStoredAreas());
-    setComedores(getStoredComedores());
   };
 
   const showNotification = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
-    }, 2800);
+    }, 3200);
   };
 
   // Paradero zone counters
@@ -110,7 +131,12 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   const filteredParaderos = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return paraderos.filter((p) => {
-      const matchesQuery = !q || p.paradero.toLowerCase().includes(q);
+      const matchesQuery =
+        !q ||
+        p.paradero.toLowerCase().includes(q) ||
+        (p.codigo && p.codigo.toLowerCase().includes(q)) ||
+        (p.macrozona && p.macrozona.toLowerCase().includes(q)) ||
+        (p.zonaEspecifica && p.zonaEspecifica.toLowerCase().includes(q));
       const paraderoZona = p.zona || inferParaderoZona(p.paradero);
       const matchesZona =
         selectedZonaFilter === 'TODOS' || paraderoZona === selectedZonaFilter;
@@ -128,12 +154,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     return q ? areas.filter((a) => a.area.toLowerCase().includes(q)) : areas;
   }, [areas, searchQuery]);
 
-  const filteredComedores = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    return q ? comedores.filter((c) => c.comedor.toLowerCase().includes(q)) : comedores;
-  }, [comedores, searchQuery]);
-
-  // Tab configurations
+  // Tab configurations (Comedores removed)
   const tabsConfig = [
     {
       id: 'paraderos' as MasterCategory,
@@ -158,14 +179,6 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       icon: Briefcase,
       count: areas.length,
       placeholder: 'Ej. Cosecha Palto, Mantenimiento...',
-    },
-    {
-      id: 'comedores' as MasterCategory,
-      label: 'Comedores',
-      singular: 'Comedor',
-      icon: Utensils,
-      count: comedores.length,
-      placeholder: 'Ej. Comedor Packing 2, Comedor Cosecha...',
     },
   ];
 
@@ -210,15 +223,6 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       setAreas(updated);
       saveStoredAreas(updated);
       showNotification(`Área "${cleanName}" agregada con éxito`);
-    } else if (activeTab === 'comedores') {
-      if (comedores.some((c) => c.comedor.toLowerCase() === cleanName.toLowerCase())) {
-        setFormError('Ya existe un comedor con este nombre.');
-        return;
-      }
-      const updated = [...comedores, { id: newId, comedor: cleanName }];
-      setComedores(updated);
-      saveStoredComedores(updated);
-      showNotification(`Comedor "${cleanName}" agregado con éxito`);
     }
 
     setNewItemName('');
@@ -272,10 +276,6 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       const updated = areas.map((a) => (a.id === id ? { ...a, area: cleanName } : a));
       setAreas(updated);
       saveStoredAreas(updated);
-    } else if (activeTab === 'comedores') {
-      const updated = comedores.map((c) => (c.id === id ? { ...c, comedor: cleanName } : c));
-      setComedores(updated);
-      saveStoredComedores(updated);
     }
 
     showNotification(`${currentTabInfo.singular} actualizado`);
@@ -300,10 +300,6 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       const updated = areas.filter((a) => a.id !== id);
       setAreas(updated);
       saveStoredAreas(updated);
-    } else if (activeTab === 'comedores') {
-      const updated = comedores.filter((c) => c.id !== id);
-      setComedores(updated);
-      saveStoredComedores(updated);
     }
 
     showNotification(`Eliminado: "${name}"`);
@@ -316,7 +312,6 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     setParaderos(res.paraderos);
     setFundos(res.fundos);
     setAreas(res.areas);
-    setComedores(res.comedores);
     setShowResetConfirm(false);
     showNotification('Maestros restablecidos a los valores por defecto');
   };
@@ -326,7 +321,16 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     if (activeTab === 'paraderos') {
       exportToCSV(
         `Camposol_Maestro_Paraderos_${new Date().toISOString().slice(0, 10)}.csv`,
-        paraderos.map((p) => ({ ID: p.id, Paradero: p.paradero }))
+        paraderos.map((p) => ({
+          MACROZONA: p.macrozona || '',
+          ZONA: p.zonaEspecifica || p.zona || inferParaderoZona(p.paradero),
+          AGRUPADOR: p.agrupador || '',
+          'CÓDIGO': p.codigo || p.id,
+          NOMBRE: p.paradero,
+          REFERENCIA: p.referencia || '',
+          LATITUD: p.latitud !== undefined ? p.latitud : '',
+          LONGITUD: p.longitud !== undefined ? p.longitud : '',
+        }))
       );
     } else if (activeTab === 'fundos') {
       exportToCSV(
@@ -338,12 +342,400 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         `Camposol_Maestro_Areas_${new Date().toISOString().slice(0, 10)}.csv`,
         areas.map((a) => ({ ID: a.id, Area: a.area }))
       );
-    } else if (activeTab === 'comedores') {
-      exportToCSV(
-        `Camposol_Maestro_Comedores_${new Date().toISOString().slice(0, 10)}.csv`,
-        comedores.map((c) => ({ ID: c.id, Comedor: c.comedor }))
-      );
     }
+  };
+
+  // Download official Excel template with Paraderos (CAMPOSOL format), Fundos and Áreas
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet: Paraderos with the exact CAMPOSOL format: MACROZONA, ZONA, AGRUPADOR, CÓDIGO, NOMBRE, REFERENCIA, LATITUD, LONGITUD
+    const paraderosSample = [
+      {
+        MACROZONA: 'Mcrz 25 San Jose',
+        ZONA: 'SAN JOSE',
+        AGRUPADOR: '',
+        'CÓDIGO': 'E27',
+        NOMBRE: 'SEMAFORO AGROMAS',
+        REFERENCIA: '',
+        LATITUD: -8.450491545,
+        LONGITUD: -78.73398734,
+      },
+      {
+        MACROZONA: 'Mcrz 25 San Jose',
+        ZONA: 'SAN JOSE',
+        AGRUPADOR: '',
+        'CÓDIGO': 'G-FR',
+        NOMBRE: 'GAR FRUSOL 1',
+        REFERENCIA: '-',
+        LATITUD: -8.465203715,
+        LONGITUD: -78.71849354,
+      },
+      {
+        MACROZONA: 'Mcrz 9 La Rinconada',
+        ZONA: 'RINCONADA',
+        AGRUPADOR: '',
+        'CÓDIGO': 'P206',
+        NOMBRE: 'EL CHACARERO (METRO)',
+        REFERENCIA: '',
+        LATITUD: -8.11974,
+        LONGITUD: -79.0411,
+      },
+      {
+        MACROZONA: 'Mcrz 9 La Rinconada',
+        ZONA: 'RINCONADA',
+        AGRUPADOR: '',
+        'CÓDIGO': 'P184',
+        NOMBRE: 'ASILO DE ANCIANOS "SAN JOSE"',
+        REFERENCIA: '.',
+        LATITUD: -8.103361727,
+        LONGITUD: -79.00225642,
+      },
+      {
+        MACROZONA: 'Mcrz 9 La Rinconada',
+        ZONA: 'RINCONADA',
+        AGRUPADOR: '',
+        'CÓDIGO': 'P183',
+        NOMBRE: 'AV.AMERICA Y VALLEJO (COMISARIA NORIA)',
+        REFERENCIA: '.',
+        LATITUD: -8.103445226,
+        LONGITUD: -79.01093636,
+      },
+      {
+        MACROZONA: 'Mcrz 9 La Rinconada',
+        ZONA: 'RINCONADA',
+        AGRUPADOR: '',
+        'CÓDIGO': 'P182',
+        NOMBRE: 'HOSPITAL LAZARTE (AV.AMERICA Y AV.UNION)',
+        REFERENCIA: '',
+        LATITUD: -8.09957,
+        LONGITUD: -79.0121,
+      },
+    ];
+    const wsParaderos = XLSX.utils.json_to_sheet(paraderosSample);
+    XLSX.utils.book_append_sheet(wb, wsParaderos, 'Paraderos');
+
+    // Sheet: Fundos
+    const fundosSample = [
+      { Fundo: 'Fundo El Rocio' },
+      { Fundo: 'Fundo Sandra' },
+      { Fundo: 'Fundo Gloria' },
+    ];
+    const wsFundos = XLSX.utils.json_to_sheet(fundosSample);
+    XLSX.utils.book_append_sheet(wb, wsFundos, 'Fundos');
+
+    // Sheet: Áreas
+    const areasSample = [
+      { Área: 'Cosecha Palto' },
+      { Área: 'Cosecha Arándano' },
+      { Área: 'Sanidad Vegetal' },
+    ];
+    const wsAreas = XLSX.utils.json_to_sheet(areasSample);
+    XLSX.utils.book_append_sheet(wb, wsAreas, 'Áreas');
+
+    XLSX.writeFile(wb, 'CAMPOSOL_Plantilla_Maestros.xlsx');
+    showNotification('Plantilla Excel descargada con éxito');
+  };
+
+  // Parse Excel file (.xlsx, .xls, .csv)
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      const result: ParsedMasterImport = {
+        paraderos: [],
+        fundos: [],
+        areas: [],
+      };
+
+      const normalizeStr = (s: unknown) => (s ? String(s).trim() : '');
+      const normalizeHeader = (s: string) =>
+        normalizeStr(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+      workbook.SheetNames.forEach((sheetName) => {
+        const sNorm = normalizeHeader(sheetName);
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) return;
+
+        const jsonRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' });
+        if (jsonRows.length === 0) return;
+
+        // Check columns in the first row
+        const firstRow = jsonRows[0] || {};
+        const sampleHeaders = Object.keys(firstRow).map((k) => normalizeHeader(k));
+
+        const hasCamposolParaderoFormat =
+          sampleHeaders.includes('macrozona') ||
+          (sampleHeaders.includes('nombre') &&
+            (sampleHeaders.includes('codigo') ||
+              sampleHeaders.includes('latitud') ||
+              sampleHeaders.includes('zona')));
+
+        const isParaderoSheet = sNorm.includes('paradero') || hasCamposolParaderoFormat;
+        const isFundoSheet = sNorm.includes('fundo') && !hasCamposolParaderoFormat;
+        const isAreaSheet = sNorm.includes('area') && !hasCamposolParaderoFormat;
+
+        jsonRows.forEach((row) => {
+          const keys = Object.keys(row);
+          if (keys.length === 0) return;
+
+          // Map normalized header to original key
+          const keyMap: Record<string, string> = {};
+          keys.forEach((k) => {
+            keyMap[normalizeHeader(k)] = k;
+          });
+
+          const getVal = (normKey: string) => {
+            const realKey = keyMap[normKey];
+            return realKey !== undefined ? normalizeStr(row[realKey]) : '';
+          };
+
+          const getRaw = (normKey: string) => {
+            const realKey = keyMap[normKey];
+            return realKey !== undefined ? row[realKey] : undefined;
+          };
+
+          // Paradero detection:
+          // CAMPOSOL format: MACROZONA, ZONA, AGRUPADOR, CÓDIGO, NOMBRE, REFERENCIA, LATITUD, LONGITUD
+          const nombreVal =
+            getVal('nombre') ||
+            getVal('paradero') ||
+            (isParaderoSheet && !isFundoSheet && !isAreaSheet ? normalizeStr(row[keys[0]]) : '');
+          const macrozonaVal = getVal('macrozona');
+          const zonaVal = getVal('zona');
+          const codigoVal = getVal('codigo') || getVal('cod');
+          const agrupadorVal = getVal('agrupador');
+          const referenciaVal = getVal('referencia');
+          const latRaw = getRaw('latitud');
+          const lngRaw = getRaw('longitud');
+
+          const latVal =
+            latRaw !== undefined && latRaw !== '' && !isNaN(Number(latRaw))
+              ? Number(latRaw)
+              : undefined;
+          const lngVal =
+            lngRaw !== undefined && lngRaw !== '' && !isNaN(Number(lngRaw))
+              ? Number(lngRaw)
+              : undefined;
+
+          if (hasCamposolParaderoFormat || isParaderoSheet) {
+            if (
+              nombreVal &&
+              !['nombre', 'paradero', 'id', 'item'].includes(nombreVal.toLowerCase())
+            ) {
+              let zonaOperativa: 'NORTE' | 'SUR' = 'NORTE';
+
+              const combined = `${zonaVal} ${macrozonaVal} ${nombreVal}`.toUpperCase();
+              if (zonaVal.toUpperCase() === 'SUR') {
+                zonaOperativa = 'SUR';
+              } else if (zonaVal.toUpperCase() === 'NORTE') {
+                zonaOperativa = 'NORTE';
+              } else if (
+                combined.includes('CHAO') ||
+                combined.includes('VALLE DE DIOS')
+              ) {
+                zonaOperativa = 'SUR';
+              } else if (latVal !== undefined && latVal <= -8.50) {
+                // Latitude <= -8.50 corresponds to Chao / Valle de Dios valley (SUR)
+                zonaOperativa = 'SUR';
+              } else {
+                zonaOperativa = inferParaderoZona(nombreVal);
+              }
+
+              result.paraderos.push({
+                paradero: nombreVal,
+                zona: zonaOperativa,
+                codigo: codigoVal || undefined,
+                macrozona: macrozonaVal || undefined,
+                zonaEspecifica: zonaVal || undefined,
+                agrupador: agrupadorVal || undefined,
+                referencia: referenciaVal || undefined,
+                latitud: latVal,
+                longitud: lngVal,
+              });
+            }
+          } else if (isFundoSheet || (!isAreaSheet && getVal('fundo'))) {
+            const val = getVal('fundo') || normalizeStr(row[keys[0]]);
+            if (val && !['fundo', 'nombre', 'id'].includes(val.toLowerCase())) {
+              result.fundos.push({ fundo: val });
+            }
+          } else if (isAreaSheet || (!isFundoSheet && getVal('area'))) {
+            const val = getVal('area') || normalizeStr(row[keys[0]]);
+            if (val && !['area', 'área', 'nombre', 'id'].includes(val.toLowerCase())) {
+              result.areas.push({ area: val });
+            }
+          } else {
+            // General fallback routed to activeTab
+            const firstVal = normalizeStr(row[keys[0]]);
+            if (firstVal && !['id', 'item', 'nombre'].includes(firstVal.toLowerCase())) {
+              if (activeTab === 'paraderos') {
+                const zonaCol = keys.length > 1 ? normalizeStr(row[keys[1]]).toUpperCase() : '';
+                const zonaOperativa = zonaCol.includes('SUR')
+                  ? 'SUR'
+                  : zonaCol.includes('NORTE')
+                  ? 'NORTE'
+                  : inferParaderoZona(firstVal);
+                result.paraderos.push({ paradero: firstVal, zona: zonaOperativa });
+              } else if (activeTab === 'fundos') {
+                result.fundos.push({ fundo: firstVal });
+              } else if (activeTab === 'areas') {
+                result.areas.push({ area: firstVal });
+              }
+            }
+          }
+        });
+      });
+
+      // Filter duplicates in import
+      result.paraderos = result.paraderos.filter(
+        (item, idx, self) =>
+          idx ===
+          self.findIndex(
+            (t) =>
+              t.paradero.toLowerCase() === item.paradero.toLowerCase() ||
+              (t.codigo && item.codigo && t.codigo.toLowerCase() === item.codigo.toLowerCase())
+          )
+      );
+      result.fundos = result.fundos.filter(
+        (item, idx, self) =>
+          idx === self.findIndex((t) => t.fundo.toLowerCase() === item.fundo.toLowerCase())
+      );
+      result.areas = result.areas.filter(
+        (item, idx, self) =>
+          idx === self.findIndex((t) => t.area.toLowerCase() === item.area.toLowerCase())
+      );
+
+      const totalItems = result.paraderos.length + result.fundos.length + result.areas.length;
+      if (totalItems === 0) {
+        showNotification('No se encontraron datos válidos en el archivo Excel.');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      setImportData(result);
+      setImportFileName(file.name);
+      setShowImportModal(true);
+    } catch (err) {
+      console.error('Error importando Excel:', err);
+      showNotification('Error al procesar el archivo Excel. Verifica el formato.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Execute import confirmation
+  const handleExecuteImport = () => {
+    if (!importData) return;
+
+    let newParaderos = [...paraderos];
+    let newFundos = [...fundos];
+    let newAreas = [...areas];
+
+    if (importMode === 'replace') {
+      if (importData.paraderos.length > 0) {
+        newParaderos = importData.paraderos.map((p, idx) => ({
+          id: p.codigo ? `PAR-${p.codigo}` : `PAR-${Date.now()}-${idx}`,
+          paradero: p.paradero,
+          zona: p.zona,
+          codigo: p.codigo,
+          macrozona: p.macrozona,
+          zonaEspecifica: p.zonaEspecifica,
+          agrupador: p.agrupador,
+          referencia: p.referencia,
+          latitud: p.latitud,
+          longitud: p.longitud,
+        }));
+      }
+      if (importData.fundos.length > 0) {
+        newFundos = importData.fundos.map((f, idx) => ({
+          id: `FUN-${Date.now()}-${idx}`,
+          fundo: f.fundo,
+        }));
+      }
+      if (importData.areas.length > 0) {
+        newAreas = importData.areas.map((a, idx) => ({
+          id: `ARE-${Date.now()}-${idx}`,
+          area: a.area,
+        }));
+      }
+    } else {
+      // Merge mode without duplicates (also enriches existing items with code/coords/macrozona)
+      importData.paraderos.forEach((p, idx) => {
+        const existingIdx = newParaderos.findIndex(
+          (item) =>
+            item.paradero.toLowerCase() === p.paradero.toLowerCase() ||
+            (p.codigo && item.codigo && item.codigo.toLowerCase() === p.codigo.toLowerCase())
+        );
+        if (existingIdx === -1) {
+          newParaderos.push({
+            id: p.codigo ? `PAR-${p.codigo}` : `PAR-${Date.now()}-${idx}`,
+            paradero: p.paradero,
+            zona: p.zona,
+            codigo: p.codigo,
+            macrozona: p.macrozona,
+            zonaEspecifica: p.zonaEspecifica,
+            agrupador: p.agrupador,
+            referencia: p.referencia,
+            latitud: p.latitud,
+            longitud: p.longitud,
+          });
+        } else {
+          // Enrich existing with metadata
+          newParaderos[existingIdx] = {
+            ...newParaderos[existingIdx],
+            codigo: p.codigo || newParaderos[existingIdx].codigo,
+            macrozona: p.macrozona || newParaderos[existingIdx].macrozona,
+            zonaEspecifica: p.zonaEspecifica || newParaderos[existingIdx].zonaEspecifica,
+            agrupador: p.agrupador || newParaderos[existingIdx].agrupador,
+            referencia: p.referencia || newParaderos[existingIdx].referencia,
+            latitud: p.latitud !== undefined ? p.latitud : newParaderos[existingIdx].latitud,
+            longitud: p.longitud !== undefined ? p.longitud : newParaderos[existingIdx].longitud,
+            zona: p.zona || newParaderos[existingIdx].zona,
+          };
+        }
+      });
+
+      importData.fundos.forEach((f, idx) => {
+        const exists = newFundos.some((item) => item.fundo.toLowerCase() === f.fundo.toLowerCase());
+        if (!exists) {
+          newFundos.push({
+            id: `FUN-${Date.now()}-${idx}`,
+            fundo: f.fundo,
+          });
+        }
+      });
+
+      importData.areas.forEach((a, idx) => {
+        const exists = newAreas.some((item) => item.area.toLowerCase() === a.area.toLowerCase());
+        if (!exists) {
+          newAreas.push({
+            id: `ARE-${Date.now()}-${idx}`,
+            area: a.area,
+          });
+        }
+      });
+    }
+
+    if (importData.paraderos.length > 0) {
+      setParaderos(newParaderos);
+      saveStoredParaderos(newParaderos);
+    }
+    if (importData.fundos.length > 0) {
+      setFundos(newFundos);
+      saveStoredFundos(newFundos);
+    }
+    if (importData.areas.length > 0) {
+      setAreas(newAreas);
+      saveStoredAreas(newAreas);
+    }
+
+    setShowImportModal(false);
+    setImportData(null);
+    showNotification(`¡Datos importados con éxito desde Excel!`);
   };
 
   return (
@@ -367,21 +759,50 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           <span>Volver al Inicio</span>
         </button>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Hidden file input for Excel upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx, .xls, .csv"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          <button
+            id="btn-upload-master-excel"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#00843D] hover:bg-[#006e33] active:scale-95 px-3 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
+            title="Subir archivo Excel (.xlsx, .xls, .csv) con paraderos, fundos y áreas"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Subir Excel</span>
+          </button>
+
+          <button
+            id="btn-download-master-template"
+            onClick={handleDownloadTemplate}
+            className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 active:scale-95 px-3 py-2 rounded-xl transition-all cursor-pointer"
+            title="Descargar plantilla Excel con formato oficial para Paraderos, Fundos y Áreas"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-[#00843D]" />
+            <span className="hidden sm:inline">Plantilla Excel</span>
+          </button>
+
           <button
             id="btn-export-master-csv"
             onClick={handleExportCurrentMaster}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 px-3 py-2 rounded-xl shadow-xs transition-all"
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 px-3 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
             title="Exportar a CSV"
           >
             <Download className="w-4 h-4 text-[#00843D]" />
-            <span>Exportar CSV</span>
+            <span className="hidden sm:inline">Exportar CSV</span>
           </button>
 
           <button
             id="btn-reset-masters"
             onClick={() => setShowResetConfirm(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 active:scale-95 px-3 py-2 rounded-xl transition-all"
+            className="flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 active:scale-95 px-3 py-2 rounded-xl transition-all cursor-pointer"
             title="Restablecer a valores iniciales"
           >
             <RotateCcw className="w-4 h-4" />
@@ -408,13 +829,13 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   Mis Maestros y Paraderos
                 </h1>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Personaliza tus paraderos, fundos y áreas de servicio en tiempo real.
+                  Personaliza tus paraderos, fundos y áreas de servicio en tiempo real o mediante Excel.
                 </p>
               </div>
             </div>
 
-            {/* Quick KPI Count Summary */}
-            <div className="grid grid-cols-4 gap-2 mt-5 pt-4 border-t border-gray-100">
+            {/* Quick KPI Count Summary - 3 items */}
+            <div className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-gray-100">
               {tabsConfig.map((t) => {
                 const Icon = t.icon;
                 const isCurrent = activeTab === t.id;
@@ -673,9 +1094,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     ? filteredParaderos.length
                     : activeTab === 'fundos'
                     ? filteredFundos.length
-                    : activeTab === 'areas'
-                    ? filteredAreas.length
-                    : filteredComedores.length}
+                    : filteredAreas.length}
                 </strong> {currentTabInfo.label.toLowerCase()}
                 {activeTab === 'paraderos' && (
                   <span className="ml-1 text-[11px] text-gray-600">
@@ -714,6 +1133,12 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                       index={index + 1}
                       name={item.paradero}
                       zona={itemZona}
+                      codigo={item.codigo}
+                      macrozona={item.macrozona}
+                      zonaEspecifica={item.zonaEspecifica}
+                      referencia={item.referencia}
+                      latitud={item.latitud}
+                      longitud={item.longitud}
                       onToggleZona={() => handleToggleParaderoZona(item.id)}
                       isEditing={editingId === item.id}
                       editingValue={editingName}
@@ -784,34 +1209,6 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   />
                 ))
               ))}
-
-            {/* COMEDORES LIST */}
-            {activeTab === 'comedores' &&
-              (filteredComedores.length === 0 ? (
-                <div className="sm:col-span-2">
-                  <EmptyMasterState
-                    searchQuery={searchQuery}
-                    onClearSearch={() => setSearchQuery('')}
-                    singular={currentTabInfo.singular}
-                  />
-                </div>
-              ) : (
-                filteredComedores.map((item, index) => (
-                  <MasterListItem
-                    key={item.id}
-                    id={item.id}
-                    index={index + 1}
-                    name={item.comedor}
-                    isEditing={editingId === item.id}
-                    editingValue={editingName}
-                    onStartEdit={() => startEditing(item.id, item.comedor)}
-                    onChangeEdit={(val) => setEditingName(val)}
-                    onSaveEdit={() => saveEditing(item.id)}
-                    onCancelEdit={cancelEditing}
-                    onDelete={() => setItemToDelete({ id: item.id, name: item.comedor })}
-                  />
-                ))
-              ))}
           </div>
         </div>
       </div>
@@ -863,7 +1260,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               ¿Restablecer Maestros?
             </h3>
             <p className="text-xs text-gray-500 text-center mt-1">
-              Se restablecerán todos los paraderos, fundos, áreas y comedores a la lista oficial
+              Se restablecerán todos los paraderos, fundos y áreas a la lista oficial
               inicial de CAMPOSOL.
             </p>
 
@@ -886,6 +1283,152 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           </div>
         </div>
       )}
+
+      {/* Excel Import Modal */}
+      {showImportModal && importData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in duration-150 max-h-[90vh] flex flex-col">
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-[#00843D] flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-black text-[#173B56] uppercase leading-tight truncate">
+                  Importar Datos desde Excel
+                </h3>
+                <p className="text-xs text-gray-500 truncate">
+                  Archivo: <span className="font-semibold text-gray-700">{importFileName}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Content summary */}
+            <div className="py-4 space-y-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="bg-[#E8F5EF] p-3 rounded-xl text-center border border-emerald-200/60">
+                  <div className="text-xl font-black text-[#00843D]">{importData.paraderos.length}</div>
+                  <div className="text-[11px] font-bold text-gray-700 mt-0.5">Paraderos</div>
+                  <div className="text-[9px] text-gray-500 mt-0.5">
+                    {importData.paraderos.filter(p => p.zona === 'NORTE').length} Norte • {importData.paraderos.filter(p => p.zona === 'SUR').length} Sur
+                  </div>
+                </div>
+
+                <div className="bg-sky-50 p-3 rounded-xl text-center border border-sky-200/60">
+                  <div className="text-xl font-black text-sky-800">{importData.fundos.length}</div>
+                  <div className="text-[11px] font-bold text-gray-700 mt-0.5">Fundos</div>
+                </div>
+
+                <div className="bg-amber-50 p-3 rounded-xl text-center border border-amber-200/60">
+                  <div className="text-xl font-black text-amber-800">{importData.areas.length}</div>
+                  <div className="text-[11px] font-bold text-gray-700 mt-0.5">Áreas</div>
+                </div>
+              </div>
+
+              {/* Mode Selection */}
+              <div className="space-y-2 pt-1">
+                <label className="text-xs font-black text-[#173B56] uppercase tracking-wide">
+                  Modo de Importación:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setImportMode('merge')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      importMode === 'merge'
+                        ? 'border-[#00843D] bg-emerald-50/70 ring-1 ring-[#00843D]'
+                        : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-xs font-black text-[#173B56] flex items-center justify-between">
+                      <span>Combinar / Agregar</span>
+                      {importMode === 'merge' && <Check className="w-4 h-4 text-[#00843D]" />}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1 leading-snug">
+                      Agrega nuevos registros sin tocar los ya existentes y evitando duplicados. (Recomendado)
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setImportMode('replace')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      importMode === 'replace'
+                        ? 'border-amber-500 bg-amber-50/70 ring-1 ring-amber-500'
+                        : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-xs font-black text-[#173B56] flex items-center justify-between">
+                      <span>Reemplazar Lista</span>
+                      {importMode === 'replace' && <Check className="w-4 h-4 text-amber-600" />}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1 leading-snug">
+                      Sustituye completamente la lista de las categorías presentes en el Excel.
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Preview samples */}
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[11px] font-bold text-gray-600 uppercase">
+                  Vista previa de datos detectados:
+                </div>
+                <div className="max-h-36 overflow-y-auto bg-gray-50 rounded-xl p-2.5 border border-gray-200/80 text-xs space-y-1">
+                  {importData.paraderos.length > 0 && (
+                    <div className="text-[11px]">
+                      <strong className="text-[#00843D]">Paraderos ({importData.paraderos.length}):</strong>{' '}
+                      <span className="text-gray-600">
+                        {importData.paraderos.slice(0, 5).map(p => `${p.codigo ? `[${p.codigo}] ` : ''}${p.paradero} (${p.zona}${p.macrozona ? ` - ${p.macrozona}` : ''})`).join(', ')}
+                        {importData.paraderos.length > 5 ? ` y ${importData.paraderos.length - 5} más...` : ''}
+                      </span>
+                    </div>
+                  )}
+                  {importData.fundos.length > 0 && (
+                    <div className="text-[11px]">
+                      <strong className="text-sky-800">Fundos ({importData.fundos.length}):</strong>{' '}
+                      <span className="text-gray-600">
+                        {importData.fundos.slice(0, 5).map(f => f.fundo).join(', ')}
+                        {importData.fundos.length > 5 ? ` y ${importData.fundos.length - 5} más...` : ''}
+                      </span>
+                    </div>
+                  )}
+                  {importData.areas.length > 0 && (
+                    <div className="text-[11px]">
+                      <strong className="text-amber-800">Áreas ({importData.areas.length}):</strong>{' '}
+                      <span className="text-gray-600">
+                        {importData.areas.slice(0, 5).map(a => a.area).join(', ')}
+                        {importData.areas.length > 5 ? ` y ${importData.areas.length - 5} más...` : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex gap-2.5 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportData(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteImport}
+                className="flex-1 py-2.5 rounded-xl bg-[#00843D] hover:bg-[#006e33] font-bold text-xs text-white shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>Confirmar e Importar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -902,11 +1445,17 @@ interface MasterListItemProps {
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onDelete: () => void;
-  // Paradero zone support
+  // Paradero metadata & zone support
   zona?: 'NORTE' | 'SUR';
   onToggleZona?: () => void;
   editingZona?: 'NORTE' | 'SUR';
   onChangeEditingZona?: (z: 'NORTE' | 'SUR') => void;
+  codigo?: string;
+  macrozona?: string;
+  zonaEspecifica?: string;
+  referencia?: string;
+  latitud?: number;
+  longitud?: number;
 }
 
 const MasterListItem: React.FC<MasterListItemProps> = ({
@@ -924,6 +1473,10 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
   onToggleZona,
   editingZona,
   onChangeEditingZona,
+  codigo,
+  macrozona,
+  zonaEspecifica,
+  referencia,
 }) => {
   return (
     <div
@@ -989,9 +1542,25 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
           </div>
         ) : (
           <div className="flex-1 min-w-0 flex items-center justify-between gap-2 pr-1">
-            <span className="text-sm font-bold text-[#173B56] truncate" title={name}>
-              {name}
-            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {codigo && (
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[10px] font-mono font-bold text-[#00843D]">
+                    {codigo}
+                  </span>
+                )}
+                <span className="text-sm font-bold text-[#173B56] truncate" title={name}>
+                  {name}
+                </span>
+              </div>
+              {(macrozona || (zonaEspecifica && zonaEspecifica !== zona) || (referencia && referencia !== '.' && referencia !== '-')) && (
+                <div className="text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap mt-0.5">
+                  {macrozona && <span className="font-semibold text-gray-700">{macrozona}</span>}
+                  {zonaEspecifica && zonaEspecifica !== zona && <span>• {zonaEspecifica}</span>}
+                  {referencia && referencia !== '.' && referencia !== '-' && <span>• Ref: {referencia}</span>}
+                </div>
+              )}
+            </div>
             {zona && (
               <button
                 type="button"
