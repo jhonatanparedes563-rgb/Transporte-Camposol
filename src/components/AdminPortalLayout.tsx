@@ -577,14 +577,15 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           <div className="flex items-center gap-2.5">
             {/* Live Web Sync Badge */}
             <div
+              id="header-cloud-sync-badge"
               className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-bold"
-              title="Todos los requerimientos registrados por los usuarios en sus celulares o computadoras se sincronizan y guardan en el servidor web"
+              title="Base de datos en la nube (Firestore) activa. Los requerimientos se sincronizan automáticamente en tiempo real entre todos los usuarios."
             >
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00843D]"></span>
               </span>
-              <span className="text-[11px] font-extrabold text-[#00843D]">Sincronizado en la Web</span>
+              <span className="text-[11px] font-extrabold text-[#00843D]">Base Cloud Firestore Activa</span>
             </div>
 
             {/* Manual Sync Button */}

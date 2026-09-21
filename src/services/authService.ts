@@ -1,4 +1,5 @@
 import { AppUser, UserRole, UserStatus } from '../types';
+import { firestoreSaveUser, firestoreDeleteUser } from './firestoreService';
 
 const USERS_STORAGE_KEY = 'camposol_users_v2';
 const SESSION_STORAGE_KEY = 'camposol_session_user_v2';
@@ -284,6 +285,11 @@ export async function createNewUser(data: {
   users.push(newUser);
   saveStoredUsers(users);
 
+  // Sincronizar usuario nuevo con Firebase Firestore
+  firestoreSaveUser(newUser).catch((err) => {
+    console.warn('[Firestore] Error sincronizando usuario nuevo:', err);
+  });
+
   return { success: true, user: newUser };
 }
 
@@ -330,6 +336,11 @@ export async function updateExistingUser(
   users[index] = target;
   saveStoredUsers(users);
 
+  // Sincronizar actualización con Firebase Firestore
+  firestoreSaveUser(target).catch((err) => {
+    console.warn('[Firestore] Error sincronizando actualización de usuario:', err);
+  });
+
   // Si se actualizó el usuario actual de la sesión, refrescar la sesión
   const currentSession = getActiveSessionUser();
   if (currentSession && currentSession.id === userId) {
@@ -349,6 +360,11 @@ export function toggleUserStatus(userId: string): { success: boolean; newStatus?
 
   user.estado = user.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
   saveStoredUsers(users);
+
+  // Sincronizar estado con Firebase Firestore
+  firestoreSaveUser(user).catch((err) => {
+    console.warn('[Firestore] Error sincronizando estado de usuario:', err);
+  });
 
   // Si se desactivó al usuario con la sesión activa, cerrar sesión
   const currentSession = getActiveSessionUser();
@@ -387,6 +403,11 @@ export function deleteStoredUser(
   // Eliminar usuario de la lista
   users.splice(index, 1);
   saveStoredUsers(users);
+
+  // Sincronizar eliminación con Firebase Firestore
+  firestoreDeleteUser(userId).catch((err) => {
+    console.warn('[Firestore] Error sincronizando eliminación de usuario:', err);
+  });
 
   return { success: true, deletedUser: targetUser };
 }

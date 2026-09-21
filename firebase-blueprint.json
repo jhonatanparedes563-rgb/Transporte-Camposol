@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "entities": {
+    "Requerimiento": {
+      "title": "Requerimiento",
+      "description": "Solicitud de servicio de transporte de personal de Camposol",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "numeroRequerimiento": { "type": "string" },
+        "fechaCreacion": { "type": "string" },
+        "horaCreacion": { "type": "string" },
+        "fechaUso": { "type": "string" },
+        "horaUso": { "type": "string" },
+        "tipoSolicitud": { "type": "string" },
+        "tiposServicio": { "type": "array" },
+        "tipoServicio": { "type": "string" },
+        "motivo": { "type": "string" },
+        "justificacion": { "type": "string" },
+        "solicitante": { "type": "string" },
+        "solicitanteDni": { "type": "string" },
+        "solicitanteArea": { "type": "string" },
+        "sede": { "type": "string" },
+        "centroCosto": { "type": "string" },
+        "estado": { "type": "string" },
+        "totalPasajeros": { "type": "number" },
+        "totalBuses": { "type": "number" },
+        "totalCostoEstimado": { "type": "number" },
+        "aprobador": { "type": "string" },
+        "fechaAprobacion": { "type": "string" },
+        "motivoRechazo": { "type": "string" },
+        "observaciones": { "type": "string" },
+        "codigoRuta": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "numeroRequerimiento", "fechaUso", "estado", "solicitante"]
+    },
+    "DetalleRequerimiento": {
+      "title": "DetalleRequerimiento",
+      "description": "Detalle y desglose de rutas y turnos para un requerimiento",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "requerimientoId": { "type": "string" },
+        "tipoServicio": { "type": "string" },
+        "origen": { "type": "string" },
+        "destino": { "type": "string" },
+        "horaSalida": { "type": "string" },
+        "horaLlegada": { "type": "string" },
+        "cantidadPasajeros": { "type": "number" },
+        "cantidadVehiculos": { "type": "number" },
+        "tipoVehiculo": { "type": "string" },
+        "empresaTransporte": { "type": "string" },
+        "placa": { "type": "string" },
+        "conductor": { "type": "string" },
+        "costoEstimado": { "type": "number" },
+        "estado": { "type": "string" }
+      },
+      "required": ["id", "requerimientoId"]
+    },
+    "AppUser": {
+      "title": "AppUser",
+      "description": "Usuario registrado del sistema de transporte de Camposol",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "nombre": { "type": "string" },
+        "email": { "type": "string" },
+        "rol": { "type": "string" },
+        "area": { "type": "string" },
+        "activo": { "type": "boolean" },
+        "fechaCreacion": { "type": "string" }
+      },
+      "required": ["id", "username", "nombre", "rol"]
+    },
+    "SystemMetadata": {
+      "title": "SystemMetadata",
+      "description": "Configuraciones globales, versiones de sincronización y maestros",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "revision": { "type": "number" },
+        "lastUpdated": { "type": "string" },
+        "areas": { "type": "array" },
+        "fundos": { "type": "array" },
+        "paraderos": { "type": "array" },
+        "comedores": { "type": "array" }
+      },
+      "required": ["id"]
+    }
+  },
+  "firestore": {
+    "/requerimientos/{reqId}": {
+      "schema": "#/entities/Requerimiento",
+      "description": "Colección de requerimientos de transporte de personal"
+    },
+    "/detalles/{detId}": {
+      "schema": "#/entities/DetalleRequerimiento",
+      "description": "Colección de detalles y rutas asociadas a los requerimientos"
+    },
+    "/users/{userId}": {
+      "schema": "#/entities/AppUser",
+      "description": "Colección de usuarios y roles del sistema"
+    },
+    "/system_metadata/{metaId}": {
+      "schema": "#/entities/SystemMetadata",
+      "description": "Metadatos y catálogos maestros sincronizados en tiempo real"
+    }
+  }
+}

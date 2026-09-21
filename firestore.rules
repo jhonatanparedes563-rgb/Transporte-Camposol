@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    match /requerimientos/{reqId} {
+      allow read: if true;
+      allow create, update: if isValidId(reqId);
+      allow delete: if isValidId(reqId);
+    }
+
+    match /detalles/{detId} {
+      allow read: if true;
+      allow create, update: if isValidId(detId);
+      allow delete: if isValidId(detId);
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isValidId(userId);
+      allow delete: if isValidId(userId);
+    }
+
+    match /system_metadata/{metaId} {
+      allow read: if true;
+      allow create, update: if isValidId(metaId);
+      allow delete: if isValidId(metaId);
+    }
+  }
+}

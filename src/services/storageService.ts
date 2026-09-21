@@ -16,6 +16,14 @@ import {
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
 } from '../data/masterData';
+import {
+  initializeFirestoreSync,
+  registerFirestoreSyncCallback,
+  firestoreSaveRequerimiento,
+  firestoreUpdateRequerimientoEstado,
+  firestoreDeleteRequerimiento,
+  firestoreSaveMasterData,
+} from './firestoreService';
 
 const REQ_STORAGE_KEY = 'camposol_transporte_requerimientos_v1';
 const DET_STORAGE_KEY = 'camposol_transporte_detalles_v1';
@@ -78,6 +86,51 @@ function broadcastLocalChange(): void {
       // ignore
     }
   }
+}
+
+// Conexión y sincronización en tiempo real con Firebase Firestore
+if (typeof window !== 'undefined') {
+  registerFirestoreSyncCallback((payload) => {
+    let changed = false;
+    if (payload.requerimientos && Array.isArray(payload.requerimientos)) {
+      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(payload.requerimientos));
+      changed = true;
+    }
+    if (payload.detalles && Array.isArray(payload.detalles)) {
+      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(payload.detalles));
+      changed = true;
+    }
+    if (payload.users && Array.isArray(payload.users)) {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(payload.users));
+      changed = true;
+    }
+    if (payload.areas && Array.isArray(payload.areas)) {
+      localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(payload.areas));
+      changed = true;
+    }
+    if (payload.fundos && Array.isArray(payload.fundos)) {
+      localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(payload.fundos));
+      changed = true;
+    }
+    if (payload.paraderos && Array.isArray(payload.paraderos)) {
+      localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(payload.paraderos));
+      changed = true;
+    }
+    if (payload.comedores && Array.isArray(payload.comedores)) {
+      localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(payload.comedores));
+      changed = true;
+    }
+    if (changed) {
+      isOnline = true;
+      lastSyncDate = new Date();
+      notifyListeners();
+    }
+  });
+
+  // Iniciar la escucha en segundo plano
+  initializeFirestoreSync().catch((err) => {
+    console.warn('[Firestore] Inicialización diferida:', err);
+  });
 }
 
 // -------------------------------------------------------------
@@ -365,7 +418,12 @@ export function saveNewRequerimiento(
   // Notificar cambios localmente
   broadcastLocalChange();
 
-  // 2. Persistir en el servidor web (Cloud)
+  // 2. Persistir en la base de datos Cloud de Firebase Firestore
+  firestoreSaveRequerimiento(newRequerimiento, newDetalles).catch((err) => {
+    console.warn('[Firestore] Error guardando en la nube:', err);
+  });
+
+  // 3. Persistir también en el servidor web (Cloud Express Backup)
   fetch('/api/requerimientos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -400,6 +458,11 @@ export function updateRequerimientoEstado(id: string, nuevoEstado: Requerimiento
   localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(updated));
 
   broadcastLocalChange();
+
+  // Actualizar en Firebase Firestore
+  firestoreUpdateRequerimientoEstado(id, nuevoEstado).catch((err) => {
+    console.warn('[Firestore] Error actualizando estado en Firestore:', err);
+  });
 
   fetch(`/api/requerimientos/${encodeURIComponent(id)}/estado`, {
     method: 'PUT',
@@ -436,6 +499,11 @@ export function deleteRequerimiento(id: string): boolean {
     localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(filteredDets));
 
     broadcastLocalChange();
+
+    // Eliminar en Firebase Firestore
+    firestoreDeleteRequerimiento(target.id, target.numeroRequerimiento).catch((err) => {
+      console.warn('[Firestore] Error eliminando en Firestore:', err);
+    });
 
     // Eliminar también en el servidor web (Cloud)
     fetch(`/api/requerimientos/${encodeURIComponent(target.id)}`, {
@@ -502,6 +570,9 @@ export function getStoredAreas(): MaestroArea[] {
 export function saveStoredAreas(areas: MaestroArea[]): void {
   localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(areas));
   broadcastLocalChange();
+  firestoreSaveMasterData({ areas }).catch((err) => {
+    console.warn('[Firestore] Error guardando áreas:', err);
+  });
 }
 
 export function getStoredFundos(): MaestroFundo[] {
@@ -521,6 +592,9 @@ export function getStoredFundos(): MaestroFundo[] {
 export function saveStoredFundos(fundos: MaestroFundo[]): void {
   localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(fundos));
   broadcastLocalChange();
+  firestoreSaveMasterData({ fundos }).catch((err) => {
+    console.warn('[Firestore] Error guardando fundos:', err);
+  });
 }
 
 export function inferParaderoZona(name: string): 'NORTE' | 'SUR' {
@@ -562,6 +636,9 @@ export function getStoredParaderos(): MaestroParadero[] {
 export function saveStoredParaderos(paraderos: MaestroParadero[]): void {
   localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(paraderos));
   broadcastLocalChange();
+  firestoreSaveMasterData({ paraderos }).catch((err) => {
+    console.warn('[Firestore] Error guardando paraderos:', err);
+  });
 }
 
 export function getStoredComedores(): MaestroComedor[] {
@@ -581,6 +658,9 @@ export function getStoredComedores(): MaestroComedor[] {
 export function saveStoredComedores(comedores: MaestroComedor[]): void {
   localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(comedores));
   broadcastLocalChange();
+  firestoreSaveMasterData({ comedores }).catch((err) => {
+    console.warn('[Firestore] Error guardando comedores:', err);
+  });
 }
 
 export function resetMasterDataToDefault(): {

@@ -301,13 +301,18 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
           </div>
 
           {/* Cloud Database Info Note */}
-          <div className="p-3.5 bg-emerald-50/70 border border-[#00843D]/20 rounded-2xl text-[11px] text-[#173B56] space-y-1">
-            <div className="font-bold flex items-center gap-1.5 text-[#00843D]">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Tus datos ya se guardan automáticamente</span>
+          <div className="p-3.5 bg-emerald-50/80 border border-[#00843D]/25 rounded-2xl text-[11px] text-[#173B56] space-y-2">
+            <div className="font-bold flex items-center justify-between text-[#00843D]">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>Base Cloud Firestore Conectada</span>
+              </span>
+              <span className="text-[10px] bg-[#00843D] text-white px-2 py-0.5 rounded-full font-bold">
+                EN VIVO
+              </span>
             </div>
             <p className="text-gray-600 leading-relaxed">
-              Toda la información registrada (requerimientos, paraderos, fundos y áreas) queda guardada de manera persistente en este dispositivo y navegador. Si deseas compartir o migrar la información a otro equipo, utiliza el botón de <strong>Descargar Copia de Seguridad</strong>.
+              La base de datos en la nube está activa y configurada para recibir y sincronizar en tiempo real los requerimientos y usuarios desde cualquier celular o equipo. Además, se mantiene un respaldo local para garantizar operación inmediata y soporte sin conexión.
             </p>
           </div>
         </div>
