@@ -1,0 +1,8 @@
+{
+  "name": "CAMPOSOL Transporte de Personal",
+  "description": "Aplicación móvil y PWA para registro rápido y gestión de requerimientos de transporte de personal para CAMPOSOL.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
