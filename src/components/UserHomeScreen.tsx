@@ -26,21 +26,31 @@ interface UserHomeScreenProps {
   currentUser?: AppUser;
 }
 
-export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
+export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   onNewRequirement,
   onMyRequirements,
   requerimientos,
   onSelectRequirement,
   currentUser,
 }) => {
-  // Count user metrics (user only sees their own summary, no admin KPIs)
-  const totalReqs = requerimientos.length;
-  const pendingReqs = requerimientos.filter((r) => r.estado === 'PENDIENTE' || r.estado === 'EN REVISIÓN').length;
-  const approvedReqs = requerimientos.filter((r) => r.estado === 'APROBADO').length;
-  const attendedReqs = requerimientos.filter((r) => r.estado === 'ATENDIDO').length;
-
-  // Latest requirement (if any)
-  const latestReq = requerimientos.length > 0 ? requerimientos[0] : null;
+  // Count user metrics in a single pass with memoization
+  const { totalReqs, pendingReqs, approvedReqs, attendedReqs, latestReq } = React.useMemo(() => {
+    let p = 0;
+    let a = 0;
+    let at = 0;
+    for (const r of requerimientos) {
+      if (r.estado === 'PENDIENTE' || r.estado === 'EN REVISIÓN') p++;
+      else if (r.estado === 'APROBADO') a++;
+      else if (r.estado === 'ATENDIDO') at++;
+    }
+    return {
+      totalReqs: requerimientos.length,
+      pendingReqs: p,
+      approvedReqs: a,
+      attendedReqs: at,
+      latestReq: requerimientos.length > 0 ? requerimientos[0] : null,
+    };
+  }, [requerimientos]);
 
   // Status visual badge styling
   const getStatusStyle = (estado: EstadoRequerimiento) => {
@@ -336,4 +346,4 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = ({
       </div>
     </div>
   );
-};
+});

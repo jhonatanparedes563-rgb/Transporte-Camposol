@@ -33,7 +33,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
   return (
     <div className="min-h-screen bg-slate-200/70 sm:py-6 sm:px-4 flex items-center justify-center font-sans antialiased text-[#173B56]">
       {/* Centered Mobile Device Frame (Phone container) */}
-      <div className="w-full max-w-md bg-[#F5F8F7] min-h-screen sm:min-h-[844px] sm:max-h-[920px] sm:rounded-[38px] sm:shadow-2xl sm:border sm:border-gray-300/80 flex flex-col relative overflow-hidden transform translate-z-0">
+      <div className="w-full max-w-md bg-[#F5F8F7] h-screen h-[100dvh] sm:h-[844px] sm:max-h-[calc(100vh-2rem)] sm:rounded-[38px] sm:shadow-2xl sm:border sm:border-gray-300/80 flex flex-col relative overflow-hidden">
         {/* Mobile App Header */}
         <header className="sticky top-0 z-40 bg-[#00843D] text-white px-4 py-3 shadow-md flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
@@ -91,7 +91,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
         </header>
 
         {/* Scrollable Screen Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto overscroll-contain">
           {currentScreen === 'home' && (
             <UserHomeScreen
               onNewRequirement={() => onNavigate('new-request')}

@@ -55,6 +55,7 @@ if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
 
 // Global listeners for data updates
 const listeners: Array<() => void> = [];
+let notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function subscribeToDataChanges(callback: () => void): () => void {
   listeners.push(callback);
@@ -65,16 +66,22 @@ export function subscribeToDataChanges(callback: () => void): () => void {
 }
 
 function notifyListeners(): void {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('camposol_data_changed'));
+  if (notifyTimer) {
+    clearTimeout(notifyTimer);
   }
-  listeners.forEach((cb) => {
-    try {
-      cb();
-    } catch (e) {
-      console.error('Error in sync listener callback:', e);
+  notifyTimer = setTimeout(() => {
+    notifyTimer = null;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('camposol_data_changed'));
     }
-  });
+    listeners.forEach((cb) => {
+      try {
+        cb();
+      } catch (e) {
+        console.error('Error in sync listener callback:', e);
+      }
+    });
+  }, 60);
 }
 
 function broadcastLocalChange(): void {
@@ -235,7 +242,7 @@ if (typeof window !== 'undefined') {
   }, 400);
 
   // Periodic poll
-  setInterval(pollServer, 3500);
+  setInterval(pollServer, 20000);
 
   // Sync when window regains focus or reconnects
   window.addEventListener('focus', () => {
