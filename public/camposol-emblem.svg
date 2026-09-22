@@ -1,35 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <!-- Text path for "Camposol" arc -->
-    <path id="camposolArc" d="M 85 245 A 190 190 0 0 1 427 245" fill="none" />
-    
-    <!-- Clip path for the central inner circle field & sun -->
     <clipPath id="fieldCircleClip">
       <circle cx="256" cy="290" r="114" />
     </clipPath>
-
-    <!-- Subtle drop shadow -->
     <filter id="badgeShadow" x="-10%" y="-10%" width="120%" height="120%">
       <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.18" />
     </filter>
   </defs>
 
   <!-- Outer Golden Ring -->
-  <circle cx="256" cy="256" r="248" fill="#58A33E" stroke="#B89F67" stroke-width="14" filter="url(#badgeShadow)" />
+  <circle cx="256" cy="256" r="244" fill="#58A33E" stroke="#B89F67" stroke-width="16" filter="url(#badgeShadow)" />
 
   <!-- Inner Soft Accent Ring -->
-  <circle cx="256" cy="256" r="240" fill="none" stroke="#68B24C" stroke-width="1.5" opacity="0.6" />
+  <circle cx="256" cy="256" r="235" fill="none" stroke="#6BB54F" stroke-width="2" opacity="0.7" />
 
-  <!-- Curved "Camposol®" Text -->
-  <text fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-weight="700" font-size="64" letter-spacing="1">
-    <textPath href="#camposolArc" startOffset="50%" text-anchor="middle">
-      Camposol<tspan font-size="28" dy="-26">®</tspan>
-    </textPath>
-  </text>
+  <!-- Arched Camposol® Text -->
+  <g id="camposolBrandText">
+    <text x="142.7" y="125.0" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="52" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(-38.0, 142.7, 125.0)">C</text>
+    <text x="175.3" y="104.6" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(-26.0, 175.3, 104.6)">a</text>
+    <text x="214.6" y="90.7" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(-13.0, 214.6, 90.7)">m</text>
+    <text x="252.8" y="86.0" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(-1.0, 252.8, 86.0)">p</text>
+    <text x="288.0" y="88.8" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(10.0, 288.0, 88.8)">o</text>
+    <text x="321.9" y="98.2" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(21.0, 321.9, 98.2)">s</text>
+    <text x="353.5" y="114.0" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(32.0, 353.5, 114.0)">o</text>
+    <text x="379.1" y="133.3" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(42.0, 379.1, 133.3)">l</text>
+    <text x="397.0" y="137.7" fill="#FFFFFF" font-family="'Century Gothic', 'Montserrat', 'Segoe UI', Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(50.0, 397.0, 137.7)">®</text>
+  </g>
 
   <!-- Central Field & Sun Graphic (clipped to inner circle) -->
   <g clip-path="url(#fieldCircleClip)">
-    <!-- Sky / Upper background inside circle -->
     <rect x="130" y="160" width="252" height="260" fill="#58A33E" />
 
     <!-- Golden Sun rising behind the hill -->
@@ -38,26 +37,15 @@
     <!-- Rolling Green Hill Base -->
     <path d="M 130 300 Q 220 252 382 284 L 382 410 L 130 410 Z" fill="#58A33E" />
 
-    <!-- Agricultural Furrows (Perspectival crop rows radiating in deep emerald green) -->
-    <!-- Stripe 1 (Far left) -->
+    <!-- Agricultural Furrows (Deep emerald green rows radiating from the horizon) -->
     <path d="M 196 350 Q 212 300 238 274 Q 232 278 186 360 Z" fill="#0C6534" />
-    
-    <!-- Stripe 2 -->
     <path d="M 218 392 Q 228 320 248 270 Q 242 272 208 396 Z" fill="#0C6534" />
-
-    <!-- Stripe 3 -->
     <path d="M 252 404 Q 250 330 258 268 Q 252 270 242 404 Z" fill="#0C6534" />
-
-    <!-- Stripe 4 (Center curving right) -->
     <path d="M 288 404 Q 275 330 268 268 Q 274 270 298 404 Z" fill="#0C6534" />
-
-    <!-- Stripe 5 (Right curve) -->
     <path d="M 326 396 Q 302 332 278 272 Q 284 274 336 390 Z" fill="#0C6534" />
-
-    <!-- Stripe 6 (Far right curve) -->
     <path d="M 358 368 Q 328 322 288 280 Q 294 282 366 356 Z" fill="#0C6534" />
   </g>
 
   <!-- Central Circle White Border Ring -->
-  <circle cx="256" cy="290" r="114" fill="none" stroke="#FFFFFF" stroke-width="6.5" />
+  <circle cx="256" cy="290" r="114" fill="none" stroke="#FFFFFF" stroke-width="7" />
 </svg>
