@@ -475,9 +475,26 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               sampleHeaders.includes('latitud') ||
               sampleHeaders.includes('zona')));
 
-        const isParaderoSheet = sNorm.includes('paradero') || hasCamposolParaderoFormat;
-        const isFundoSheet = sNorm.includes('fundo') && !hasCamposolParaderoFormat;
-        const isAreaSheet = sNorm.includes('area') && !hasCamposolParaderoFormat;
+        const hasParaderoHeader = sampleHeaders.some((h) =>
+          h.includes('paradero') ||
+          h.includes('embarque') ||
+          h.includes('punto') ||
+          h.includes('ruta')
+        );
+        const hasFundoHeader = sampleHeaders.some((h) => h.includes('fundo'));
+        const hasAreaHeader = sampleHeaders.some((h) => h.includes('area') || h.includes('área'));
+
+        const isParaderoSheet =
+          sNorm.includes('paradero') ||
+          hasCamposolParaderoFormat ||
+          hasParaderoHeader ||
+          (activeTab === 'paraderos' && !hasFundoHeader && !hasAreaHeader && !sNorm.includes('fundo') && !sNorm.includes('area'));
+        const isFundoSheet =
+          (sNorm.includes('fundo') || hasFundoHeader || (activeTab === 'fundos' && !hasParaderoHeader && !hasAreaHeader)) &&
+          !hasCamposolParaderoFormat;
+        const isAreaSheet =
+          (sNorm.includes('area') || hasAreaHeader || (activeTab === 'areas' && !hasParaderoHeader && !hasFundoHeader)) &&
+          !hasCamposolParaderoFormat;
 
         jsonRows.forEach((row) => {
           const keys = Object.keys(row);
@@ -501,9 +518,27 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
           // Paradero detection:
           // CAMPOSOL format: MACROZONA, ZONA, AGRUPADOR, CÓDIGO, NOMBRE, REFERENCIA, LATITUD, LONGITUD
+          // O formato simple de lista: PARADERO, NOMBRE, PUNTO DE EMBARQUE
+          const matchedParaderoKey = keys.find((k) => {
+            const kn = normalizeHeader(k);
+            return (
+              kn === 'paradero' ||
+              kn === 'paraderos' ||
+              kn === 'nombre' ||
+              kn.includes('paradero') ||
+              kn.includes('embarque') ||
+              kn.includes('punto')
+            );
+          });
+
           const nombreVal =
-            getVal('nombre') ||
             getVal('paradero') ||
+            getVal('paraderos') ||
+            getVal('nombre') ||
+            getVal('punto') ||
+            getVal('punto de embarque') ||
+            getVal('ruta') ||
+            (matchedParaderoKey ? normalizeStr(row[matchedParaderoKey]) : '') ||
             (isParaderoSheet && !isFundoSheet && !isAreaSheet ? normalizeStr(row[keys[0]]) : '');
           const macrozonaVal = getVal('macrozona');
           const zonaVal = getVal('zona');

@@ -56,36 +56,103 @@ export const MAESTRO_MOVIMIENTOS: string[] = [
   'SALIDA',
 ];
 
-export const MAESTRO_PARADEROS: MaestroParadero[] = [
-  // ZONA SUR (Chao y alrededores)
-  { id: 'PAR-S01', paradero: 'Chao', zona: 'SUR' },
-  { id: 'PAR-S02', paradero: 'Nuevo Chao', zona: 'SUR' },
-  { id: 'PAR-S03', paradero: 'Valle de Dios', zona: 'SUR' },
-  { id: 'PAR-S04', paradero: 'Rest. 28', zona: 'SUR' },
-  { id: 'PAR-S05', paradero: 'Viviendas MV', zona: 'SUR' },
+// Orden Canónico Oficial de Rutas de Paraderos (Virú y Chao)
+export const CANONICAL_PARADEROS_ORDER: string[] = [
+  'LA BRASIL',
+  'VALDEMAR',
+  'LA LLANTA',
+  'VILLA VIRU',
+  'TECHO PROPIO',
+  'PETROAMERICA',
+  'PUENTE CHANQUIN',
+  'CALIFORNIA',
+  'EL CAÑAN',
+  'PRIMERA DE MAYO',
+  'EL REFUGIO',
+  'LA PORTADA',
+  'CALLE LIMA-VIRU',
+  'GRIFO LOS PINOS',
+  'SAN LUIS',
+  'MENDOCILLA',
+  'LA 21',
+  'LA PLAZUELA SAN JOSE',
+  'SANTA CECILIA',
+  'VIVIENDAS MAR VERDE',
+  'GRIFO GRAN CHIMU',
+  'LA 28',
+  'LA BOTICA',
+  'SEGUNDO PARADERO',
+];
 
-  // ZONA NORTE (Virú y alrededores)
-  { id: 'PAR-N01', paradero: 'Guadalupito', zona: 'NORTE' },
-  { id: 'PAR-N02', paradero: 'Santa Elena', zona: 'NORTE' },
-  { id: 'PAR-N03', paradero: 'Victor Raúl (La Brasil)', zona: 'NORTE' },
-  { id: 'PAR-N04', paradero: 'Valdemar', zona: 'NORTE' },
-  { id: 'PAR-N05', paradero: 'T. Propio', zona: 'NORTE' },
-  { id: 'PAR-N06', paradero: 'Villa Viru', zona: 'NORTE' },
-  { id: 'PAR-N07', paradero: 'Grifo Petro América', zona: 'NORTE' },
-  { id: 'PAR-N08', paradero: 'California', zona: 'NORTE' },
-  { id: 'PAR-N09', paradero: 'Puente Chanquin', zona: 'NORTE' },
-  { id: 'PAR-N10', paradero: 'Puente (Grifo Chimu)', zona: 'NORTE' },
-  { id: 'PAR-N11', paradero: 'La Portada', zona: 'NORTE' },
-  { id: 'PAR-N12', paradero: 'Los Pinos', zona: 'NORTE' },
-  { id: 'PAR-N13', paradero: 'San Luis', zona: 'NORTE' },
-  { id: 'PAR-N14', paradero: 'Tamboreal', zona: 'NORTE' },
-  { id: 'PAR-N15', paradero: 'Moro', zona: 'NORTE' },
-  { id: 'PAR-N16', paradero: 'Plazuela (S. José)', zona: 'NORTE' },
-  { id: 'PAR-N17', paradero: 'Viru', zona: 'NORTE' },
-  { id: 'PAR-N18', paradero: 'Vinsos', zona: 'NORTE' },
-  { id: 'PAR-N19', paradero: 'Alto Trujillo', zona: 'NORTE' },
-  { id: 'PAR-N20', paradero: 'Huacapongo', zona: 'NORTE' },
-  { id: 'PAR-N21', paradero: 'Buenavista', zona: 'NORTE' },
+export function normalizeParaderoKey(name: string): string {
+  const norm = (name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+
+  if (norm.includes('BRASIL') || norm.includes('VICTOR RAUL')) return 'LA BRASIL';
+  if (norm === 'VALDEMAR') return 'VALDEMAR';
+  if (norm.includes('LLANTA')) return 'LA LLANTA';
+  if (norm.includes('VILLA VIRU') || norm === 'VILLA VIRÚ') return 'VILLA VIRU';
+  if (norm.includes('TECHO PROPIO') || norm === 'T. PROPIO' || norm === 'T PROPIO') return 'TECHO PROPIO';
+  if (norm.includes('PETROAMERICA') || norm.includes('PETRO AMERICA') || norm.includes('PETROAMÉRICA')) return 'PETROAMERICA';
+  if (norm.includes('CHANQUIN') || norm.includes('CHANQUÍN')) return 'PUENTE CHANQUIN';
+  if (norm === 'CALIFORNIA') return 'CALIFORNIA';
+  if (norm.includes('CAÑAN') || norm.includes('CANAN')) return 'EL CAÑAN';
+  if (norm.includes('PRIMERA DE MAYO') || norm.includes('1 DE MAYO')) return 'PRIMERA DE MAYO';
+  if (norm.includes('REFUGIO')) return 'EL REFUGIO';
+  if (norm.includes('PORTADA')) return 'LA PORTADA';
+  if (norm.includes('CALLE LIMA') || norm.includes('LIMA-VIRU') || norm.includes('LIMA - VIRU')) return 'CALLE LIMA-VIRU';
+  if (norm.includes('PINOS')) return 'GRIFO LOS PINOS';
+  if (norm.includes('SAN LUIS')) return 'SAN LUIS';
+  if (norm.includes('MENDOCILLA')) return 'MENDOCILLA';
+  if (norm === 'LA 21' || norm === '21') return 'LA 21';
+  if (norm.includes('PLAZUELA') || norm.includes('SAN JOSE') || norm.includes('S. JOSE')) return 'LA PLAZUELA SAN JOSE';
+  if (norm.includes('SANTA CECILIA') || norm.includes('STA CECILIA') || norm.includes('STA. CECILIA')) return 'SANTA CECILIA';
+  if (norm.includes('VIVIENDAS') || norm.includes('MAR VERDE') || norm.includes('VIVIENDAS MV') || norm === 'MV') return 'VIVIENDAS MAR VERDE';
+  if (norm.includes('GRAN CHIMU') || norm.includes('GRIFO CHIMU') || norm.includes('CHIMÚ')) return 'GRIFO GRAN CHIMU';
+  if (norm.includes('28') || norm.includes('REST. 28')) return 'LA 28';
+  if (norm.includes('BOTICA')) return 'LA BOTICA';
+  if (norm.includes('SEGUNDO PARADERO') || norm.includes('2DO PARADERO') || norm.includes('2° PARADERO')) return 'SEGUNDO PARADERO';
+
+  return norm;
+}
+
+export function getParaderoOrderIndex(name: string): number {
+  const norm = normalizeParaderoKey(name);
+  const idx = CANONICAL_PARADEROS_ORDER.indexOf(norm);
+  return idx !== -1 ? idx : 999;
+}
+
+export const MAESTRO_PARADEROS: MaestroParadero[] = [
+  // RUTA VIRÚ (ZONA NORTE) - Orden Oficial Operativo (1 a 19)
+  { id: 'PAR-01', paradero: 'LA BRASIL', zona: 'NORTE' },
+  { id: 'PAR-02', paradero: 'VALDEMAR', zona: 'NORTE' },
+  { id: 'PAR-03', paradero: 'LA LLANTA', zona: 'NORTE' },
+  { id: 'PAR-04', paradero: 'VILLA VIRU', zona: 'NORTE' },
+  { id: 'PAR-05', paradero: 'TECHO PROPIO', zona: 'NORTE' },
+  { id: 'PAR-06', paradero: 'PETROAMERICA', zona: 'NORTE' },
+  { id: 'PAR-07', paradero: 'PUENTE CHANQUIN', zona: 'NORTE' },
+  { id: 'PAR-08', paradero: 'CALIFORNIA', zona: 'NORTE' },
+  { id: 'PAR-09', paradero: 'EL CAÑAN', zona: 'NORTE' },
+  { id: 'PAR-10', paradero: 'PRIMERA DE MAYO', zona: 'NORTE' },
+  { id: 'PAR-11', paradero: 'EL REFUGIO', zona: 'NORTE' },
+  { id: 'PAR-12', paradero: 'LA PORTADA', zona: 'NORTE' },
+  { id: 'PAR-13', paradero: 'CALLE LIMA-VIRU', zona: 'NORTE' },
+  { id: 'PAR-14', paradero: 'GRIFO LOS PINOS', zona: 'NORTE' },
+  { id: 'PAR-15', paradero: 'SAN LUIS', zona: 'NORTE' },
+  { id: 'PAR-16', paradero: 'MENDOCILLA', zona: 'NORTE' },
+  { id: 'PAR-17', paradero: 'LA 21', zona: 'NORTE' },
+  { id: 'PAR-18', paradero: 'LA PLAZUELA SAN JOSE', zona: 'NORTE' },
+  { id: 'PAR-19', paradero: 'SANTA CECILIA', zona: 'NORTE' },
+
+  // RUTA CHAO (ZONA SUR) - Orden Oficial Operativo (20 a 24)
+  { id: 'PAR-20', paradero: 'VIVIENDAS MAR VERDE', zona: 'SUR' },
+  { id: 'PAR-21', paradero: 'GRIFO GRAN CHIMU', zona: 'SUR' },
+  { id: 'PAR-22', paradero: 'LA 28', zona: 'SUR' },
+  { id: 'PAR-23', paradero: 'LA BOTICA', zona: 'SUR' },
+  { id: 'PAR-24', paradero: 'SEGUNDO PARADERO', zona: 'SUR' },
 ];
 
 export const MAESTRO_COMEDORES: MaestroComedor[] = [

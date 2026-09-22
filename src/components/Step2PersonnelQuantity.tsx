@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { RequerimientoDraft, MaestroParadero, ComedorPersonalDraft } from '../types';
 import { getStoredParaderos, getStoredComedores, subscribeToDataChanges } from '../services/storageService';
+import { getParaderoOrderIndex, normalizeParaderoKey, CANONICAL_PARADEROS_ORDER } from '../data/masterData';
 
 interface Step2PersonnelQuantityProps {
   draft: RequerimientoDraft;
@@ -131,13 +132,22 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     return initial;
   });
 
-  // Filter all paraderos by search term
+  // Filter and sort all paraderos strictly by official operational route order (Imagen 2)
   const filteredParaderos = useMemo(() => {
-    if (!searchTerm.trim()) return paraderosMaster;
-    const term = searchTerm.trim().toLowerCase();
-    return paraderosMaster.filter((p) =>
-      p.paradero.toLowerCase().includes(term)
-    );
+    let list = paraderosMaster;
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      list = paraderosMaster.filter((p) =>
+        p.paradero.toLowerCase().includes(term)
+      );
+    }
+    // Ordenamiento estricto por la secuencia de ruta operativa (1 a 24)
+    return [...list].sort((a, b) => {
+      const idxA = getParaderoOrderIndex(a.paradero);
+      const idxB = getParaderoOrderIndex(b.paradero);
+      if (idxA !== idxB) return idxA - idxB;
+      return a.paradero.localeCompare(b.paradero);
+    });
   }, [paraderosMaster, searchTerm]);
 
   // Sync state to parent draft
@@ -492,25 +502,54 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredParaderos.map((item) => {
+                filteredParaderos.map((item, idx) => {
                   const rowTotal = getRowTotal(item.paradero);
                   const isRowActive = rowTotal > 0;
+                  const orderIdx = getParaderoOrderIndex(item.paradero);
+                  const isCanonical = orderIdx < CANONICAL_PARADEROS_ORDER.length;
+                  const isChao = item.zona === 'SUR' || orderIdx >= 19;
 
                   return (
                     <tr
                       key={item.paradero}
-                      className={`hover:bg-sky-50/40 transition-colors ${
-                        isRowActive ? 'bg-emerald-50/20' : ''
+                      className={`hover:bg-sky-50/50 transition-colors ${
+                        isRowActive
+                          ? 'bg-emerald-50/25'
+                          : isChao && isCanonical
+                          ? 'bg-amber-50/20'
+                          : ''
                       }`}
                     >
-                      {/* Fixed Paradero Name */}
-                      <td className="sticky left-0 bg-white group-hover:bg-sky-50/40 py-2 px-3 font-semibold text-[#173B56] text-xs sm:text-[13px] leading-tight z-10 border-r border-gray-100">
-                        {item.paradero}
+                      {/* Fixed Paradero Name with Route Sequence */}
+                      <td
+                        className={`sticky left-0 ${
+                          isRowActive
+                            ? 'bg-[#f4fbf7]'
+                            : isChao && isCanonical
+                            ? 'bg-[#fffdf7]'
+                            : 'bg-white'
+                        } py-2 px-2.5 font-semibold text-[#173B56] text-xs sm:text-[13px] leading-tight z-10 border-r border-gray-100`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded text-center shrink-0 min-w-[22px] ${
+                              isChao
+                                ? 'bg-amber-100/80 text-amber-900 border border-amber-200/60'
+                                : 'bg-sky-100/80 text-sky-900 border border-sky-200/60'
+                            }`}
+                            title={isChao ? 'Ruta Chao (Zona Sur)' : 'Ruta Virú (Zona Norte)'}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span className="truncate">{item.paradero}</span>
+                        </div>
                       </td>
 
                       {/* Inputs per Comedor Column */}
                       {columns.map((col) => {
-                        const cellVal = matrix[item.paradero]?.[col];
+                        const cellVal =
+                          matrix[item.paradero]?.[col] ??
+                          matrix[normalizeParaderoKey(item.paradero)]?.[col];
                         const displayVal =
                           cellVal !== undefined && cellVal > 0 ? String(cellVal) : '';
 

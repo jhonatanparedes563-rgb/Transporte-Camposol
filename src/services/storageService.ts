@@ -15,6 +15,8 @@ import {
   MAESTRO_FUNDOS,
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
+  normalizeParaderoKey,
+  getParaderoOrderIndex,
 } from '../data/masterData';
 import {
   initializeFirestoreSync,
@@ -669,7 +671,13 @@ export function inferParaderoZona(name: string): 'NORTE' | 'SUR' {
     upper.includes('CHAO') ||
     upper.includes('VALLE DE DIOS') ||
     upper.includes('REST') ||
-    upper.includes('MV')
+    upper.includes('28') ||
+    upper.includes('MV') ||
+    upper.includes('MAR VERDE') ||
+    upper.includes('GRAN CHIMU') ||
+    upper.includes('GRIFO CHIMU') ||
+    upper.includes('BOTICA') ||
+    upper.includes('SEGUNDO PARADERO')
   ) {
     return 'SUR';
   }
@@ -684,14 +692,37 @@ export function getStoredParaderos(): MaestroParadero[] {
       return MAESTRO_PARADEROS;
     }
     const parsed: MaestroParadero[] = JSON.parse(raw);
-    const withZona = parsed.map((p) => {
-      if (p.zona === 'NORTE' || p.zona === 'SUR') return p;
-      const matched = MAESTRO_PARADEROS.find((m) => m.paradero === p.paradero || m.id === p.id);
-      return {
-        ...p,
-        zona: matched?.zona || inferParaderoZona(p.paradero),
-      };
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return MAESTRO_PARADEROS;
+    }
+
+    // Filtrar cualquier paradero ficticio remanente de versiones anteriores (PAR-25 a PAR-36)
+    // para que la lista contenga exclusivamente los datos reales cargados/subidos por el usuario
+    const FANTASY_NAMES = new Set([
+      'CHAO', 'NUEVO CHAO', 'VALLE DE DIOS', 'GUADALUPITO', 'SANTA ELENA',
+      'TAMBOREAL', 'MORO', 'VIRU', 'VINSOS', 'ALTO TRUJILLO', 'HUACAPONGO', 'BUENAVISTA'
+    ]);
+
+    const cleanList = parsed.filter(
+      (p) => !FANTASY_NAMES.has((p.paradero || '').trim().toUpperCase())
+    );
+
+    const baseList = cleanList.length > 0 ? cleanList : MAESTRO_PARADEROS;
+
+    // Retornar EXCLUSIVAMENTE los paraderos reales subidos o configurados por el usuario
+    const withZona = baseList.map((p) => ({
+      ...p,
+      zona: (p.zona === 'NORTE' || p.zona === 'SUR' ? p.zona : inferParaderoZona(p.paradero)) as 'NORTE' | 'SUR',
+    }));
+
+    // Ordenar de acuerdo a la ruta operativa oficial para los que existan en la lista
+    withZona.sort((a, b) => {
+      const idxA = getParaderoOrderIndex(a.paradero);
+      const idxB = getParaderoOrderIndex(b.paradero);
+      if (idxA !== idxB) return idxA - idxB;
+      return a.paradero.localeCompare(b.paradero);
     });
+
     return withZona;
   } catch (err) {
     console.error('Error loading paraderos:', err);
