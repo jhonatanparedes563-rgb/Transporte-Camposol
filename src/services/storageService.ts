@@ -35,6 +35,33 @@ const PARADEROS_STORAGE_KEY = 'camposol_maestro_paraderos_v1';
 const COMEDORES_STORAGE_KEY = 'camposol_maestro_comedores_v1';
 const USERS_STORAGE_KEY = 'camposol_users_v2';
 const LAST_REVISION_KEY = 'camposol_last_revision_v1';
+const DRAFT_REQ_STORAGE_KEY = 'camposol_current_req_draft_v1';
+
+export function getStoredRequirementDraft(): RequerimientoDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_REQ_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
+export function saveStoredRequirementDraft(draft: RequerimientoDraft): void {
+  try {
+    localStorage.setItem(DRAFT_REQ_STORAGE_KEY, JSON.stringify(draft));
+  } catch (err) {
+    console.error('Error saving requirement draft:', err);
+  }
+}
+
+export function clearStoredRequirementDraft(): void {
+  try {
+    localStorage.removeItem(DRAFT_REQ_STORAGE_KEY);
+  } catch (err) {
+    // ignore
+  }
+}
 
 // Internal sync state
 let isSyncing = false;
@@ -695,35 +722,7 @@ export function getStoredParaderos(): MaestroParadero[] {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return MAESTRO_PARADEROS;
     }
-
-    // Filtrar cualquier paradero ficticio remanente de versiones anteriores (PAR-25 a PAR-36)
-    // para que la lista contenga exclusivamente los datos reales cargados/subidos por el usuario
-    const FANTASY_NAMES = new Set([
-      'CHAO', 'NUEVO CHAO', 'VALLE DE DIOS', 'GUADALUPITO', 'SANTA ELENA',
-      'TAMBOREAL', 'MORO', 'VIRU', 'VINSOS', 'ALTO TRUJILLO', 'HUACAPONGO', 'BUENAVISTA'
-    ]);
-
-    const cleanList = parsed.filter(
-      (p) => !FANTASY_NAMES.has((p.paradero || '').trim().toUpperCase())
-    );
-
-    const baseList = cleanList.length > 0 ? cleanList : MAESTRO_PARADEROS;
-
-    // Retornar EXCLUSIVAMENTE los paraderos reales subidos o configurados por el usuario
-    const withZona = baseList.map((p) => ({
-      ...p,
-      zona: (p.zona === 'NORTE' || p.zona === 'SUR' ? p.zona : inferParaderoZona(p.paradero)) as 'NORTE' | 'SUR',
-    }));
-
-    // Ordenar de acuerdo a la ruta operativa oficial para los que existan en la lista
-    withZona.sort((a, b) => {
-      const idxA = getParaderoOrderIndex(a.paradero);
-      const idxB = getParaderoOrderIndex(b.paradero);
-      if (idxA !== idxB) return idxA - idxB;
-      return a.paradero.localeCompare(b.paradero);
-    });
-
-    return withZona;
+    return parsed;
   } catch (err) {
     console.error('Error loading paraderos:', err);
     return MAESTRO_PARADEROS;

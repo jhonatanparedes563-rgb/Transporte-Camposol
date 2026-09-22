@@ -4,7 +4,13 @@ import { Step1ServiceData } from './Step1ServiceData';
 import { Step2PersonnelQuantity } from './Step2PersonnelQuantity';
 import { Step3Summary } from './Step3Summary';
 import { Step4Confirmation } from './Step4Confirmation';
-import { saveNewRequerimiento, getStoredComedores } from '../services/storageService';
+import {
+  saveNewRequerimiento,
+  getStoredComedores,
+  getStoredRequirementDraft,
+  saveStoredRequirementDraft,
+  clearStoredRequirementDraft,
+} from '../services/storageService';
 
 interface NewRequirementWizardProps {
   onCancel: () => void;
@@ -32,6 +38,12 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   const todayDate = new Date().toISOString().split('T')[0];
 
   const buildInitialDraft = (): RequerimientoDraft => {
+    // Si existe un borrador guardado en progreso, restaurarlo para no perder datos
+    const savedDraft = getStoredRequirementDraft();
+    if (savedDraft) {
+      return savedDraft;
+    }
+
     const storedComedores = getStoredComedores();
     const initialComedores: ComedorPersonalDraft[] =
       storedComedores.length > 0
@@ -70,13 +82,19 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   const [draft, setDraft] = useState<RequerimientoDraft>(buildInitialDraft);
 
   const handleUpdateDraft = (partial: Partial<RequerimientoDraft>) => {
-    setDraft((prev) => ({ ...prev, ...partial }));
+    setDraft((prev) => {
+      const updated = { ...prev, ...partial };
+      // Guardar automáticamente en segundo plano para que no se mueva ni pierda ningún dato
+      saveStoredRequirementDraft(updated);
+      return updated;
+    });
   };
 
   const handleSubmit = () => {
     setIsSubmitting(true);
     try {
       const result = saveNewRequerimiento(draft, currentUser);
+      clearStoredRequirementDraft();
       setCreatedRequirement(result.requerimiento);
       onSuccess(result.requerimiento);
       setCurrentStep(4);
@@ -88,6 +106,7 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   };
 
   const handleResetForNew = () => {
+    clearStoredRequirementDraft();
     setDraft(buildInitialDraft());
     setCreatedRequirement(null);
     setCurrentStep(1);

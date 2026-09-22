@@ -856,8 +856,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
           {/* Sub-view: Reportes */}
           {currentSection === 'reportes' && (
-            <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs">
+            <div>
               <PowerBIAnalyticsView
+                requerimientos={requerimientos}
                 onBack={() => setCurrentSection('procesos')}
                 onRefreshParent={onRefreshData}
               />

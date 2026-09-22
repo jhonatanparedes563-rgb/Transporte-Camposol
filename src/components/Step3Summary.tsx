@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { RequerimientoDraft } from '../types';
 import { getStoredParaderos } from '../services/storageService';
+import { getParaderoOrderIndex } from '../data/masterData';
 
 interface Step3SummaryProps {
   draft: RequerimientoDraft;
@@ -118,6 +119,14 @@ export const Step3Summary: React.FC<Step3SummaryProps> = ({
         comedoresDetalle: data.details.join(', '),
         zona: info?.zona,
       };
+    });
+
+    // Ordenar de forma fija y estable según la secuencia operativa oficial
+    entries.sort((a, b) => {
+      const idxA = getParaderoOrderIndex(a.paradero);
+      const idxB = getParaderoOrderIndex(b.paradero);
+      if (idxA !== idxB) return idxA - idxB;
+      return a.paradero.localeCompare(b.paradero);
     });
 
     return { paraderosEntries: entries, grandTotal: total };
