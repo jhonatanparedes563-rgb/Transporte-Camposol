@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   UserPlus,
@@ -20,6 +20,10 @@ import {
   EyeOff,
   Trash2,
   Sprout,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { AppUser, UserRole, UserStatus } from '../types';
 import {
@@ -333,24 +337,46 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   };
 
   // Filtrado de usuarios
-  const filteredUsers = users.filter((u) => {
+  const filteredUsers = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
-    const matchesSearch =
-      !q ||
-      u.id.toLowerCase().includes(q) ||
-      u.nombre.toLowerCase().includes(q) ||
-      u.usuario.toLowerCase().includes(q) ||
-      u.area.toLowerCase().includes(q) ||
-      u.fundo.toLowerCase().includes(q) ||
-      (u.cultivo && u.cultivo.toLowerCase().includes(q));
+    return users.filter((u) => {
+      const matchesSearch =
+        !q ||
+        u.id.toLowerCase().includes(q) ||
+        u.nombre.toLowerCase().includes(q) ||
+        u.usuario.toLowerCase().includes(q) ||
+        u.area.toLowerCase().includes(q) ||
+        u.fundo.toLowerCase().includes(q) ||
+        (u.cultivo && u.cultivo.toLowerCase().includes(q));
 
-    const matchesRole =
-      selectedRoleFilter === 'TODOS' || u.rol.toLowerCase() === selectedRoleFilter.toLowerCase();
-    const matchesStatus =
-      selectedStatusFilter === 'TODOS' || u.estado === selectedStatusFilter;
+      const matchesRole =
+        selectedRoleFilter === 'TODOS' || u.rol.toLowerCase() === selectedRoleFilter.toLowerCase();
+      const matchesStatus =
+        selectedStatusFilter === 'TODOS' || u.estado === selectedStatusFilter;
 
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, searchTerm, selectedRoleFilter, selectedStatusFilter]);
+
+  // Paginación de alto rendimiento para soportar 300+ usuarios
+  const [userPageSize, setUserPageSize] = useState<number>(25);
+  const [userCurrentPage, setUserCurrentPage] = useState<number>(1);
+
+  // Reiniciar a la primera página cuando cambian los filtros
+  useEffect(() => {
+    setUserCurrentPage(1);
+  }, [searchTerm, selectedRoleFilter, selectedStatusFilter, userPageSize]);
+
+  const totalUserPages = useMemo(() => {
+    if (userPageSize === -1) return 1;
+    return Math.ceil(filteredUsers.length / userPageSize) || 1;
+  }, [filteredUsers.length, userPageSize]);
+
+  const paginatedUsers = useMemo(() => {
+    if (userPageSize === -1) return filteredUsers;
+    const start = (userCurrentPage - 1) * userPageSize;
+    return filteredUsers.slice(start, start + userPageSize);
+  }, [filteredUsers, userCurrentPage, userPageSize]);
 
   return (
     <div className="space-y-6">
@@ -466,7 +492,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((u) => {
+                paginatedUsers.map((u) => {
                   const isCurrent = u.id === currentAdminUser.id;
                   return (
                     <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
@@ -628,6 +654,92 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Barra de Paginación de Usuarios */}
+        {filteredUsers.length > 0 && (
+          <div className="bg-gray-50/80 px-6 py-3.5 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 font-medium">
+                Mostrando{' '}
+                <strong className="text-[#173B56]">
+                  {userPageSize === -1 ? 1 : (userCurrentPage - 1) * userPageSize + 1}
+                </strong>{' '}
+                a{' '}
+                <strong className="text-[#173B56]">
+                  {userPageSize === -1
+                    ? filteredUsers.length
+                    : Math.min(userCurrentPage * userPageSize, filteredUsers.length)}
+                </strong>{' '}
+                de <strong className="text-[#00843D]">{filteredUsers.length}</strong> usuarios filtrados
+                <span className="text-gray-400 font-normal"> (Total registrados: {users.length})</span>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 font-medium">Filas por página:</span>
+                <select
+                  value={userPageSize}
+                  onChange={(e) => setUserPageSize(Number(e.target.value))}
+                  className="px-2.5 py-1 bg-white border border-gray-200 rounded-xl font-bold text-[#173B56] focus:outline-none focus:ring-2 focus:ring-[#00843D] text-xs cursor-pointer shadow-2xs"
+                >
+                  <option value={20}>20</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200 (Vista Extendida)</option>
+                  <option value={-1}>Todos ({filteredUsers.length})</option>
+                </select>
+              </div>
+
+              {userPageSize !== -1 && totalUserPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setUserCurrentPage(1)}
+                    disabled={userCurrentPage === 1}
+                    className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                    title="Primera página"
+                  >
+                    <ChevronsLeft className="w-3.5 h-3.5 text-gray-600" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={userCurrentPage === 1}
+                    className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                    title="Página anterior"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 text-gray-600" />
+                  </button>
+
+                  <span className="px-3 py-1 font-bold text-[#173B56] bg-white rounded-lg border border-gray-200 shadow-2xs text-[11px]">
+                    Pág. {userCurrentPage} de {totalUserPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setUserCurrentPage((p) => Math.min(totalUserPages, p + 1))}
+                    disabled={userCurrentPage === totalUserPages}
+                    className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                    title="Página siguiente"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-600" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserCurrentPage(totalUserPages)}
+                    disabled={userCurrentPage === totalUserPages}
+                    className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                    title="Última página"
+                  >
+                    <ChevronsRight className="w-3.5 h-3.5 text-gray-600" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ============================================================= */}

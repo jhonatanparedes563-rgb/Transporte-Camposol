@@ -100,15 +100,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] flex flex-col justify-center items-center p-4 font-sans antialiased text-[#173B56]">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[#F3F4F6] flex flex-col justify-start sm:justify-center items-center p-4 py-8 overflow-y-auto font-sans antialiased text-[#173B56]">
+      <div className="w-full max-w-md my-auto">
         {/* Card Principal de Autenticación / Recuperación */}
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-200/90 overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-200/90 overflow-hidden">
           {/* Cabecera Oficial CAMPOSOL */}
-          <div className="bg-[#58A33E] p-7 text-center text-white relative shadow-inner">
+          <div className="bg-[#58A33E] p-6 sm:p-7 text-center text-white relative">
             <div className="flex flex-col items-center">
               {/* Emblema Oficial CAMPOSOL con borde dorado */}
-              <div className="w-24 h-24 rounded-full overflow-hidden shadow-xl mb-3 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg mb-3 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
                 <img
                   src="/camposol-emblem.svg"
                   alt="CAMPOSOL"
@@ -169,7 +169,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       autoCorrect="off"
                       autoComplete="username"
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00843D] focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00843D] focus:border-[#00843D] transition-colors"
                     />
                   </div>
                 </div>
@@ -205,7 +205,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       placeholder="Ingrese su contraseña"
                       autoComplete="current-password"
                       required
-                      className="w-full pl-10 pr-11 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00843D] focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-11 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00843D] focus:border-[#00843D] transition-colors"
                     />
                     {/* Botón Icono Mostrar/Ocultar Contraseña */}
                     <button
@@ -243,7 +243,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   id="btn-login-submit"
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer mt-2"
+                  className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer mt-2"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -306,7 +306,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                           autoCapitalize="none"
                           autoCorrect="off"
                           required
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00843D] focus:border-transparent transition-all"
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00843D] focus:border-[#00843D] transition-colors"
                         />
                       </div>
                     </div>
@@ -316,7 +316,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       id="btn-send-recovery"
                       type="submit"
                       disabled={isRecoverySubmitting}
-                      className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer mt-2"
+                      className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer mt-2"
                     >
                       {isRecoverySubmitting ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -407,7 +407,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         onLoginSuccess(admin);
                       }
                     }}
-                    className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer mt-2"
+                    className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer mt-2"
                   >
                     <span>INGRESAR AHORA CON ESTA CUENTA</span>
                     <ArrowRight className="w-4 h-4" />
@@ -423,7 +423,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       setRecoveryIdentifier('');
                       setRecoveryError('');
                     }}
-                    className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Volver a la pantalla de login</span>

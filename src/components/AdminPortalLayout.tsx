@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FileText,
   Database,
@@ -9,6 +9,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronDown,
   ChevronUp,
   Search,
@@ -78,6 +80,33 @@ interface AdminPortalLayoutProps {
 
 type AdminSection = 'procesos' | 'maestros' | 'reportes' | 'base-datos' | 'nuevo' | 'usuarios';
 
+// Helper date functions for daily operational filtering (YYYY-MM-DD)
+const getTodayStr = (): string => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getYesterdayStr = (): string => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getTomorrowStr = (): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   requerimientos,
   onRefreshData,
@@ -95,15 +124,34 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentSection, setCurrentSection] = useState<AdminSection>('procesos');
 
-  // Operational Filters State
-  const [filterFechaDesde, setFilterFechaDesde] = useState<string>('');
-  const [filterFechaHasta, setFilterFechaHasta] = useState<string>('');
+  // Operational Filters State: Default to TODAY ("del día")
+  const [filterFechaDesde, setFilterFechaDesde] = useState<string>(getTodayStr);
+  const [filterFechaHasta, setFilterFechaHasta] = useState<string>(getTodayStr);
   const [filterArea, setFilterArea] = useState<string>('TODAS');
   const [filterFundo, setFilterFundo] = useState<string>('TODOS');
   const [filterSupervisor, setFilterSupervisor] = useState<string>('TODOS');
   const [filterEstado, setFilterEstado] = useState<string>('TODOS');
   const [filterMovimiento, setFilterMovimiento] = useState<string>('TODOS');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
+
+  // Paginación de alto rendimiento para soportar 200+ registros diarios
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(50); // 25, 50, 100, 200, -1 (Todos)
+
+  // Reset page whenever any filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    filterFechaDesde,
+    filterFechaHasta,
+    filterArea,
+    filterFundo,
+    filterSupervisor,
+    filterEstado,
+    filterMovimiento,
+    searchKeyword,
+    pageSize,
+  ]);
 
   // Selected row IDs for batch actions
   const [selectedReqIds, setSelectedReqIds] = useState<string[]>([]);
@@ -121,13 +169,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   const areas = useMemo(() => getStoredAreas(), []);
   const fundos = useMemo(() => getStoredFundos(), []);
 
-  // Distinct supervisors from actual requirements
+  // Distinct supervisors from actual requirements, sorted alphabetically
   const supervisoresList = useMemo(() => {
     const set = new Set<string>();
     requerimientos.forEach((r) => {
       if (r.usuario) set.add(r.usuario);
     });
-    return Array.from(set);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [requerimientos]);
 
   const showToast = (msg: string) => {
@@ -272,6 +320,25 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     };
   }, [filteredRequerimientos]);
 
+  // Cálculos de Paginación para tabla de requerimientos
+  const totalPages = useMemo(() => {
+    if (pageSize === -1) return 1;
+    return Math.ceil(filteredRequerimientos.length / pageSize) || 1;
+  }, [filteredRequerimientos.length, pageSize]);
+
+  // Asegurar que currentPage se mantenga dentro del rango válido
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedRequerimientos = useMemo(() => {
+    if (pageSize === -1) return filteredRequerimientos;
+    const start = (currentPage - 1) * pageSize;
+    return filteredRequerimientos.slice(start, start + pageSize);
+  }, [filteredRequerimientos, currentPage, pageSize]);
+
   // Status badge styling helper
   const renderEstadoBadge = (estado: EstadoRequerimiento) => {
     switch (estado) {
@@ -371,10 +438,22 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedReqIds(filteredRequerimientos.map((r) => r.id));
+      // Si la página actual está paginada, seleccionamos los visibles de la página
+      const pageIds = paginatedRequerimientos.map((r) => r.id);
+      setSelectedReqIds((prev) => Array.from(new Set([...prev, ...pageIds])));
     } else {
-      setSelectedReqIds([]);
+      // Deseleccionamos los de la página actual
+      const pageIds = new Set(paginatedRequerimientos.map((r) => r.id));
+      setSelectedReqIds((prev) => prev.filter((id) => !pageIds.has(id)));
     }
+  };
+
+  const handleSelectAllFiltered = () => {
+    setSelectedReqIds(filteredRequerimientos.map((r) => r.id));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedReqIds([]);
   };
 
   const handleToggleSelectRow = (id: string) => {
@@ -384,14 +463,15 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   };
 
   const handleResetFilters = () => {
-    setFilterFechaDesde('');
-    setFilterFechaHasta('');
+    setFilterFechaDesde(getTodayStr());
+    setFilterFechaHasta(getTodayStr());
     setFilterArea('TODAS');
     setFilterFundo('TODOS');
     setFilterSupervisor('TODOS');
     setFilterEstado('TODOS');
     setFilterMovimiento('TODOS');
     setSearchKeyword('');
+    setCurrentPage(1);
   };
 
   // Export current filtered table to CSV
@@ -925,11 +1005,8 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 </div>
                 <div>
                   <h3 className="text-xs font-black text-[#173B56] uppercase tracking-wide">
-                    Filtros Operativos Estructurados
+                    Filtros
                   </h3>
-                  <span className="text-[11px] text-gray-400">
-                    Filtra por fechas, áreas, supervisores, fundos y estado de requerimiento
-                  </span>
                 </div>
               </div>
 
@@ -939,16 +1016,16 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-[#173B56] hover:bg-gray-100 rounded-xl transition-colors flex items-center gap-1"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Limpiar Filtros</span>
+                  <span>Limpiar</span>
                 </button>
                 <button
                   id="btn-export-excel-header"
                   onClick={() => setShowExportModal(true)}
                   className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
-                  title="Descargar en Excel optimizado con números listos para sumar"
+                  title="Descargar en Excel"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
-                  <span>Exportar a Excel (Para Sumas)</span>
+                  <span>Exportar a Excel</span>
                 </button>
                 <button
                   onClick={onNewRequirement}
@@ -960,13 +1037,80 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               </div>
             </div>
 
+            {/* Quick Date Presets */}
+            <div className="flex flex-wrap items-center gap-2 pt-0.5 pb-1 text-xs">
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-[#00843D]" />
+                Rápido:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const hoy = getTodayStr();
+                  setFilterFechaDesde(hoy);
+                  setFilterFechaHasta(hoy);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
+                  filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
+                    ? 'bg-[#00843D] text-white border-[#00843D] shadow-xs'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const ayer = getYesterdayStr();
+                  setFilterFechaDesde(ayer);
+                  setFilterFechaHasta(ayer);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
+                  filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr()
+                    ? 'bg-[#00843D] text-white border-[#00843D] shadow-xs'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Ayer
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const manana = getTomorrowStr();
+                  setFilterFechaDesde(manana);
+                  setFilterFechaHasta(manana);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
+                  filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr()
+                    ? 'bg-[#00843D] text-white border-[#00843D] shadow-xs'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Mañana
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterFechaDesde('');
+                  setFilterFechaHasta('');
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
+                  !filterFechaDesde && !filterFechaHasta
+                    ? 'bg-[#173B56] text-white border-[#173B56] shadow-xs'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Todo el historial
+              </button>
+            </div>
+
             {/* Filter Inputs Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
               {/* Fecha Desde */}
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-[#00843D]" />
-                  <span>Fecha Desde</span>
+                  <span>Desde</span>
                 </label>
                 <input
                   type="date"
@@ -980,7 +1124,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-[#00843D]" />
-                  <span>Fecha Hasta</span>
+                  <span>Hasta</span>
                 </label>
                 <input
                   type="date"
@@ -994,14 +1138,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
                   <Building className="w-3 h-3 text-[#00843D]" />
-                  <span>Área Operativa</span>
+                  <span>Área</span>
                 </label>
                 <select
                   value={filterArea}
                   onChange={(e) => setFilterArea(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56]"
                 >
-                  <option value="TODAS">-- Todas las Áreas --</option>
+                  <option value="TODAS">Todas</option>
                   {areas.map((a) => (
                     <option key={a.id} value={a.area}>
                       {a.area}
@@ -1014,14 +1158,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-[#00843D]" />
-                  <span>Fundo Agrícola</span>
+                  <span>Fundo</span>
                 </label>
                 <select
                   value={filterFundo}
                   onChange={(e) => setFilterFundo(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56]"
                 >
-                  <option value="TODOS">-- Todos los Fundos --</option>
+                  <option value="TODOS">Todos</option>
                   {fundos.map((f) => (
                     <option key={f.id} value={f.fundo}>
                       {f.fundo}
@@ -1034,14 +1178,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
                   <User className="w-3 h-3 text-[#00843D]" />
-                  <span>Supervisor / Usuario</span>
+                  <span>Supervisor</span>
                 </label>
                 <select
                   value={filterSupervisor}
                   onChange={(e) => setFilterSupervisor(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56]"
                 >
-                  <option value="TODOS">-- Todos los Supervisores --</option>
+                  <option value="TODOS">Todos</option>
                   {supervisoresList.map((sup) => (
                     <option key={sup} value={sup}>
                       {sup}
@@ -1061,7 +1205,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   onChange={(e) => setFilterEstado(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56] font-bold"
                 >
-                  <option value="TODOS">-- Todos los Estados --</option>
+                  <option value="TODOS">Todos</option>
                   <option value="PENDIENTE">PENDIENTE</option>
                   <option value="EN REVISIÓN">EN REVISIÓN</option>
                   <option value="APROBADO">APROBADO</option>
@@ -1078,7 +1222,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 type="text"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="Buscar por código (ej. REQ-000001), área, fundo o notas del supervisor..."
+                placeholder="Buscar por código, fundo, área o supervisor..."
                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#173B56] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D]"
               />
             </div>
@@ -1090,9 +1234,24 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
             {/* Table Action Bar */}
             <div className="p-4 bg-gray-50/70 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#173B56]">
-                  Mostrando {filteredRequerimientos.length} de {requerimientos.length} requerimientos
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold text-[#173B56] flex items-center gap-1.5 flex-wrap">
+                  <span>Mostrando {filteredRequerimientos.length} de {requerimientos.length} requerimientos</span>
+                  {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr() && (
+                    <span className="px-2 py-0.5 text-[10px] font-black bg-[#E8F5EF] text-[#00843D] rounded-md border border-[#00843D]/20">
+                      DEL DÍA ({getTodayStr()})
+                    </span>
+                  )}
+                  {filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr() && (
+                    <span className="px-2 py-0.5 text-[10px] font-black bg-amber-50 text-amber-800 rounded-md border border-amber-200">
+                      DE AYER ({getYesterdayStr()})
+                    </span>
+                  )}
+                  {filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr() && (
+                    <span className="px-2 py-0.5 text-[10px] font-black bg-blue-50 text-blue-800 rounded-md border border-blue-200">
+                      DE MAÑANA ({getTomorrowStr()})
+                    </span>
+                  )}
                 </span>
                 {selectedReqIds.length > 0 && (
                   <span className="px-2.5 py-0.5 text-xs font-bold bg-[#E8F5EF] text-[#00843D] rounded-full">
@@ -1141,8 +1300,8 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                         type="checkbox"
                         onChange={handleSelectAll}
                         checked={
-                          filteredRequerimientos.length > 0 &&
-                          selectedReqIds.length === filteredRequerimientos.length
+                          paginatedRequerimientos.length > 0 &&
+                          paginatedRequerimientos.every((r) => selectedReqIds.includes(r.id))
                         }
                         className="rounded-sm border-gray-300 text-[#00843D] focus:ring-[#00843D]"
                       />
@@ -1160,18 +1319,46 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 <tbody className="divide-y divide-gray-150">
                   {filteredRequerimientos.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-gray-400">
+                      <td colSpan={9} className="py-12 text-center text-gray-500">
                         <Inbox className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-                        <span className="block font-bold text-[#173B56]">
-                          No se encontraron requerimientos con los filtros seleccionados
+                        <span className="block font-bold text-[#173B56] text-sm">
+                          {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
+                            ? `No hay requerimientos programados para el día de hoy (${getTodayStr()})`
+                            : 'No se encontraron requerimientos con los filtros seleccionados'}
                         </span>
-                        <span className="text-xs text-gray-400">
-                          Prueba restableciendo los filtros o registrando un nuevo requerimiento.
+                        <span className="text-xs text-gray-400 mt-1 block max-w-md mx-auto">
+                          {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
+                            ? 'Los registros de ayer o de otras fechas no se muestran por defecto a menos que se filtren específicamente.'
+                            : 'Prueba cambiando o limpiando los filtros seleccionados.'}
                         </span>
+                        <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const ayer = getYesterdayStr();
+                              setFilterFechaDesde(ayer);
+                              setFilterFechaHasta(ayer);
+                            }}
+                            className="px-3.5 py-1.5 bg-[#E8F5EF] text-[#00843D] hover:bg-[#d4ede0] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-[#00843D]/20 shadow-2xs"
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>Ver Requerimientos de Ayer ({getYesterdayStr()})</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilterFechaDesde('');
+                              setFilterFechaHasta('');
+                            }}
+                            className="px-3.5 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-gray-200"
+                          >
+                            <span>Ver Todo el Historial</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
-                    filteredRequerimientos.map((req) => {
+                    paginatedRequerimientos.map((req) => {
                       const isSelected = selectedReqIds.includes(req.id);
                       const detalles = getDetallesByRequerimientoId(req.id);
                       const paraderosCount = detalles.length;
@@ -1512,6 +1699,99 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 </tbody>
               </table>
             </div>
+
+            {/* Barra de Paginación de Requerimientos (Soporte para 200+ registros diarios) */}
+            {filteredRequerimientos.length > 0 && (
+              <div className="bg-gray-50/90 px-6 py-3.5 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4 text-xs">
+                {/* Contador de registros */}
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-500 font-medium">
+                    Mostrando{' '}
+                    <strong className="text-[#173B56]">
+                      {pageSize === -1 ? 1 : (currentPage - 1) * pageSize + 1}
+                    </strong>{' '}
+                    a{' '}
+                    <strong className="text-[#173B56]">
+                      {pageSize === -1
+                        ? filteredRequerimientos.length
+                        : Math.min(currentPage * pageSize, filteredRequerimientos.length)}
+                    </strong>{' '}
+                    de <strong className="text-[#00843D]">{filteredRequerimientos.length}</strong> requerimientos
+                    {selectedReqIds.length > 0 && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-[#E8F5EF] text-[#00843D] font-bold text-[11px] border border-[#00843D]/20">
+                        {selectedReqIds.length} seleccionados
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Controles de Paginación */}
+                <div className="flex items-center gap-4">
+                  {/* Selector de registros por página */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 font-medium">Por página:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(Number(e.target.value))}
+                      className="px-2.5 py-1 bg-white border border-gray-200 rounded-xl font-bold text-[#173B56] focus:outline-none focus:ring-2 focus:ring-[#00843D] text-xs cursor-pointer shadow-2xs"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50 (Recomendado)</option>
+                      <option value={100}>100</option>
+                      <option value={200}>200 (Día Completo)</option>
+                      <option value={-1}>Todos ({filteredRequerimientos.length})</option>
+                    </select>
+                  </div>
+
+                  {/* Botones de navegación */}
+                  {pageSize !== -1 && totalPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                        title="Primera página"
+                      >
+                        <ChevronsLeft className="w-3.5 h-3.5 text-gray-600" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                        title="Página anterior"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5 text-gray-600" />
+                      </button>
+
+                      <span className="px-3 py-1 font-bold text-[#173B56] bg-white rounded-lg border border-gray-200 shadow-2xs text-[11px]">
+                        Pág. {currentPage} de {totalPages}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                        title="Página siguiente"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-600" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                        title="Última página"
+                      >
+                        <ChevronsRight className="w-3.5 h-3.5 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Modal de confirmación de eliminación individual */}
