@@ -15,7 +15,6 @@ interface UserMobileLayoutProps {
   userRole: UserRole;
   currentUser?: AppUser;
   onLogout?: () => void;
-  onShowWelcomeSplash?: () => void;
 }
 
 export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
@@ -28,7 +27,6 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
   userRole,
   currentUser,
   onLogout,
-  onShowWelcomeSplash,
 }) => {
   const totalReqs = requerimientos.length;
 
@@ -49,20 +47,14 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
             ) : (
-              <button
-                id="btn-header-welcome-splash"
-                type="button"
-                onClick={onShowWelcomeSplash}
-                title="Ver animación de bienvenida TDP CAMPOSOL"
-                className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-              >
+              <div className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
                 <img
                   src="/camposol-emblem.svg"
                   alt="CAMPOSOL"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover"
                 />
-              </button>
+              </div>
             )}
 
             <div>
@@ -107,7 +99,6 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               requerimientos={requerimientos}
               onSelectRequirement={onOpenRequirementDetail}
               currentUser={currentUser}
-              onShowWelcomeSplash={onShowWelcomeSplash}
             />
           )}
 
