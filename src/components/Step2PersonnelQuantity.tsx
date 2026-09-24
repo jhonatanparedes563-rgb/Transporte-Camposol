@@ -191,24 +191,48 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     syncToDraft(matrix, columns);
   }, [matrix, columns, syncToDraft]);
 
-  // Handle cell quantity change
+  // Handle cell quantity change with support for mobile, ghost keys, and clean deletion
   const handleCellChange = (paradero: string, col: string, rawVal: string) => {
     const clean = rawVal.replace(/\D/g, '');
     const num = clean === '' ? 0 : parseInt(clean, 10);
+    const normKey = normalizeParaderoKey(paradero);
 
     setMatrix((prev) => {
-      const next = { ...prev };
-      const curRow = { ...(next[paradero] || {}) };
+      const next: Record<string, Record<string, number>> = {};
+      Object.entries(prev).forEach(([pKey, pCols]) => {
+        if (pCols && typeof pCols === 'object') {
+          next[pKey] = { ...(pCols as Record<string, number>) };
+        }
+      });
+
       if (num === 0) {
-        delete curRow[col];
-        if (Object.keys(curRow).length === 0) {
-          delete next[paradero];
-        } else {
-          next[paradero] = curRow;
+        // Delete from exact paradero key
+        if (next[paradero]) {
+          delete next[paradero][col];
+          if (Object.keys(next[paradero]).length === 0) {
+            delete next[paradero];
+          }
+        }
+        // Also delete from normalized key to eliminate any ghost records
+        if (normKey && normKey !== paradero && next[normKey]) {
+          delete next[normKey][col];
+          if (Object.keys(next[normKey]).length === 0) {
+            delete next[normKey];
+          }
         }
       } else {
+        const baseRow = next[paradero] || (normKey ? next[normKey] : undefined);
+        const curRow: Record<string, number> = { ...(baseRow || {}) };
         curRow[col] = num;
         next[paradero] = curRow;
+
+        // Clean up normalized duplicate if exists
+        if (normKey && normKey !== paradero && next[normKey]) {
+          delete next[normKey][col];
+          if (Object.keys(next[normKey]).length === 0) {
+            delete next[normKey];
+          }
+        }
       }
       return next;
     });
@@ -216,7 +240,8 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
 
   // Calculate totals
   const getRowTotal = (paradero: string) => {
-    const row = matrix[paradero] || {};
+    const normKey = normalizeParaderoKey(paradero);
+    const row = matrix[paradero] || (normKey ? matrix[normKey] : undefined) || {};
     return columns.reduce((acc, col) => acc + (row[col] || 0), 0);
   };
 
@@ -547,29 +572,75 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
 
                       {/* Inputs per Comedor Column */}
                       {columns.map((col) => {
+                        const normKey = normalizeParaderoKey(item.paradero);
                         const cellVal =
                           matrix[item.paradero]?.[col] ??
-                          matrix[normalizeParaderoKey(item.paradero)]?.[col];
+                          (normKey ? matrix[normKey]?.[col] : undefined);
                         const displayVal =
                           cellVal !== undefined && cellVal > 0 ? String(cellVal) : '';
 
                         return (
                           <td key={col} className="py-1.5 px-1 text-center">
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={displayVal}
-                              onChange={(e) =>
-                                handleCellChange(item.paradero, col, e.target.value)
-                              }
-                              onFocus={(e) => e.target.select()}
-                              className={`w-9 h-7 sm:w-10 sm:h-8 rounded-md border text-center font-bold text-xs sm:text-sm text-[#173B56] transition-all focus:outline-none focus:ring-1 focus:ring-[#00843D] focus:border-[#00843D] ${
-                                displayVal !== ''
-                                  ? 'border-emerald-300 bg-white font-black shadow-2xs'
-                                  : 'border-gray-200/90 bg-white hover:border-gray-300'
-                              }`}
-                            />
+                            <div className="relative inline-flex items-center justify-center">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={displayVal}
+                                onChange={(e) =>
+                                  handleCellChange(item.paradero, col, e.target.value)
+                                }
+                                onFocus={(e) => {
+                                  const target = e.target;
+                                  target.select();
+                                  setTimeout(() => target.select(), 40);
+                                  setTimeout(() => target.select(), 120);
+                                }}
+                                onClick={(e) => {
+                                  (e.target as HTMLInputElement).select();
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Backspace' || e.key === 'Delete') {
+                                    const input = e.currentTarget;
+                                    if (
+                                      input.value.length <= 1 ||
+                                      (input.selectionStart === 0 && input.selectionEnd === input.value.length)
+                                    ) {
+                                      e.preventDefault();
+                                      handleCellChange(item.paradero, col, '');
+                                    }
+                                  } else if (e.key === '0' && e.currentTarget.value.length <= 1) {
+                                    e.preventDefault();
+                                    handleCellChange(item.paradero, col, '');
+                                  }
+                                }}
+                                className={`w-9 h-7 sm:w-10 sm:h-8 rounded-md border text-center font-bold text-xs sm:text-sm text-[#173B56] transition-all focus:outline-none focus:ring-2 focus:ring-[#00843D] focus:border-[#00843D] ${
+                                  displayVal !== ''
+                                    ? 'border-emerald-500 bg-emerald-50/20 font-black shadow-2xs'
+                                    : 'border-gray-200/90 bg-white hover:border-gray-300'
+                                }`}
+                              />
+                              {displayVal !== '' && (
+                                <button
+                                  type="button"
+                                  tabIndex={-1}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleCellChange(item.paradero, col, '');
+                                  }}
+                                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white flex items-center justify-center text-[11px] font-black leading-none shadow-xs z-10 cursor-pointer active:scale-90 transition-transform"
+                                  title="Borrar cantidad marcada"
+                                  aria-label="Borrar cantidad"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
                           </td>
                         );
                       })}
@@ -579,9 +650,24 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                         -
                       </td>
 
-                      {/* Row Total */}
-                      <td className="py-2 px-2 text-center font-bold text-xs sm:text-sm text-[#173B56]">
-                        {rowTotal}
+                      {/* Row Total with optional quick clear row */}
+                      <td className="py-2 px-1 text-center font-bold text-xs sm:text-sm text-[#173B56]">
+                        <div className="flex items-center justify-center gap-1">
+                          <span>{rowTotal}</span>
+                          {rowTotal > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                columns.forEach((c) => handleCellChange(item.paradero, c, ''));
+                              }}
+                              className="w-3.5 h-3.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Borrar todas las cantidades de esta fila"
+                              aria-label="Borrar fila"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
