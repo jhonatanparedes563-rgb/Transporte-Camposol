@@ -517,6 +517,8 @@ export function saveNewRequerimiento(
     movimiento: draft.movimiento,
     horaRecojo: draft.horaRecojo,
     horaSalida: draft.horaSalida || draft.horaRecojo,
+    horaRecojoNorte: draft.horaRecojoNorte,
+    horaRecojoSur: draft.horaRecojoSur,
     observaciones: draft.observaciones.trim(),
     usuario: userName,
     userId: userId,

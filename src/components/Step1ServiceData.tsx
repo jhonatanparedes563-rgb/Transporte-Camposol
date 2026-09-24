@@ -25,6 +25,13 @@ interface Step1ServiceDataProps {
   currentUser?: AppUser;
 }
 
+// Helper para asegurar formato HH:mm válido en inputs tipo time
+const cleanSingleTime = (val?: string): string => {
+  if (!val) return '13:00';
+  const match = val.match(/\b([01]\d|2[0-3]):([0-5]\d)\b/);
+  return match ? match[0] : '13:00';
+};
+
 export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
   draft,
   onUpdateDraft,
@@ -43,7 +50,16 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
     if (!draft.cultivo) updates.cultivo = 'ARÁNDANO';
     if (!draft.fundo) updates.fundo = 'AGRICULTOR 1';
     if (!draft.movimiento) updates.movimiento = 'Programa personal por tarea' as MovimientoType;
-    if (!draft.horaRecojo) updates.horaRecojo = '13:00';
+    if (draft.movimiento === 'INGRESO') {
+      if (!draft.horaRecojoNorte) updates.horaRecojoNorte = '05:00';
+      if (!draft.horaRecojoSur) updates.horaRecojoSur = '05:00';
+      if (!draft.horaRecojo || !draft.horaRecojo.includes('/')) {
+        updates.horaRecojo = '05:00 (N) / 05:00 (S)';
+        updates.horaSalida = '05:00 (N) / 05:00 (S)';
+      }
+    } else {
+      if (!draft.horaRecojo) updates.horaRecojo = '13:00';
+    }
     if (isOrdinaryUser && currentUser) {
       updates.area = currentUser.area || draft.area || 'PRODUCCIÓN';
       if (currentUser.fundo && currentUser.fundo !== 'TODOS LOS FUNDOS') {
@@ -59,12 +75,18 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
     if (Object.keys(updates).length > 0) {
       onUpdateDraft(updates);
     }
-  }, [currentUser, isOrdinaryUser]);
+  }, [currentUser, isOrdinaryUser, draft.movimiento]);
 
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!draft.fecha) errs.fecha = 'Selecciona la fecha del servicio.';
-    if (!draft.horaRecojo) errs.horaRecojo = 'Ingresa la hora de recojo.';
+    if (draft.movimiento === 'INGRESO') {
+      if (!draft.horaRecojoNorte && !draft.horaRecojo) {
+        errs.horaRecojo = 'Ingresa el horario de recojo para Norte y Sur.';
+      }
+    } else {
+      if (!draft.horaRecojo) errs.horaRecojo = 'Ingresa la hora de recojo.';
+    }
     if (!draft.fundo) errs.fundo = 'Selecciona el fundo.';
     if (!draft.cultivo) errs.cultivo = 'Selecciona el cultivo o servicio.';
 
@@ -140,34 +162,142 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
           )}
         </div>
 
-        {/* HORA DE RECOJO */}
+        {/* MOVIMIENTO */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
           <label className="block text-xs font-bold text-[#173B56] uppercase tracking-wide flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-[#00843D]" />
-            <span>HORA DE RECOJO</span>
+            <Bus className="w-4 h-4 text-[#00843D]" />
+            <span>MOVIMIENTO</span>
           </label>
-          <input
-            id="input-hora-recojo"
-            type="time"
-            value={draft.horaRecojo}
+          <select
+            id="select-movimiento"
+            value={draft.movimiento || 'Programa personal por tarea'}
             onChange={(e) => {
-              onUpdateDraft({
-                horaRecojo: e.target.value,
-                horaSalida: e.target.value,
-              });
+              const newMov = e.target.value as MovimientoType;
+              if (newMov === 'INGRESO') {
+                const n = cleanSingleTime(draft.horaRecojoNorte || draft.horaRecojo || '05:00');
+                const s = cleanSingleTime(draft.horaRecojoSur || draft.horaRecojo || '05:00');
+                onUpdateDraft({
+                  movimiento: newMov,
+                  horaRecojoNorte: n,
+                  horaRecojoSur: s,
+                  horaRecojo: `${n} (N) / ${s} (S)`,
+                  horaSalida: `${n} (N) / ${s} (S)`,
+                });
+              } else {
+                const single = cleanSingleTime(draft.horaRecojoNorte || draft.horaRecojo || '13:00');
+                onUpdateDraft({
+                  movimiento: newMov,
+                  horaRecojo: single,
+                  horaSalida: single,
+                });
+              }
               if (errors.horaRecojo) setErrors((prev) => ({ ...prev, horaRecojo: '' }));
             }}
-            className={`w-full p-3 bg-gray-50/80 border rounded-xl text-sm font-bold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D] ${
-              errors.horaRecojo ? 'border-red-500 bg-red-50/40' : 'border-gray-200'
-            }`}
-          />
-          {errors.horaRecojo && (
-            <p className="text-[11px] text-red-600 font-medium mt-1 flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" />
-              {errors.horaRecojo}
-            </p>
-          )}
+            className="w-full p-3 bg-gray-50/80 border border-gray-200 rounded-xl text-sm font-semibold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+          >
+            {MAESTRO_MOVIMIENTOS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {/* HORA DE RECOJO / HORARIO SEGÚN MOVIMIENTO */}
+        {draft.movimiento === 'INGRESO' ? (
+          <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs space-y-2">
+            <label className="block text-xs font-bold text-[#173B56] uppercase tracking-wide flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#00843D]" />
+              <span>HORA DE RECOJO (INGRESO)</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              {/* Cuadrito NORTE */}
+              <div>
+                <label className="block text-xs font-bold text-[#173B56] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+                  <span>NORTE</span>
+                </label>
+                <input
+                  id="input-hora-recojo-norte"
+                  type="time"
+                  value={cleanSingleTime(draft.horaRecojoNorte || draft.horaRecojo || '05:00')}
+                  onChange={(e) => {
+                    const newNorte = e.target.value;
+                    const currentSur = cleanSingleTime(draft.horaRecojoSur || draft.horaRecojo || '05:00');
+                    onUpdateDraft({
+                      horaRecojoNorte: newNorte,
+                      horaRecojoSur: currentSur,
+                      horaRecojo: `${newNorte} (N) / ${currentSur} (S)`,
+                      horaSalida: `${newNorte} (N) / ${currentSur} (S)`,
+                    });
+                    if (errors.horaRecojo) setErrors((prev) => ({ ...prev, horaRecojo: '' }));
+                  }}
+                  className="w-full p-3 bg-gray-50/80 border border-gray-200 rounded-xl text-sm font-bold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                />
+              </div>
+
+              {/* Cuadrito SUR */}
+              <div>
+                <label className="block text-xs font-bold text-[#173B56] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <span>SUR</span>
+                </label>
+                <input
+                  id="input-hora-recojo-sur"
+                  type="time"
+                  value={cleanSingleTime(draft.horaRecojoSur || draft.horaRecojo || '05:00')}
+                  onChange={(e) => {
+                    const newSur = e.target.value;
+                    const currentNorte = cleanSingleTime(draft.horaRecojoNorte || draft.horaRecojo || '05:00');
+                    onUpdateDraft({
+                      horaRecojoNorte: currentNorte,
+                      horaRecojoSur: newSur,
+                      horaRecojo: `${currentNorte} (N) / ${newSur} (S)`,
+                      horaSalida: `${currentNorte} (N) / ${newSur} (S)`,
+                    });
+                    if (errors.horaRecojo) setErrors((prev) => ({ ...prev, horaRecojo: '' }));
+                  }}
+                  className="w-full p-3 bg-gray-50/80 border border-gray-200 rounded-xl text-sm font-bold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                />
+              </div>
+            </div>
+            {errors.horaRecojo && (
+              <p className="text-[11px] text-red-600 font-medium mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {errors.horaRecojo}
+              </p>
+            )}
+          </div>
+        ) : (
+          /* HORA DE RECOJO (SALIDA O TAREA NORMAL - MANTENER COMO ESTÁ AHORA) */
+          <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+            <label className="block text-xs font-bold text-[#173B56] uppercase tracking-wide flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-[#00843D]" />
+              <span>HORA DE RECOJO</span>
+            </label>
+            <input
+              id="input-hora-recojo"
+              type="time"
+              value={cleanSingleTime(draft.horaRecojo || '13:00')}
+              onChange={(e) => {
+                onUpdateDraft({
+                  horaRecojo: e.target.value,
+                  horaSalida: e.target.value,
+                });
+                if (errors.horaRecojo) setErrors((prev) => ({ ...prev, horaRecojo: '' }));
+              }}
+              className={`w-full p-3 bg-gray-50/80 border rounded-xl text-sm font-bold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D] ${
+                errors.horaRecojo ? 'border-red-500 bg-red-50/40' : 'border-gray-200'
+              }`}
+            />
+            {errors.horaRecojo && (
+              <p className="text-[11px] text-red-600 font-medium mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {errors.horaRecojo}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* SERVICIO Y CULTIVO */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
@@ -226,26 +356,6 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
             {fundos.map((f) => (
               <option key={f.id} value={f.fundo}>
                 {f.fundo}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* MOVIMIENTO */}
-        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
-          <label className="block text-xs font-bold text-[#173B56] uppercase tracking-wide flex items-center gap-2 mb-2">
-            <Bus className="w-4 h-4 text-[#00843D]" />
-            <span>MOVIMIENTO</span>
-          </label>
-          <select
-            id="select-movimiento"
-            value={draft.movimiento || 'Programa personal por tarea'}
-            onChange={(e) => onUpdateDraft({ movimiento: e.target.value as MovimientoType })}
-            className="w-full p-3 bg-gray-50/80 border border-gray-200 rounded-xl text-sm font-semibold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
-          >
-            {MAESTRO_MOVIMIENTOS.map((m) => (
-              <option key={m} value={m}>
-                {m}
               </option>
             ))}
           </select>

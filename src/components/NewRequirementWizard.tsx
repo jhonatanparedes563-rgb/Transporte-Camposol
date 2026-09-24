@@ -46,16 +46,19 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
 
     const storedComedores = getStoredComedores();
     const initialComedores: ComedorPersonalDraft[] =
-      storedComedores.length > 0
-        ? storedComedores.slice(0, 4).map((c) => ({
+      storedComedores.length >= 2
+        ? storedComedores.slice(0, 2).map((c) => ({
             comedor: c.comedor,
             paraderosCantidades: {},
           }))
+        : storedComedores.length === 1
+        ? [
+            { comedor: storedComedores[0].comedor, paraderosCantidades: {} },
+            { comedor: '63', paraderosCantidades: {} },
+          ]
         : [
             { comedor: '57', paraderosCantidades: {} },
             { comedor: '63', paraderosCantidades: {} },
-            { comedor: '65', paraderosCantidades: {} },
-            { comedor: 'G1', paraderosCantidades: {} },
           ];
 
     return {

@@ -19,6 +19,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Requerimiento, DetalleRequerimiento, EstadoRequerimiento, UserRole } from '../types';
+import { getHorarioDisplay } from '../data/masterData';
 import {
   getDetallesByRequerimientoId,
   updateRequerimientoEstado,
@@ -188,15 +189,32 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
               </span>
             </div>
 
-            <div>
-              <span className="text-gray-400 block font-medium">Hora Recojo</span>
-              <span className="font-bold text-[#173B56]">{requerimiento.horaRecojo}</span>
-            </div>
-
-            <div>
-              <span className="text-gray-400 block font-medium">Hora Salida</span>
-              <span className="font-bold text-[#173B56]">{requerimiento.horaSalida}</span>
-            </div>
+            {(() => {
+              const h = getHorarioDisplay(requerimiento);
+              return h.isIngreso ? (
+                <>
+                  <div>
+                    <span className="text-gray-400 block font-medium">Hora Recojo (Norte)</span>
+                    <span className="font-bold text-[#173B56]">{h.horaNorte}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block font-medium">Hora Recojo (Sur)</span>
+                    <span className="font-bold text-[#173B56]">{h.horaSur}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <span className="text-gray-400 block font-medium">Hora Recojo</span>
+                    <span className="font-bold text-[#173B56]">{requerimiento.horaRecojo}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block font-medium">Hora Salida</span>
+                    <span className="font-bold text-[#173B56]">{requerimiento.horaSalida}</span>
+                  </div>
+                </>
+              );
+            })()}
 
             <div className="col-span-2 md:col-span-3 pt-2 border-t border-gray-200/60">
               <span className="text-gray-400 block font-medium">Solicitante (Registrado por)</span>

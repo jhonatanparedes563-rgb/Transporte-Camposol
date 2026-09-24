@@ -68,8 +68,10 @@ export interface Requerimiento {
   cultivo?: string;
   parcelas?: string[];
   movimiento: MovimientoType;
-  horaRecojo: string; // HH:mm
+  horaRecojo: string; // HH:mm o formato compuesto Norte/Sur
   horaSalida: string; // HH:mm
+  horaRecojoNorte?: string;
+  horaRecojoSur?: string;
   observaciones: string;
   usuario: string; // Nombre visible del solicitante
   userId?: string; // ID único del trabajador solicitante
@@ -117,6 +119,8 @@ export interface RequerimientoDraft {
   movimiento: MovimientoType;
   horaRecojo: string;
   horaSalida: string;
+  horaRecojoNorte?: string;
+  horaRecojoSur?: string;
   observaciones: string;
   cantidadesPorParadero?: Record<string, number>; // paradero -> cantidad
   matrizCantidades?: Record<string, Record<string, number>>;

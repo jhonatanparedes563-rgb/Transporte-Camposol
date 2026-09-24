@@ -96,7 +96,11 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
             <Clock className="w-4 h-4 text-[#00843D]" />
             <span>Hora</span>
           </span>
-          <strong className="font-extrabold text-sm">{requerimiento.horaRecojo}</strong>
+          <strong className="font-extrabold text-sm">
+            {requerimiento.movimiento === 'INGRESO' && requerimiento.horaRecojoNorte && requerimiento.horaRecojoSur
+              ? `Norte: ${requerimiento.horaRecojoNorte} | Sur: ${requerimiento.horaRecojoSur}`
+              : requerimiento.horaRecojo}
+          </strong>
         </div>
 
         <div className="flex items-center justify-between py-1 border-b border-gray-100">

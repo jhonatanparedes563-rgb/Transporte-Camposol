@@ -177,6 +177,8 @@ export const INITIAL_REQUERIMIENTOS: Requerimiento[] = [
     movimiento: 'INGRESO',
     horaRecojo: '04:30',
     horaSalida: '05:30',
+    horaRecojoNorte: '04:30',
+    horaRecojoSur: '05:30',
     observaciones: 'Personal para jornada de cosecha temprana lote 14.',
     usuario: 'Juan Pérez',
     userId: 'usr-user-01',
@@ -333,3 +335,82 @@ export const INITIAL_DETALLES: DetalleRequerimiento[] = [
     cantidad: 30,
   },
 ];
+
+/**
+ * Extrae y formatea el horario según el tipo de movimiento:
+ * - INGRESO: Desglose por Norte y Sur (ej. Norte: 04:30 | Sur: 05:00)
+ * - SALIDA o Tarea normal: Horario normal sin Norte ni Sur (ej. Turno 15:30 - 16:00 o Turno 13:00)
+ */
+export function getHorarioDisplay(req: {
+  movimiento?: string;
+  horaRecojo?: string;
+  horaSalida?: string;
+  horaRecojoNorte?: string;
+  horaRecojoSur?: string;
+}): {
+  isIngreso: boolean;
+  horaNorte: string;
+  horaSur: string;
+  textoHorario: string;
+  textoTurnoHeader: string;
+} {
+  const isIngreso = req.movimiento === 'INGRESO';
+
+  let horaNorte = req.horaRecojoNorte || '';
+  let horaSur = req.horaRecojoSur || '';
+
+  if (isIngreso) {
+    if (!horaNorte || !horaSur) {
+      if (req.horaRecojo) {
+        const matchN = req.horaRecojo.match(/(\d{1,2}:\d{2})\s*(?:\(N\)|Norte)/i);
+        const matchS = req.horaRecojo.match(/(\d{1,2}:\d{2})\s*(?:\(S\)|Sur)/i);
+        if (matchN) horaNorte = matchN[1];
+        if (matchS) horaSur = matchS[1];
+
+        if ((!horaNorte || !horaSur) && req.horaRecojo.includes('/')) {
+          const parts = req.horaRecojo.split('/');
+          if (parts.length >= 2) {
+            const p0 = parts[0].match(/\b(\d{1,2}:\d{2})\b/);
+            const p1 = parts[1].match(/\b(\d{1,2}:\d{2})\b/);
+            if (p0) horaNorte = p0[1];
+            if (p1) horaSur = p1[1];
+          }
+        }
+      }
+
+      // Si aún no se encontraron y tiene horaRecojo y horaSalida diferentes
+      if (
+        (!horaNorte || !horaSur) &&
+        req.horaRecojo &&
+        req.horaSalida &&
+        req.horaRecojo !== req.horaSalida &&
+        !req.horaSalida.includes('(')
+      ) {
+        horaNorte = req.horaRecojo;
+        horaSur = req.horaSalida;
+      }
+
+      // Fallback
+      if (!horaNorte) horaNorte = req.horaRecojo || '05:00';
+      if (!horaSur) horaSur = req.horaSalida || req.horaRecojo || '05:00';
+    }
+
+    const textoHorario = `Norte: ${horaNorte} | Sur: ${horaSur}`;
+    const textoTurnoHeader = `Norte: ${horaNorte} • Sur: ${horaSur}`;
+    return { isIngreso: true, horaNorte, horaSur, textoHorario, textoTurnoHeader };
+  }
+
+  // Si es SALIDA o Tarea normal:
+  const base = req.horaRecojo || '13:00';
+  const tieneSalidaDistinta =
+    req.horaSalida && req.horaSalida !== base && !req.horaSalida.includes('(');
+  const textoNormal = tieneSalidaDistinta ? `${base} - ${req.horaSalida}` : base;
+
+  return {
+    isIngreso: false,
+    horaNorte: '',
+    horaSur: '',
+    textoHorario: textoNormal,
+    textoTurnoHeader: `Turno ${textoNormal}`,
+  };
+}

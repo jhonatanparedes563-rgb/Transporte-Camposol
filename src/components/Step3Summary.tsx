@@ -194,7 +194,11 @@ export const Step3Summary: React.FC<Step3SummaryProps> = ({
             <Clock className="w-4 h-4 text-[#00843D]" />
             <span>Hora de recojo</span>
           </span>
-          <strong className="font-extrabold text-sm">{draft.horaRecojo || '13:00'}</strong>
+          <strong className="font-extrabold text-sm">
+            {draft.movimiento === 'INGRESO' && draft.horaRecojoNorte && draft.horaRecojoSur
+              ? `Norte: ${draft.horaRecojoNorte} | Sur: ${draft.horaRecojoSur}`
+              : draft.horaRecojo || '13:00'}
+          </strong>
         </div>
 
         <div className="flex items-center justify-between py-1 border-b border-gray-100">

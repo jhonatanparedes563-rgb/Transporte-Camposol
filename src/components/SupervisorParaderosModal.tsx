@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Requerimiento, DetalleRequerimiento } from '../types';
 import { consolidarParaderos, exportarRequerimientoIndividualExcel } from '../services/excelExportService';
+import { getHorarioDisplay } from '../data/masterData';
 
 interface SupervisorParaderosModalProps {
   isOpen: boolean;
@@ -37,6 +38,9 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
   const totalZonaSur = paraderosSur.reduce((sum, p) => sum + p.totalPersonas, 0);
   const totalZonaNorte = paraderosNorte.reduce((sum, p) => sum + p.totalPersonas, 0);
 
+  // Formato de horario adaptativo según movimiento (INGRESO muestra desglose Norte/Sur, SALIDA o tarea normal se mantiene normal)
+  const horario = getHorarioDisplay(requerimiento);
+
   // Filtrado de paraderos según la pestaña seleccionada
   const paraderosFiltrados =
     viewMode === 'SUR'
@@ -49,13 +53,13 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
     let text = `🚌 *RESUMEN DE TRANSPORTE - CAMPOSOL*\n`;
     text += `📋 *Requerimiento:* ${requerimiento.numeroRequerimiento}\n`;
     text += `👤 *Supervisor:* ${requerimiento.usuario || 'Supervisor'}\n`;
-    text += `📅 *Fecha:* ${requerimiento.fecha} | *Turno:* ${requerimiento.horaRecojo} - ${requerimiento.horaSalida}\n`;
+    text += `📅 *Fecha:* ${requerimiento.fecha} | *Turno:* ${horario.textoTurnoHeader}\n`;
     text += `🏢 *Área:* ${requerimiento.area} | *Fundo:* ${requerimiento.fundo}\n`;
     text += `🔄 *Movimiento:* ${requerimiento.movimiento}\n`;
     text += `👥 *Total:* ${totalPersonas} personas\n\n`;
 
     if (totalZonaSur > 0) {
-      text += `🟡 *ZONA SUR (${totalZonaSur} pers. - ${paraderosSur.length} paraderos):*\n`;
+      text += `🟡 *ZONA SUR (${totalZonaSur} pers. - ${paraderosSur.length} paraderos${horario.isIngreso && horario.horaSur ? ` - Hora: ${horario.horaSur}` : ''}):*\n`;
       paraderosSur.forEach((p, idx) => {
         text += `  ${idx + 1}. *${p.paradero}*: ${p.totalPersonas}`;
         if (p.comedoresDetalle.length > 1) {
@@ -68,7 +72,7 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
     }
 
     if (totalZonaNorte > 0) {
-      text += `🔵 *ZONA NORTE (${totalZonaNorte} pers. - ${paraderosNorte.length} paraderos):*\n`;
+      text += `🔵 *ZONA NORTE (${totalZonaNorte} pers. - ${paraderosNorte.length} paraderos${horario.isIngreso && horario.horaNorte ? ` - Hora: ${horario.horaNorte}` : ''}):*\n`;
       paraderosNorte.forEach((p, idx) => {
         text += `  ${idx + 1}. *${p.paradero}*: ${p.totalPersonas}`;
         if (p.comedoresDetalle.length > 1) {
@@ -124,8 +128,8 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                   {requerimiento.numeroRequerimiento}
                 </span>
               </div>
-              <p className="text-xs text-white/70 mt-0.5 truncate">
-                {requerimiento.fecha} • Turno {requerimiento.horaRecojo} - {requerimiento.horaSalida} • {requerimiento.area} ({requerimiento.fundo})
+              <p className="text-xs text-white/80 mt-0.5 truncate">
+                {requerimiento.fecha} • {horario.textoTurnoHeader} • {requerimiento.area} ({requerimiento.fundo})
               </p>
             </div>
           </div>
@@ -147,29 +151,43 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
           </div>
 
           {/* Sur */}
-          <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-2.5 text-center">
-            <div className="text-2xl sm:text-3xl font-black text-amber-900 leading-none">
-              {totalZonaSur}
+          <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-2.5 text-center flex flex-col justify-between">
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-amber-900 leading-none">
+                {totalZonaSur}
+              </div>
+              <div className="text-[11px] font-bold text-amber-900 mt-1">
+                Zona Sur
+              </div>
+              <div className="text-[10px] text-amber-800 font-semibold">
+                {paraderosSur.length} paraderos
+              </div>
             </div>
-            <div className="text-[11px] font-bold text-amber-900 mt-1">
-              Zona Sur
-            </div>
-            <div className="text-[10px] text-amber-800 font-semibold">
-              {paraderosSur.length} paraderos
-            </div>
+            {horario.isIngreso && horario.horaSur && (
+              <div className="mt-1 text-[10px] font-black text-amber-950 bg-amber-100/90 py-0.5 px-1.5 rounded-md border border-amber-300/70 shadow-2xs mx-auto">
+                Hora: {horario.horaSur}
+              </div>
+            )}
           </div>
 
           {/* Norte */}
-          <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-2.5 text-center">
-            <div className="text-2xl sm:text-3xl font-black text-indigo-900 leading-none">
-              {totalZonaNorte}
+          <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-2.5 text-center flex flex-col justify-between">
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-indigo-900 leading-none">
+                {totalZonaNorte}
+              </div>
+              <div className="text-[11px] font-bold text-indigo-900 mt-1">
+                Zona Norte
+              </div>
+              <div className="text-[10px] text-indigo-800 font-semibold">
+                {paraderosNorte.length} paraderos
+              </div>
             </div>
-            <div className="text-[11px] font-bold text-indigo-900 mt-1">
-              Zona Norte
-            </div>
-            <div className="text-[10px] text-indigo-800 font-semibold">
-              {paraderosNorte.length} paraderos
-            </div>
+            {horario.isIngreso && horario.horaNorte && (
+              <div className="mt-1 text-[10px] font-black text-indigo-950 bg-indigo-100/90 py-0.5 px-1.5 rounded-md border border-indigo-300/70 shadow-2xs mx-auto">
+                Hora: {horario.horaNorte}
+              </div>
+            )}
           </div>
         </div>
 

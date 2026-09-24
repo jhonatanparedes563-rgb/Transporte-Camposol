@@ -58,6 +58,7 @@ import {
   getSyncInfo,
 } from '../services/storageService';
 import { consolidarParaderos, exportarRequerimientoIndividualExcel } from '../services/excelExportService';
+import { getHorarioDisplay } from '../data/masterData';
 import { MasterDataManagementScreen } from './MasterDataManagementScreen';
 import { PowerBIAnalyticsView } from './PowerBIAnalyticsView';
 import { NewRequirementWizard } from './NewRequirementWizard';
@@ -123,6 +124,24 @@ const formatHoraRegistro = (fechaIso?: string): string => {
       second: '2-digit',
       hour12: true,
     });
+  } catch {
+    return '';
+  }
+};
+
+// Formato de hora limpio y compacto para la tabla (ej. 11:15 AM)
+const formatHoraSimple = (fechaIso?: string): string => {
+  if (!fechaIso) return '';
+  try {
+    const hasTimePart = fechaIso.includes('T') || fechaIso.includes(':');
+    if (!hasTimePart) return '';
+    const d = new Date(fechaIso);
+    if (isNaN(d.getTime())) return '';
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
   } catch {
     return '';
   }
@@ -218,17 +237,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     const totalSur = surList.reduce((acc, p) => acc + p.totalPersonas, 0);
     const totalNorte = norteList.reduce((acc, p) => acc + p.totalPersonas, 0);
     const totalGen = agrupados.reduce((acc, p) => acc + p.totalPersonas, 0);
+    const horarioReq = getHorarioDisplay(req);
 
     let text = `🚌 *RESUMEN DE TRANSPORTE - CAMPOSOL*\n`;
     text += `📋 *Requerimiento:* ${req.numeroRequerimiento}\n`;
     text += `👤 *Supervisor:* ${req.usuario || 'Supervisor'}\n`;
-    text += `📅 *Fecha:* ${req.fecha} | *Turno:* ${req.horaRecojo} - ${req.horaSalida}\n`;
+    text += `📅 *Fecha:* ${req.fecha} | *Turno:* ${horarioReq.textoTurnoHeader}\n`;
     text += `🏢 *Área:* ${req.area} | *Fundo:* ${req.fundo}\n`;
     text += `🔄 *Movimiento:* ${req.movimiento}\n`;
     text += `👥 *Total Solicitado:* ${totalGen} personas\n\n`;
 
     if (totalSur > 0) {
-      text += `🟡 *ZONA SUR (${totalSur} personas - ${surList.length} paraderos):*\n`;
+      text += `🟡 *ZONA SUR (${totalSur} personas - ${surList.length} paraderos${horarioReq.isIngreso && horarioReq.horaSur ? ` - Hora: ${horarioReq.horaSur}` : ''}):*\n`;
       surList.forEach((p, idx) => {
         text += `  ${idx + 1}. *${p.paradero}*: ${p.totalPersonas} pers.`;
         if (p.comedoresDetalle.length > 1) {
@@ -1176,10 +1196,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                               <span className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-lg border border-gray-200 font-mono text-xs">
                                 {req.numeroRequerimiento}
                               </span>
-                              {formatHoraRegistro(req.fechaRegistro) && (
-                                <div className="text-[10px] text-gray-500 font-medium flex items-center gap-1 mt-1">
+                              {formatHoraSimple(req.fechaRegistro) && (
+                                <div className="text-[10px] text-gray-500 font-medium flex items-center gap-1 mt-1 whitespace-nowrap">
                                   <Clock className="w-2.5 h-2.5 text-gray-400 shrink-0" />
-                                  <span>Hora: {formatHoraRegistro(req.fechaRegistro)}</span>
+                                  <span>{formatHoraSimple(req.fechaRegistro)}</span>
                                 </div>
                               )}
                             </td>
@@ -1812,23 +1832,19 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                               >
                                 {req.numeroRequerimiento}
                               </button>
-                              <div className="text-xs text-gray-500 font-medium mt-1 space-y-0.5">
-                                <div className="text-gray-500 text-[11px]">
+                              <div className="text-xs text-gray-500 font-medium mt-1">
+                                <div className="text-gray-500 text-[11px] whitespace-nowrap">
                                   Reg: {req.fechaRegistro ? req.fechaRegistro.slice(0, 10) : '-'}
                                 </div>
-                                {formatHoraRegistro(req.fechaRegistro) ? (
+                                {formatHoraSimple(req.fechaRegistro) ? (
                                   <div
-                                    className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50/80 px-1.5 py-0.5 rounded-md border border-emerald-200/70 w-fit"
-                                    title={`Hora exacta en que se registró la solicitud: ${formatHoraRegistro(req.fechaRegistro)}`}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50/90 px-1.5 py-0.5 rounded-md border border-emerald-200/70 mt-0.5 whitespace-nowrap shadow-2xs"
+                                    title={`Hora exacta registrada: ${formatHoraRegistro(req.fechaRegistro)}`}
                                   >
                                     <Clock className="w-3 h-3 text-emerald-600 shrink-0" />
-                                    <span>Hora: {formatHoraRegistro(req.fechaRegistro)}</span>
+                                    <span>{formatHoraSimple(req.fechaRegistro)}</span>
                                   </div>
-                                ) : (
-                                  <div className="text-[10px] text-gray-400 italic">
-                                    Sin hora registrada
-                                  </div>
-                                )}
+                                ) : null}
                               </div>
                             </td>
                             <td className="py-3 px-4">
@@ -1865,7 +1881,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 {req.movimiento}
                               </span>
                               <div className="text-xs text-gray-600 font-medium mt-1">
-                                Recojo: {req.horaRecojo} | Salida: {req.horaSalida}
+                                {(() => {
+                                  const h = getHorarioDisplay(req);
+                                  return h.isIngreso ? (
+                                    <div className="text-[11px] text-emerald-800 font-semibold space-x-1">
+                                      <span>Norte: <strong>{h.horaNorte}</strong></span>
+                                      <span className="text-gray-400">|</span>
+                                      <span>Sur: <strong>{h.horaSur}</strong></span>
+                                    </div>
+                                  ) : (
+                                    <span>Recojo: {req.horaRecojo} | Salida: {req.horaSalida}</span>
+                                  );
+                                })()}
                               </div>
                             </td>
                             <td className="py-3 px-4">
@@ -1975,7 +2002,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                           </span>
                                         </div>
                                         <span className="text-[11px] text-gray-500">
-                                          {req.area} • {req.fundo} • Turno {req.horaRecojo}-{req.horaSalida} • Total: <strong className="text-[#00843D] font-black">{req.totalPersonas} personas</strong>
+                                          {req.area} • {req.fundo} • {getHorarioDisplay(req).textoTurnoHeader} • Total: <strong className="text-[#00843D] font-black">{req.totalPersonas} personas</strong>
                                         </span>
                                       </div>
                                     </div>

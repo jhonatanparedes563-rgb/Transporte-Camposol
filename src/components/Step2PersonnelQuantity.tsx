@@ -21,7 +21,7 @@ interface Step2PersonnelQuantityProps {
   onPrev: () => void;
 }
 
-const DEFAULT_COLUMNS = ['57', '63', '65', 'G1'];
+const DEFAULT_COLUMNS = ['57', '63'];
 
 export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
   draft,
@@ -52,6 +52,19 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColValue, setNewColValue] = useState('');
   const addInputRef = useRef<HTMLInputElement>(null);
+  const addPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Close add popover when clicking outside
+  useEffect(() => {
+    if (!isAddingColumn) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addPopoverRef.current && !addPopoverRef.current.contains(e.target as Node)) {
+        setIsAddingColumn(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isAddingColumn]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -68,14 +81,35 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     }
   }, [isAddingColumn]);
 
-  // Extract initial columns from draft comedores or default to stored comedores / DEFAULT_COLUMNS
+  // Extract initial columns from draft comedores or default to exactly 2 stored comedores / DEFAULT_COLUMNS
   const initialColumns = useMemo(() => {
     if (draft.comedores && draft.comedores.length > 0) {
+      // Prioritize columns that actually have non-zero quantities
+      const withData = draft.comedores
+        .filter((c) => Object.values(c.paraderosCantidades || {}).some((v) => Number(v) > 0))
+        .map((c) => c.comedor)
+        .filter(Boolean);
+
+      if (withData.length >= 2) {
+        return withData;
+      }
+      if (withData.length === 1) {
+        const others = draft.comedores.map((c) => c.comedor).filter((c) => c && c !== withData[0]);
+        if (others.length > 0) return [withData[0], others[0]];
+        const stored = getStoredComedores().map((c) => c.comedor).filter((c) => c !== withData[0]);
+        return [withData[0], stored[0] || '63'];
+      }
+      // If none have entered quantities yet, take strictly the first 2
       const names = draft.comedores.map((c) => c.comedor).filter(Boolean);
-      if (names.length > 0) return names;
+      if (names.length >= 2) return names.slice(0, 2);
+      if (names.length === 1) {
+        const stored = getStoredComedores().map((c) => c.comedor).filter((c) => c !== names[0]);
+        return [names[0], stored[0] || '63'];
+      }
     }
     const stored = getStoredComedores();
-    if (stored.length > 0) return stored.slice(0, 4).map((c) => c.comedor);
+    if (stored.length >= 2) return [stored[0].comedor, stored[1].comedor];
+    if (stored.length === 1) return [stored[0].comedor, '63'];
     return DEFAULT_COLUMNS;
   }, [draft.comedores]);
 
@@ -302,6 +336,24 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     setEditColValue('');
   };
 
+  // Comedores del maestro disponibles para añadir (que no estén ya como columnas activas)
+  const availableRemainingComedores = useMemo(() => {
+    const stored = getStoredComedores().map((c) => c.comedor.trim());
+    return stored.filter((c) => !columns.includes(c));
+  }, [columns]);
+
+  // Add specific column from available list
+  const handleAddSpecificColumn = (colName: string) => {
+    const trimmed = colName.trim();
+    if (trimmed && !columns.includes(trimmed)) {
+      const nextCols = [...columns, trimmed];
+      setColumns(nextCols);
+      syncToDraft(matrix, nextCols);
+    }
+    setIsAddingColumn(false);
+    setNewColValue('');
+  };
+
   // Add new column
   const handleConfirmAddColumn = () => {
     const trimmed = newColValue.trim().toUpperCase();
@@ -475,37 +527,101 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                   );
                 })}
 
-                {/* Dedicated [+] Add Comedor Button in Header */}
-                <th className="py-2.5 px-1 text-center font-bold text-xs tracking-tight min-w-[40px]">
-                  {isAddingColumn ? (
-                    <div className="flex items-center justify-center gap-0.5">
-                      <input
-                        ref={addInputRef}
-                        type="text"
-                        placeholder="Nombre"
-                        value={newColValue}
-                        onChange={(e) => setNewColValue(e.target.value)}
-                        onBlur={handleConfirmAddColumn}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleConfirmAddColumn();
-                          if (e.key === 'Escape') {
-                            setIsAddingColumn(false);
-                            setNewColValue('');
-                          }
-                        }}
-                        className="w-14 h-6 px-1 text-center font-black text-xs text-[#173B56] bg-white border-2 border-[#00843D] rounded-md shadow-2xs outline-none"
-                      />
-                    </div>
-                  ) : (
+                {/* Dedicated [+] Add Comedor Button with Available Comedores Dropdown */}
+                <th className="py-2.5 px-1 text-center font-bold text-xs tracking-tight min-w-[40px] relative">
+                  <div ref={addPopoverRef} className="relative inline-block">
                     <button
                       type="button"
-                      onClick={() => setIsAddingColumn(true)}
-                      title="Agregar comedor"
-                      className="w-7 h-7 rounded-lg bg-white/90 hover:bg-[#00843D] text-[#00843D] hover:text-white border border-[#00843D]/30 hover:border-transparent transition-all flex items-center justify-center mx-auto shadow-2xs group"
+                      onClick={() => setIsAddingColumn((prev) => !prev)}
+                      title="Añadir comedor"
+                      className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center mx-auto shadow-2xs group cursor-pointer ${
+                        isAddingColumn
+                          ? 'bg-[#00843D] text-white ring-2 ring-emerald-300'
+                          : 'bg-white/90 hover:bg-[#00843D] text-[#00843D] hover:text-white border border-[#00843D]/30 hover:border-transparent'
+                      }`}
                     >
                       <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                     </button>
-                  )}
+
+                    {isAddingColumn && (
+                      <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-200 p-3 z-30 text-left font-normal animate-in fade-in zoom-in-95">
+                        <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-gray-100">
+                          <div>
+                            <span className="text-xs font-black text-[#173B56] block">Añadir Comedor</span>
+                            <span className="text-[10px] text-gray-500">Selecciona o escribe uno nuevo</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAddingColumn(false);
+                              setNewColValue('');
+                            }}
+                            className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* List of remaining comedores to add */}
+                        {availableRemainingComedores.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-[11px] font-bold text-gray-600 mb-1.5 flex items-center justify-between">
+                              <span>Comedores disponibles:</span>
+                              <span className="text-[10px] font-semibold text-emerald-600">
+                                {availableRemainingComedores.length}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                              {availableRemainingComedores.map((com) => (
+                                <button
+                                  key={com}
+                                  type="button"
+                                  onClick={() => handleAddSpecificColumn(com)}
+                                  className="px-2.5 py-1 bg-emerald-50/80 hover:bg-[#00843D] text-[#173B56] hover:text-white border border-emerald-200/80 hover:border-transparent rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                                  title={`Añadir comedor ${com}`}
+                                >
+                                  <Plus className="w-3 h-3 text-[#00843D] hover:text-white" />
+                                  <span>{com}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Custom comedor input */}
+                        <div>
+                          <div className="text-[11px] font-bold text-gray-600 mb-1">
+                            O escribir otro comedor:
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              ref={addInputRef}
+                              type="text"
+                              placeholder="Ej. C556"
+                              value={newColValue}
+                              onChange={(e) => setNewColValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleConfirmAddColumn();
+                                if (e.key === 'Escape') {
+                                  setIsAddingColumn(false);
+                                  setNewColValue('');
+                                }
+                              }}
+                              className="flex-1 h-8 px-2 text-xs font-bold text-[#173B56] bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:border-[#00843D] focus:ring-1 focus:ring-[#00843D] outline-none transition-all uppercase"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleConfirmAddColumn}
+                              disabled={!newColValue.trim()}
+                              className="h-8 px-2.5 bg-[#00843D] hover:bg-[#006e33] disabled:opacity-40 text-white rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
+                            >
+                              Añadir
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </th>
 
                 {/* Row Total Header */}
