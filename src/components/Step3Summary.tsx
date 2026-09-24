@@ -347,14 +347,14 @@ export const Step3Summary: React.FC<Step3SummaryProps> = ({
         </div>
       </div>
 
-      {/* Card 4: Observaciones (opcional) */}
+      {/* Card 4: Recorrido (opcional) */}
       <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-xs space-y-1.5">
         <label className="block text-xs font-black text-[#173B56] uppercase tracking-wide">
-          Observaciones (opcional)
+          Recorrido (opcional)
         </label>
         <input
           type="text"
-          placeholder="Escribe una observación..."
+          placeholder="Escribe el recorrido..."
           value={observacion}
           onChange={(e) => {
             setObservacion(e.target.value);
