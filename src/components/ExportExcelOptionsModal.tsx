@@ -11,7 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Requerimiento, DetalleRequerimiento } from '../types';
-import { exportarExcelOperativoCompleto } from '../services/excelExportService';
+import { exportarExcelOperativoCompleto, formatHoraRegistro } from '../services/excelExportService';
 import { exportToCSV } from '../services/storageService';
 
 interface ExportExcelOptionsModalProps {
@@ -56,6 +56,7 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
           rows.push({
             Codigo_Requerimiento: req.numeroRequerimiento,
             Fecha: req.fecha,
+            Hora_Registro: formatHoraRegistro(req.fechaRegistro) || '',
             Area: req.area,
             Fundo: req.fundo,
             Supervisor: req.usuario || 'Supervisor',
@@ -73,6 +74,7 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
             rows.push({
               Codigo_Requerimiento: req.numeroRequerimiento,
               Fecha: req.fecha,
+              Hora_Registro: formatHoraRegistro(req.fechaRegistro) || '',
               Area: req.area,
               Fundo: req.fundo,
               Supervisor: req.usuario || 'Supervisor',
@@ -94,6 +96,7 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
       rows.push({
         Codigo_Requerimiento: 'TOTAL_GENERAL',
         Fecha: '',
+        Hora_Registro: '',
         Area: '',
         Fundo: '',
         Supervisor: '',
@@ -128,6 +131,7 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
         return {
           Codigo: r.numeroRequerimiento,
           Fecha: r.fecha,
+          Hora_Registro: formatHoraRegistro(r.fechaRegistro) || '',
           Area: r.area,
           Fundo: r.fundo,
           Movimiento: r.movimiento,

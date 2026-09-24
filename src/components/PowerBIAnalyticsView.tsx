@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Requerimiento, DetalleRequerimiento } from '../types';
+import { formatHoraRegistro } from '../services/excelExportService';
 import {
   getStoredRequerimientos,
   getStoredDetalles,
@@ -172,6 +173,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       paradero: string;
       parcela: string;
       cantidad: number;
+      fechaRegistro?: string;
     }[] = [];
 
     // Recorrer únicamente requerimientos reales existentes en la base de datos
@@ -201,6 +203,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             paradero: d.paradero,
             parcela: d.parcela || d.comedor || (req.parcelas && req.parcelas.length > 0 ? req.parcelas.join(', ') : 'Comedor'),
             cantidad: Number(d.cantidad) || 0,
+            fechaRegistro: req.fechaRegistro,
           });
         });
       } else if (Number(req.totalPersonas) > 0) {
@@ -221,6 +224,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           paradero: 'Sin desglose',
           parcela: req.parcelas && req.parcelas.length > 0 ? req.parcelas.join(', ') : 'General',
           cantidad: Number(req.totalPersonas) || 0,
+          fechaRegistro: req.fechaRegistro,
         });
       }
     });
@@ -481,6 +485,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
   const handleExportPowerBIDataset = () => {
     const exportRows = filteredRows.map((r) => ({
       Fecha: r.fecha,
+      Hora_Registro: formatHoraRegistro(r.fechaRegistro) || '',
       Hora_Recojo: r.hora,
       Hora_Salida: r.horaSalida,
       Requerimiento: r.numeroRequerimiento,
@@ -506,6 +511,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
     const rows = filteredRows.map((r) => ({
       'N° REQUERIMIENTO': r.numeroRequerimiento,
       'FECHA': r.fecha,
+      'HORA REGISTRO': formatHoraRegistro(r.fechaRegistro) || '',
       'HORA RECOJO': r.hora,
       'HORA SALIDA': r.horaSalida,
       'ÁREA': r.area,

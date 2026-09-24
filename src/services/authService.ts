@@ -41,7 +41,7 @@ export const INITIAL_USERS: AppUser[] = [
     passwordHash: '8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687', // camposol2026
     salt: DEFAULT_SALT,
     rol: 'admin',
-    area: 'OPERACIONES AGRÍCOLAS',
+    area: 'TDP',
     fundo: 'SEDE CENTRAL',
     cultivo: 'TODOS LOS CULTIVOS',
     estado: 'ACTIVO',
@@ -118,16 +118,25 @@ export function getStoredUsers(): AppUser[] {
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(INITIAL_USERS));
       return INITIAL_USERS;
     }
-    // Asegurar que cada usuario tenga un cultivo asignado por defecto si no lo tiene
+    // Asegurar que cada usuario tenga un cultivo asignado por defecto y área actualizada si corresponde
     let modified = false;
     const enriched = users.map((u) => {
+      let currentArea = u.area;
+      if (u.usuario === 'admin' && (u.area === 'OPERACIONES AGRÍCOLAS' || u.area === 'OPERACIONES')) {
+        currentArea = 'TDP';
+        modified = true;
+      }
       if (!u.cultivo) {
         modified = true;
         const match = INITIAL_USERS.find((init) => init.usuario === u.usuario);
         return {
           ...u,
+          area: currentArea,
           cultivo: match?.cultivo || (u.rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'),
         };
+      }
+      if (currentArea !== u.area) {
+        return { ...u, area: currentArea };
       }
       return u;
     });
@@ -159,6 +168,9 @@ export function getActiveSessionUser(): AppUser | null {
       // Sesión inválida o usuario desactivado
       clearActiveSession();
       return null;
+    }
+    if (existing.area !== sessionUser.area) {
+      setActiveSessionUser(existing);
     }
     return existing;
   } catch (err) {

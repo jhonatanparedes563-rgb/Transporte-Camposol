@@ -912,7 +912,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 </span>
                 <span className="text-[10px] font-extrabold text-[#00843D]">
                   @{currentUser?.usuario || (userRole === 'receptor' ? 'receptor' : 'admin')}{' '}
-                  • {userRole === 'receptor' ? 'RECEPTOR' : 'ADMINISTRADOR'} • {currentUser?.area || 'OPERACIONES'}
+                  • {userRole === 'receptor' ? 'RECEPTOR' : 'ADMINISTRADOR'} •{' '}
+                  {currentUser?.area === 'OPERACIONES AGRÍCOLAS' || currentUser?.area === 'OPERACIONES' || !currentUser?.area
+                    ? 'TDP'
+                    : currentUser.area}
                 </span>
               </div>
             </div>
@@ -1346,7 +1349,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       passwordHash: '',
                       salt: '',
                       rol: 'admin',
-                      area: 'OPERACIONES AGRÍCOLAS',
+                      area: 'TDP',
                       fundo: 'SEDE CENTRAL',
                       estado: 'ACTIVO',
                     }

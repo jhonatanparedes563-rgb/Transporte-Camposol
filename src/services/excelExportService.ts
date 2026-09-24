@@ -2,6 +2,27 @@ import * as XLSX from 'xlsx';
 import { Requerimiento, DetalleRequerimiento } from '../types';
 import { inferParaderoZona } from './storageService';
 
+/**
+ * Formatea de forma segura la hora en que el usuario registró la solicitud (ej. 02:30:15 p. m.)
+ */
+export function formatHoraRegistro(fechaIso?: string): string {
+  if (!fechaIso) return '';
+  try {
+    const hasTimePart = fechaIso.includes('T') || fechaIso.includes(':');
+    if (!hasTimePart) return '';
+    const d = new Date(fechaIso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('es-PE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return '';
+  }
+}
+
 export interface ParaderoConsolidado {
   paradero: string;
   zona: 'NORTE' | 'SUR';
@@ -82,6 +103,7 @@ export function exportarExcelOperativoCompleto(
       detalleRows.push({
         'Código Requerimiento': req.numeroRequerimiento,
         'Fecha': req.fecha,
+        'Hora Registro': formatHoraRegistro(req.fechaRegistro) || '',
         'Hora Recojo': req.horaRecojo,
         'Hora Salida': req.horaSalida,
         'Área': req.area,
@@ -104,6 +126,7 @@ export function exportarExcelOperativoCompleto(
         detalleRows.push({
           'Código Requerimiento': req.numeroRequerimiento,
           'Fecha': req.fecha,
+          'Hora Registro': formatHoraRegistro(req.fechaRegistro) || '',
           'Hora Recojo': req.horaRecojo,
           'Hora Salida': req.horaSalida,
           'Área': req.area,
@@ -126,6 +149,7 @@ export function exportarExcelOperativoCompleto(
   detalleRows.push({
     'Código Requerimiento': 'TOTAL GENERAL',
     'Fecha': '',
+    'Hora Registro': '',
     'Hora Recojo': '',
     'Hora Salida': '',
     'Área': '',
@@ -145,6 +169,7 @@ export function exportarExcelOperativoCompleto(
   sheetDetalle['!cols'] = [
     { wch: 18 }, // Código
     { wch: 12 }, // Fecha
+    { wch: 15 }, // Hora Registro
     { wch: 12 }, // Hora Recojo
     { wch: 12 }, // Hora Salida
     { wch: 16 }, // Área
@@ -307,6 +332,7 @@ export function exportarExcelOperativoCompleto(
     const row: Record<string, string | number> = {
       'Código': req.numeroRequerimiento,
       'Fecha': req.fecha,
+      'Hora Registro': formatHoraRegistro(req.fechaRegistro) || '',
       'Área': req.area,
       'Fundo': req.fundo,
       'Supervisor': req.usuario || 'Supervisor',
@@ -331,6 +357,7 @@ export function exportarExcelOperativoCompleto(
   const filaTotalMatriz: Record<string, string | number> = {
     'Código': 'TOTAL SUMAS',
     'Fecha': '',
+    'Hora Registro': '',
     'Área': '',
     'Fundo': '',
     'Supervisor': '',
@@ -346,6 +373,7 @@ export function exportarExcelOperativoCompleto(
   const matrizCols = [
     { wch: 16 },
     { wch: 12 },
+    { wch: 15 }, // Hora Registro
     { wch: 16 },
     { wch: 18 },
     { wch: 22 },
@@ -385,6 +413,7 @@ export function exportarRequerimientoIndividualExcel(
       'Código Requerimiento': req.numeroRequerimiento,
       'Supervisor Solicitante': req.usuario || 'Supervisor',
       'Fecha': req.fecha,
+      'Hora Registro': formatHoraRegistro(req.fechaRegistro) || '',
       'Área': req.area,
       'Fundo': req.fundo,
       'Movimiento': req.movimiento,
@@ -404,6 +433,7 @@ export function exportarRequerimientoIndividualExcel(
       'Código Requerimiento': req.numeroRequerimiento,
       'Supervisor Solicitante': req.usuario || 'Supervisor',
       'Fecha': req.fecha,
+      'Hora Registro': '',
       'Área': req.area,
       'Fundo': req.fundo,
       'Movimiento': req.movimiento,
@@ -424,6 +454,7 @@ export function exportarRequerimientoIndividualExcel(
       'Código Requerimiento': req.numeroRequerimiento,
       'Supervisor Solicitante': req.usuario || 'Supervisor',
       'Fecha': req.fecha,
+      'Hora Registro': formatHoraRegistro(req.fechaRegistro) || '',
       'Área': req.area,
       'Fundo': req.fundo,
       'Movimiento': req.movimiento,
@@ -443,6 +474,7 @@ export function exportarRequerimientoIndividualExcel(
       'Código Requerimiento': req.numeroRequerimiento,
       'Supervisor Solicitante': req.usuario || 'Supervisor',
       'Fecha': req.fecha,
+      'Hora Registro': '',
       'Área': req.area,
       'Fundo': req.fundo,
       'Movimiento': req.movimiento,
@@ -462,6 +494,7 @@ export function exportarRequerimientoIndividualExcel(
     'Código Requerimiento': req.numeroRequerimiento,
     'Supervisor Solicitante': req.usuario || 'Supervisor',
     'Fecha': req.fecha,
+    'Hora Registro': '',
     'Área': req.area,
     'Fundo': req.fundo,
     'Movimiento': req.movimiento,
@@ -480,6 +513,7 @@ export function exportarRequerimientoIndividualExcel(
     { wch: 18 },
     { wch: 22 },
     { wch: 12 },
+    { wch: 15 }, // Hora Registro
     { wch: 16 },
     { wch: 18 },
     { wch: 12 },
