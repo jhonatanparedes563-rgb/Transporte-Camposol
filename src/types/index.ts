@@ -25,7 +25,8 @@ export type EstadoRequerimiento =
   | 'EN REVISIÓN'
   | 'APROBADO'
   | 'RECHAZADO'
-  | 'ATENDIDO';
+  | 'ATENDIDO'
+  | 'ANULADO';
 
 export interface MaestroArea {
   id: string;
@@ -77,6 +78,15 @@ export interface Requerimiento {
   fechaRegistro: string; // ISO timestamp
   totalPersonas: number;
   estado: EstadoRequerimiento;
+  fechaAnulacion?: string;
+  usuarioAnulacion?: string;
+  motivoAnulacion?: string;
+  historialTrazabilidad?: Array<{
+    fecha: string;
+    usuario: string;
+    accion: string;
+    detalle?: string;
+  }>;
 }
 
 // Entidad relacional detalle: DETALLE_REQUERIMIENTO

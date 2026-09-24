@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Info,
   UserCheck,
+  History,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, AppUser } from '../types';
 
@@ -34,21 +35,25 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   currentUser,
 }) => {
   // Count user metrics in a single pass with memoization
-  const { totalReqs, pendingReqs, approvedReqs, attendedReqs, latestReq } = React.useMemo(() => {
+  const { totalReqs, pendingReqs, approvedReqs, attendedReqs, latestReq, historyReqs } = React.useMemo(() => {
     let p = 0;
     let a = 0;
     let at = 0;
+    let hist = 0;
     for (const r of requerimientos) {
-      if (r.estado === 'PENDIENTE' || r.estado === 'EN REVISIÓN') p++;
+      if (r.estado === 'ANULADO') hist++;
+      else if (r.estado === 'PENDIENTE' || r.estado === 'EN REVISIÓN') p++;
       else if (r.estado === 'APROBADO') a++;
       else if (r.estado === 'ATENDIDO') at++;
     }
+    const activeReqs = requerimientos.filter((r) => r.estado !== 'ANULADO');
     return {
       totalReqs: requerimientos.length,
       pendingReqs: p,
       approvedReqs: a,
       attendedReqs: at,
-      latestReq: requerimientos.length > 0 ? requerimientos[0] : null,
+      historyReqs: hist,
+      latestReq: activeReqs.length > 0 ? activeReqs[0] : null,
     };
   }, [requerimientos]);
 
@@ -251,6 +256,26 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
             <div className="text-[9px] text-gray-400 mt-1">Completados</div>
           </div>
         </div>
+
+        {/* Notificación de requerimientos en historial */}
+        {historyReqs > 0 && (
+          <button
+            type="button"
+            onClick={onMyRequirements}
+            className="w-full mt-2 p-2.5 rounded-2xl bg-rose-50/70 border border-rose-200 hover:bg-rose-50 text-rose-900 flex items-center justify-between text-xs transition-colors shadow-2xs"
+          >
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-rose-600 shrink-0" />
+              <span className="font-bold">
+                {historyReqs} {historyReqs === 1 ? 'solicitud guardada' : 'solicitudes guardadas'} en historial
+              </span>
+            </div>
+            <span className="text-[11px] text-rose-700 font-extrabold flex items-center gap-0.5">
+              <span>Ver Historial</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </button>
+        )}
       </div>
 
       {/* 5. ÚLTIMO REQUERIMIENTO REGISTRADO (Tarjetón vertical de fácil lectura) */}

@@ -76,6 +76,33 @@ type OnDataUpdate = (data: {
 
 let updateCallback: OnDataUpdate | null = null;
 
+let pendingUpdates: {
+  requerimientos?: Requerimiento[];
+  detalles?: DetalleRequerimiento[];
+  users?: AppUser[];
+  areas?: MaestroArea[];
+  fundos?: MaestroFundo[];
+  paraderos?: MaestroParadero[];
+  comedores?: MaestroComedor[];
+} = {};
+
+let updateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleDebouncedUpdate(data: typeof pendingUpdates) {
+  pendingUpdates = { ...pendingUpdates, ...data };
+  if (updateDebounceTimer) {
+    clearTimeout(updateDebounceTimer);
+  }
+  updateDebounceTimer = setTimeout(() => {
+    updateDebounceTimer = null;
+    if (updateCallback) {
+      const payload = { ...pendingUpdates };
+      pendingUpdates = {};
+      updateCallback(payload);
+    }
+  }, 100);
+}
+
 export function registerFirestoreSyncCallback(cb: OnDataUpdate) {
   updateCallback = cb;
 }
@@ -89,7 +116,7 @@ export async function initializeFirestoreSync(): Promise<void> {
   isInitialized = true;
 
   try {
-    // 1. Escuchar la colección de requerimientos en tiempo real
+    // 1. Escuchar la colección de requerimientos en tiempo real con absorción de ráfagas
     const reqCol = collection(db, 'requerimientos');
     const unsubReq = onSnapshot(
       reqCol,
@@ -101,9 +128,7 @@ export async function initializeFirestoreSync(): Promise<void> {
           });
           // Ordenar por fecha o número descendente
           reqs.sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
-          if (updateCallback) {
-            updateCallback({ requerimientos: reqs });
-          }
+          scheduleDebouncedUpdate({ requerimientos: reqs });
         } else {
           // Si está vacía en Firestore, sembramos los iniciales
           seedInitialRequerimientos();
@@ -125,9 +150,7 @@ export async function initializeFirestoreSync(): Promise<void> {
           snapshot.forEach((d) => {
             dets.push(d.data() as DetalleRequerimiento);
           });
-          if (updateCallback) {
-            updateCallback({ detalles: dets });
-          }
+          scheduleDebouncedUpdate({ detalles: dets });
         } else {
           seedInitialDetalles();
         }
@@ -148,9 +171,7 @@ export async function initializeFirestoreSync(): Promise<void> {
           snapshot.forEach((d) => {
             users.push(d.data() as AppUser);
           });
-          if (updateCallback) {
-            updateCallback({ users });
-          }
+          scheduleDebouncedUpdate({ users });
         } else {
           seedInitialUsers();
         }
@@ -168,14 +189,12 @@ export async function initializeFirestoreSync(): Promise<void> {
       (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          if (updateCallback) {
-            updateCallback({
-              areas: data.areas,
-              fundos: data.fundos,
-              paraderos: data.paraderos,
-              comedores: data.comedores,
-            });
-          }
+          scheduleDebouncedUpdate({
+            areas: data.areas,
+            fundos: data.fundos,
+            paraderos: data.paraderos,
+            comedores: data.comedores,
+          });
         } else {
           seedInitialMasterData();
         }
@@ -186,7 +205,7 @@ export async function initializeFirestoreSync(): Promise<void> {
     );
     unsubscribers.push(unsubMeta);
 
-    console.log('[CAMPOSOL] Conexión en tiempo real con Firebase Firestore establecida.');
+    console.log('[CAMPOSOL] Conexión en tiempo real con Firebase Firestore establecida (Alta concurrencia activa).');
   } catch (error) {
     console.error('[Firestore] Error al inicializar sincronización:', error);
   }
@@ -257,27 +276,55 @@ async function seedInitialMasterData() {
 // ----------------------------------------------------------------------
 
 /**
- * Guarda un requerimiento y todos sus detalles directamente en Firestore.
+ * Guarda un requerimiento y todos sus detalles directamente en Firestore
+ * con soporte para alta concurrencia, reintentos exponenciales y particionamiento de batches.
  */
 export async function firestoreSaveRequerimiento(
   req: Requerimiento,
   detalles: DetalleRequerimiento[]
 ): Promise<void> {
   const path = `requerimientos/${req.id}`;
-  try {
-    const batch = writeBatch(db);
-    const reqRef = doc(db, 'requerimientos', req.id);
-    batch.set(reqRef, req);
+  let attempt = 0;
+  const maxAttempts = 3;
 
-    detalles.forEach((det) => {
-      const detRef = doc(db, 'detalles', det.id);
-      batch.set(detRef, det);
-    });
+  while (attempt < maxAttempts) {
+    attempt++;
+    try {
+      // Particionar en lotes de máximo 400 operaciones (el límite estricto de Firestore es 500)
+      const CHUNK_SIZE = 400;
+      const batches = [];
+      const firstBatch = writeBatch(db);
+      const reqRef = doc(db, 'requerimientos', req.id);
+      firstBatch.set(reqRef, req);
 
-    await batch.commit();
-    console.log('[Firestore] Requerimiento y detalles guardados con éxito en la nube:', req.numeroRequerimiento);
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, path);
+      const firstChunk = detalles.slice(0, CHUNK_SIZE);
+      firstChunk.forEach((det) => {
+        const detRef = doc(db, 'detalles', det.id);
+        firstBatch.set(detRef, det);
+      });
+      batches.push(firstBatch.commit());
+
+      for (let i = CHUNK_SIZE; i < detalles.length; i += CHUNK_SIZE) {
+        const nextBatch = writeBatch(db);
+        const chunk = detalles.slice(i, i + CHUNK_SIZE);
+        chunk.forEach((det) => {
+          const detRef = doc(db, 'detalles', det.id);
+          nextBatch.set(detRef, det);
+        });
+        batches.push(nextBatch.commit());
+      }
+
+      await Promise.all(batches);
+      console.log('[Firestore] Requerimiento y detalles guardados con éxito en la nube:', req.numeroRequerimiento);
+      return;
+    } catch (err: any) {
+      console.warn(`[Firestore] Intento ${attempt}/${maxAttempts} para requerimiento ${req.numeroRequerimiento} falló:`, err?.message || err);
+      if (attempt >= maxAttempts) {
+        handleFirestoreError(err, OperationType.WRITE, path);
+      }
+      // Retroceso exponencial con fluctuación aleatoria (jitter)
+      await new Promise((resolve) => setTimeout(resolve, attempt * 200 + Math.random() * 100));
+    }
   }
 }
 

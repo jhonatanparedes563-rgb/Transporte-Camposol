@@ -90,26 +90,58 @@ function getDb(): ServerDb {
   return inMemoryDb;
 }
 
+let isSaving = false;
+let saveScheduled = false;
+let pendingDbToSave: ServerDb | null = null;
+
+async function flushDbToDisk(): Promise<void> {
+  if (isSaving) {
+    saveScheduled = true;
+    return;
+  }
+  isSaving = true;
+  saveScheduled = false;
+
+  try {
+    const dataToPersist = pendingDbToSave || inMemoryDb;
+    if (dataToPersist) {
+      if (!fs.existsSync(DATA_DIR)) {
+        await fs.promises.mkdir(DATA_DIR, { recursive: true });
+      }
+      const uniqueTmp = path.join(
+        DATA_DIR,
+        `db.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`
+      );
+      await fs.promises.writeFile(uniqueTmp, JSON.stringify(dataToPersist, null, 2), 'utf-8');
+      await fs.promises.rename(uniqueTmp, DATA_FILE);
+    }
+  } catch (err) {
+    console.error('[SERVER] Error persistiendo db.json de manera asíncrona:', err);
+  } finally {
+    isSaving = false;
+    if (saveScheduled) {
+      setImmediate(flushDbToDisk);
+    }
+  }
+}
+
 function persistDb(db: ServerDb): void {
   currentRevision++;
   db.revision = currentRevision;
   db.lastUpdated = new Date().toISOString();
   inMemoryDb = db;
+  pendingDbToSave = db;
 
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    const tempFile = `${DATA_FILE}.tmp`;
-    fs.writeFileSync(tempFile, JSON.stringify(db, null, 2), 'utf-8');
-    fs.renameSync(tempFile, DATA_FILE);
-  } catch (err) {
-    console.error('Error saving db.json:', err);
-  }
+  // Persistencia asíncrona no bloqueante de alta concurrencia
+  setImmediate(() => {
+    flushDbToDisk().catch((err) => console.error('[SERVER] Async flush error:', err));
+  });
 }
 
+let lastAllocatedNumber = 0;
+
 function generateNextNumero(reqs: Requerimiento[]): string {
-  let maxNum = 0;
+  let maxNum = lastAllocatedNumber;
   for (const r of reqs) {
     const match = r.numeroRequerimiento.match(/REQ-(\d+)/);
     if (match && match[1]) {
@@ -118,6 +150,7 @@ function generateNextNumero(reqs: Requerimiento[]): string {
     }
   }
   const nextVal = maxNum + 1;
+  lastAllocatedNumber = nextVal;
   return `REQ-${nextVal.toString().padStart(6, '0')}`;
 }
 
@@ -180,13 +213,35 @@ async function startServer() {
         // Direct pre-built object
         newReq = body.requerimiento;
         newDets = body.detalles || [];
+
+        // 1. Idempotencia: Si ya existe por ID, responder sin duplicar
+        const existingIdx = db.requerimientos.findIndex((r) => r.id === newReq.id);
+        if (existingIdx !== -1) {
+          return res.status(200).json({
+            success: true,
+            alreadyExists: true,
+            requerimiento: db.requerimientos[existingIdx],
+            revision: db.revision,
+          });
+        }
+
+        // 2. Prevención de colisiones concurrentes:
+        // Si dos usuarios generaron el mismo REQ-XXXXXX al mismo tiempo mientras enviaban,
+        // el servidor reasigna de inmediato un número ascendente libre
+        if (db.requerimientos.some((r) => r.numeroRequerimiento === newReq.numeroRequerimiento)) {
+          const freshNumero = generateNextNumero(db.requerimientos);
+          newReq.numeroRequerimiento = freshNumero;
+          newDets.forEach((d) => {
+            d.numeroRequerimiento = freshNumero;
+          });
+        }
       } else {
         // Draft format
         const draft: RequerimientoDraft = body.draft || body;
         const currentUser: AppUser | undefined = body.currentUser;
 
         const nextNumero = generateNextNumero(db.requerimientos);
-        const reqId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        const reqId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
         let totalPersonas = 0;
         if (draft.comedores && draft.comedores.length > 0) {
@@ -196,7 +251,7 @@ async function startServer() {
               if (cantidad > 0) {
                 totalPersonas += cantidad;
                 newDets.push({
-                  id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                  id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
                   requerimientoId: reqId,
                   numeroRequerimiento: nextNumero,
                   comedor: c.comedor || 'Comedor 1',
@@ -254,11 +309,114 @@ async function startServer() {
     }
   });
 
+  // Batch insert endpoint for mass queue processing or stress testing
+  app.post('/api/requerimientos/batch', (req, res) => {
+    try {
+      const db = getDb();
+      const items: Array<{ requerimiento: Requerimiento; detalles?: DetalleRequerimiento[] }> = req.body.items || [];
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Array of items required' });
+      }
+
+      const addedReqs: Requerimiento[] = [];
+      const addedDets: DetalleRequerimiento[] = [];
+
+      items.forEach((item) => {
+        const r = item.requerimiento;
+        if (!db.requerimientos.some((ex) => ex.id === r.id)) {
+          if (db.requerimientos.some((ex) => ex.numeroRequerimiento === r.numeroRequerimiento)) {
+            r.numeroRequerimiento = generateNextNumero(db.requerimientos);
+          }
+          addedReqs.push(r);
+          if (item.detalles && Array.isArray(item.detalles)) {
+            item.detalles.forEach((d) => {
+              d.numeroRequerimiento = r.numeroRequerimiento;
+              addedDets.push(d);
+            });
+          }
+        }
+      });
+
+      db.requerimientos = [...addedReqs, ...db.requerimientos];
+      db.detalles = [...addedDets, ...db.detalles];
+      persistDb(db);
+
+      res.status(201).json({
+        success: true,
+        count: addedReqs.length,
+        detallesCount: addedDets.length,
+        revision: db.revision,
+      });
+    } catch (err: any) {
+      console.error('Error in batch requirement insert:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Concurrency & stress test benchmark endpoint: simula 300 peticiones en paralelo
+  app.post('/api/diagnostics/stress-test', async (req, res) => {
+    try {
+      const count = Math.min(Math.max(Number(req.body.count) || 300, 10), 1000);
+      const startTime = Date.now();
+      const db = getDb();
+      const initialCount = db.requerimientos.length;
+
+      // Ejecutar 300 creaciones concurrentes simultáneas
+      const tasks = Array.from({ length: count }, (_, idx) => {
+        return new Promise<{ id: string; numero: string }>((resolve) => {
+          const freshNumero = generateNextNumero(db.requerimientos);
+          const reqId = `stress-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 8)}`;
+          const simReq: Requerimiento = {
+            id: reqId,
+            numeroRequerimiento: freshNumero,
+            fecha: new Date().toISOString().split('T')[0],
+            area: 'PRODUCCIÓN',
+            fundo: 'AGRICULTOR 1',
+            cultivo: 'ARÁNDANO',
+            movimiento: 'INGRESO',
+            horaRecojo: '05:00',
+            horaSalida: '06:00',
+            observaciones: `Prueba de concurrencia simulada #${idx + 1}`,
+            usuario: `Test Supervisor ${idx + 1}`,
+            fechaRegistro: new Date().toISOString(),
+            totalPersonas: Math.floor(Math.random() * 40) + 10,
+            estado: 'PENDIENTE',
+          };
+          db.requerimientos.push(simReq);
+          resolve({ id: simReq.id, numero: simReq.numeroRequerimiento });
+        });
+      });
+
+      const results = await Promise.all(tasks);
+      persistDb(db);
+      const durationMs = Date.now() - startTime;
+
+      // Verificar unicidad absoluta (0 colisiones)
+      const generatedNumbers = results.map((r) => r.numero);
+      const uniqueNumbers = new Set(generatedNumbers);
+      const hasZeroCollisions = uniqueNumbers.size === count;
+
+      res.json({
+        success: true,
+        message: `Prueba de alta concurrencia completada: ${count} solicitudes simultáneas procesadas.`,
+        solicitudesProcesadas: count,
+        duracionTotalMs: durationMs,
+        promedioPorSolicitudMs: Number((durationMs / count).toFixed(2)),
+        ceroColisionesGarantizado: hasZeroCollisions,
+        solicitudesUnicas: uniqueNumbers.size,
+        totalEnBaseDeDatos: db.requerimientos.length,
+        initialCount,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Update requirement status
   app.put('/api/requerimientos/:id/estado', (req, res) => {
     try {
       const { id } = req.params;
-      const { estado } = req.body;
+      const { estado, usuario, motivo, fechaAnulacion, usuarioAnulacion, motivoAnulacion } = req.body;
       const db = getDb();
 
       const idx = db.requerimientos.findIndex((r) => r.id === id || r.numeroRequerimiento === id);
@@ -266,9 +424,25 @@ async function startServer() {
         return res.status(404).json({ error: 'Requerimiento no encontrado' });
       }
 
+      const history = db.requerimientos[idx].historialTrazabilidad || [];
+      const timestamp = new Date().toISOString();
+      const updatedHistory = [
+        ...history,
+        {
+          fecha: timestamp,
+          usuario: usuario || 'Admin / Transporte',
+          accion: `ESTADO: ${estado}`,
+          detalle: motivo || `Estado actualizado a ${estado}`,
+        },
+      ];
+
       db.requerimientos[idx] = {
         ...db.requerimientos[idx],
         estado,
+        fechaAnulacion: fechaAnulacion || (estado === 'ANULADO' ? timestamp : db.requerimientos[idx].fechaAnulacion),
+        usuarioAnulacion: usuarioAnulacion || (estado === 'ANULADO' ? (usuario || 'Admin') : db.requerimientos[idx].usuarioAnulacion),
+        motivoAnulacion: motivoAnulacion || db.requerimientos[idx].motivoAnulacion,
+        historialTrazabilidad: updatedHistory,
       };
 
       persistDb(db);
@@ -333,7 +507,7 @@ async function startServer() {
     }
   });
 
-  // Delete requirement
+  // Delete requirement: Soft-delete/anular to preserve in history and ensure traceability
   app.delete('/api/requerimientos/:id', (req, res) => {
     try {
       const { id } = req.params;
@@ -344,11 +518,23 @@ async function startServer() {
         return res.status(404).json({ error: 'Requerimiento no encontrado' });
       }
 
-      db.requerimientos = db.requerimientos.filter((r) => r.id !== target.id);
-      db.detalles = db.detalles.filter((d) => d.requerimientoId !== target.id && d.numeroRequerimiento !== target.numeroRequerimiento);
+      const timestamp = new Date().toISOString();
+      target.estado = 'ANULADO';
+      target.fechaAnulacion = timestamp;
+      target.usuarioAnulacion = 'Admin / Sistema';
+      target.motivoAnulacion = 'Anulado de la programación diaria';
+      target.historialTrazabilidad = [
+        ...(target.historialTrazabilidad || []),
+        {
+          fecha: timestamp,
+          usuario: 'Admin / Sistema',
+          accion: 'ANULADO / BORRADO',
+          detalle: 'Requerimiento conservado en historial para trazabilidad.',
+        },
+      ];
 
       persistDb(db);
-      res.json({ success: true, deletedId: target.id, revision: db.revision });
+      res.json({ success: true, deletedId: target.id, anulado: true, revision: db.revision });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

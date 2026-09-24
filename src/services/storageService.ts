@@ -322,10 +322,13 @@ export function getDetallesByRequerimientoId(requerimientoId: string): DetalleRe
   return allDetalles.filter((d) => d.requerimientoId === requerimientoId);
 }
 
+let localAllocatedMax = 0;
+
 // Genera automáticamente números consecutivos: REQ-000001, REQ-000002...
+// Con protección contra colisiones concurrentes y monotonicidad
 export function generateNextNumeroRequerimiento(): string {
   const reqs = getStoredRequerimientos();
-  let maxNum = 0;
+  let maxNum = localAllocatedMax;
   for (const r of reqs) {
     const match = r.numeroRequerimiento.match(/REQ-(\d+)/);
     if (match && match[1]) {
@@ -334,7 +337,89 @@ export function generateNextNumeroRequerimiento(): string {
     }
   }
   const nextVal = maxNum + 1;
+  localAllocatedMax = nextVal;
   return `REQ-${nextVal.toString().padStart(6, '0')}`;
+}
+
+// -------------------------------------------------------------
+// COLA DE SINCRONIZACIÓN PERSISTENTE (OUTBOX) PARA ALTA CONCURRENCIA
+// -------------------------------------------------------------
+const SYNC_QUEUE_KEY = 'camposol_sync_queue_v1';
+
+interface QueuedSyncItem {
+  id: string;
+  requerimiento: Requerimiento;
+  detalles: DetalleRequerimiento[];
+  attempts: number;
+  addedAt: string;
+}
+
+function getSyncQueue(): QueuedSyncItem[] {
+  try {
+    const raw = localStorage.getItem(SYNC_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addToSyncQueue(requerimiento: Requerimiento, detalles: DetalleRequerimiento[]): void {
+  try {
+    const queue = getSyncQueue();
+    if (!queue.some((q) => q.id === requerimiento.id)) {
+      queue.push({
+        id: requerimiento.id,
+        requerimiento,
+        detalles,
+        attempts: 0,
+        addedAt: new Date().toISOString(),
+      });
+      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function removeFromSyncQueue(id: string): void {
+  try {
+    const queue = getSyncQueue().filter((q) => q.id !== id);
+    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+  } catch {
+    // ignore
+  }
+}
+
+export async function processPendingSyncQueue(): Promise<void> {
+  if (typeof window === 'undefined' || !navigator.onLine) return;
+  const queue = getSyncQueue();
+  if (queue.length === 0) return;
+
+  for (const item of queue) {
+    try {
+      await firestoreSaveRequerimiento(item.requerimiento, item.detalles);
+      await fetch('/api/requerimientos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requerimiento: item.requerimiento,
+          detalles: item.detalles,
+        }),
+      });
+      removeFromSyncQueue(item.id);
+    } catch {
+      // Reintento en la próxima pasada
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    processPendingSyncQueue();
+  });
+  setInterval(() => {
+    processPendingSyncQueue();
+  }, 25000);
 }
 
 // Guardar nuevo requerimiento y sus registros de detalle independientes
@@ -346,7 +431,7 @@ export function saveNewRequerimiento(
   detalles: DetalleRequerimiento[];
 } {
   const nextNumero = generateNextNumeroRequerimiento();
-  const reqId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const reqId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${Math.floor(Math.random() * 1000)}`;
 
   // Calculate total personas and generate detalles
   let totalPersonas = 0;
@@ -359,7 +444,7 @@ export function saveNewRequerimiento(
         if (cantidad > 0) {
           totalPersonas += cantidad;
           newDetalles.push({
-            id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${Math.floor(Math.random() * 1000)}`,
             requerimientoId: reqId,
             numeroRequerimiento: nextNumero,
             comedor: c.comedor || 'Comedor 1',
@@ -379,7 +464,7 @@ export function saveNewRequerimiento(
         totalPersonas += cantidad;
         const z = inferParaderoZona(paradero);
         newDetalles.push({
-          id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${Math.floor(Math.random() * 1000)}`,
           requerimientoId: reqId,
           numeroRequerimiento: nextNumero,
           comedor: 'Comedor General',
@@ -397,7 +482,7 @@ export function saveNewRequerimiento(
         if (cantidad > 0) {
           totalPersonas += cantidad;
           newDetalles.push({
-            id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${Math.floor(Math.random() * 1000)}`,
             requerimientoId: reqId,
             numeroRequerimiento: nextNumero,
             comedor: parcela,
@@ -440,24 +525,40 @@ export function saveNewRequerimiento(
     fechaRegistro: new Date().toISOString(),
     totalPersonas: totalPersonas,
     estado: 'PENDIENTE',
+    historialTrazabilidad: [
+      {
+        fecha: new Date().toISOString(),
+        usuario: userName,
+        accion: 'CREADO',
+        detalle: `Requerimiento registrado para el servicio del ${draft.fecha} con ${totalPersonas} personas.`,
+      },
+    ],
   };
 
-  // 1. Guardar de inmediato en localStorage para respuesta instantánea
+  // 1. Guardar de inmediato en memoria y localStorage para respuesta instantánea (0ms de latencia)
   const existingReqs = getStoredRequerimientos();
   const updatedReqs = [newRequerimiento, ...existingReqs];
-  localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(updatedReqs));
+  // Mantener últimos 1500 en local storage para prevenir cuotas de navegador
+  const trimmedReqs = updatedReqs.length > 1500 ? updatedReqs.slice(0, 1500) : updatedReqs;
+  localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(trimmedReqs));
 
   const existingDets = getStoredDetalles();
   const updatedDets = [...existingDets, ...newDetalles];
-  localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(updatedDets));
+  const trimmedDets = updatedDets.length > 5000 ? updatedDets.slice(0, 5000) : updatedDets;
+  localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(trimmedDets));
 
   // Notificar cambios localmente
   broadcastLocalChange();
 
-  // 2. Persistir en la base de datos Cloud de Firebase Firestore
-  firestoreSaveRequerimiento(newRequerimiento, newDetalles).catch((err) => {
-    console.warn('[Firestore] Error guardando en la nube:', err);
-  });
+  // 2. Persistir en Firebase Cloud Firestore (con reintentos y cola Outbox)
+  firestoreSaveRequerimiento(newRequerimiento, newDetalles)
+    .then(() => {
+      removeFromSyncQueue(newRequerimiento.id);
+    })
+    .catch((err) => {
+      console.warn('[Firestore] Conexión ocupada o inestable, encolando en Outbox:', err);
+      addToSyncQueue(newRequerimiento, newDetalles);
+    });
 
   // 3. Persistir también en el servidor web (Cloud Express Backup)
   fetch('/api/requerimientos', {
@@ -475,11 +576,13 @@ export function saveNewRequerimiento(
         if (json.revision) {
           localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
         }
-        console.log('[SYNC] Requerimiento transmitido con éxito al servidor web:', newRequerimiento.numeroRequerimiento);
+        removeFromSyncQueue(newRequerimiento.id);
+      } else {
+        addToSyncQueue(newRequerimiento, newDetalles);
       }
     })
-    .catch((err) => {
-      console.warn('[SYNC] Servidor web no accesible temporalmente, almacenado en cola local:', err);
+    .catch(() => {
+      addToSyncQueue(newRequerimiento, newDetalles);
     });
 
   return {
@@ -488,9 +591,39 @@ export function saveNewRequerimiento(
   };
 }
 
-export function updateRequerimientoEstado(id: string, nuevoEstado: Requerimiento['estado']) {
+export function updateRequerimientoEstado(
+  id: string,
+  nuevoEstado: Requerimiento['estado'],
+  usuario?: string,
+  motivo?: string
+) {
   const reqs = getStoredRequerimientos();
-  const updated = reqs.map((r) => (r.id === id ? { ...r, estado: nuevoEstado } : r));
+  const timestamp = new Date().toISOString();
+  const userLabel = usuario || 'Admin / Transporte';
+
+  const updated = reqs.map((r) => {
+    if (r.id === id || r.numeroRequerimiento === id) {
+      const history = r.historialTrazabilidad || [];
+      const isAnulando = nuevoEstado === 'ANULADO';
+      return {
+        ...r,
+        estado: nuevoEstado,
+        fechaAnulacion: isAnulando ? timestamp : r.fechaAnulacion,
+        usuarioAnulacion: isAnulando ? userLabel : r.usuarioAnulacion,
+        motivoAnulacion: isAnulando ? (motivo || 'Anulado/borrado de la programación') : r.motivoAnulacion,
+        historialTrazabilidad: [
+          ...history,
+          {
+            fecha: timestamp,
+            usuario: userLabel,
+            accion: `ESTADO: ${nuevoEstado}`,
+            detalle: motivo || `Estado operacional actualizado a ${nuevoEstado}.`,
+          },
+        ],
+      };
+    }
+    return r;
+  });
   localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(updated));
 
   broadcastLocalChange();
@@ -503,7 +636,14 @@ export function updateRequerimientoEstado(id: string, nuevoEstado: Requerimiento
   fetch(`/api/requerimientos/${encodeURIComponent(id)}/estado`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ estado: nuevoEstado }),
+    body: JSON.stringify({ 
+      estado: nuevoEstado,
+      usuario: userLabel,
+      motivo,
+      fechaAnulacion: nuevoEstado === 'ANULADO' ? timestamp : undefined,
+      usuarioAnulacion: nuevoEstado === 'ANULADO' ? userLabel : undefined,
+      motivoAnulacion: nuevoEstado === 'ANULADO' ? (motivo || 'Anulado de la programación') : undefined
+    }),
   })
     .then(async (res) => {
       if (res.ok) {
@@ -518,8 +658,83 @@ export function updateRequerimientoEstado(id: string, nuevoEstado: Requerimiento
     });
 }
 
-// Eliminar un requerimiento del almacenamiento local y del servidor web
-export function deleteRequerimiento(id: string): boolean {
+// Anular o eliminar un requerimiento conservando trazabilidad en el historial de los días
+export function deleteRequerimiento(id: string, usuario?: string, motivo?: string): boolean {
+  try {
+    const reqs = getStoredRequerimientos();
+    const target = reqs.find((r) => r.id === id || r.numeroRequerimiento === id);
+    if (!target) return false;
+
+    const fechaHoraAnulacion = new Date().toISOString();
+    const userLabel = usuario || 'Usuario / Admin';
+    const motivoText = motivo || 'Anulado/borrado de la programación diaria';
+
+    // Para mantener la trazabilidad histórica de los días:
+    // Se preserva el registro intacto en el historial marcado como ANULADO con toda su auditoría
+    const updatedReqs = reqs.map((r) => {
+      if (r.id === target.id || r.numeroRequerimiento === target.numeroRequerimiento) {
+        const history = r.historialTrazabilidad || [];
+        return {
+          ...r,
+          estado: 'ANULADO' as const,
+          fechaAnulacion: fechaHoraAnulacion,
+          usuarioAnulacion: userLabel,
+          motivoAnulacion: motivoText,
+          historialTrazabilidad: [
+            ...history,
+            {
+              fecha: fechaHoraAnulacion,
+              usuario: userLabel,
+              accion: 'ANULADO / BORRADO',
+              detalle: `${motivoText}. Registrado originalmente para la fecha ${r.fecha} (${r.totalPersonas} personas solicitadas).`,
+            },
+          ],
+        };
+      }
+      return r;
+    });
+
+    localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(updatedReqs));
+    broadcastLocalChange();
+
+    // Actualizar en Firebase Firestore conservando el documento en historial
+    firestoreUpdateRequerimientoEstado(target.id, 'ANULADO').catch((err) => {
+      console.warn('[Firestore] Error actualizando anulación en Firestore:', err);
+    });
+
+    // Actualizar en el servidor web (Cloud)
+    fetch(`/api/requerimientos/${encodeURIComponent(target.id)}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        estado: 'ANULADO',
+        fechaAnulacion: fechaHoraAnulacion,
+        usuarioAnulacion: userLabel,
+        motivoAnulacion: motivoText
+      }),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const json = await res.json();
+          if (json.revision) {
+            localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
+          }
+          console.log('[SYNC] Requerimiento registrado como ANULADO en historial del servidor:', target.numeroRequerimiento);
+        }
+      })
+      .catch((err) => {
+        console.warn('[SYNC] Error al sincronizar anulación en el servidor web:', err);
+      });
+
+    return true;
+  } catch (err) {
+    console.error('Error al registrar anulación del requerimiento:', err);
+    return false;
+  }
+}
+
+// Eliminación forzada/física si fuese estrictamente necesario para depuración
+export function hardDeleteRequerimiento(id: string): boolean {
   try {
     const reqs = getStoredRequerimientos();
     const target = reqs.find((r) => r.id === id || r.numeroRequerimiento === id);
@@ -536,31 +751,13 @@ export function deleteRequerimiento(id: string): boolean {
 
     broadcastLocalChange();
 
-    // Eliminar en Firebase Firestore
     firestoreDeleteRequerimiento(target.id, target.numeroRequerimiento).catch((err) => {
-      console.warn('[Firestore] Error eliminando en Firestore:', err);
+      console.warn('[Firestore] Error purgando en Firestore:', err);
     });
 
-    // Eliminar también en el servidor web (Cloud)
-    fetch(`/api/requerimientos/${encodeURIComponent(target.id)}`, {
-      method: 'DELETE',
-    })
-      .then(async (res) => {
-        if (res.ok) {
-          const json = await res.json();
-          if (json.revision) {
-            localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
-          }
-          console.log('[SYNC] Requerimiento eliminado del servidor web:', target.numeroRequerimiento);
-        }
-      })
-      .catch((err) => {
-        console.warn('[SYNC] Error al eliminar en el servidor web:', err);
-      });
-
+    fetch(`/api/requerimientos/${encodeURIComponent(target.id)}`, { method: 'DELETE' }).catch(() => {});
     return true;
   } catch (err) {
-    console.error('Error al eliminar requerimiento:', err);
     return false;
   }
 }

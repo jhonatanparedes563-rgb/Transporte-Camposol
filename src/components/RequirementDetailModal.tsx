@@ -84,6 +84,11 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
           bg: 'bg-red-100 text-red-800 border-red-300',
           icon: <XCircle className="w-4 h-4 text-red-600" />,
         };
+      case 'ANULADO':
+        return {
+          bg: 'bg-rose-50 text-rose-800 border-rose-300',
+          icon: <XCircle className="w-4 h-4 text-rose-600" />,
+        };
       case 'PENDIENTE':
       default:
         return {
@@ -202,9 +207,11 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
                     @{requerimiento.userUsername}
                   </span>
                 )}
-                <span className="text-xs font-normal text-gray-500">
-                  • {new Date(requerimiento.fechaRegistro).toLocaleString()}
-                </span>
+                {requerimiento.fechaRegistro && !isNaN(new Date(requerimiento.fechaRegistro).getTime()) && (
+                  <span className="text-xs font-normal text-gray-500">
+                    • {new Date(requerimiento.fechaRegistro).toLocaleString('es-PE')}
+                  </span>
+                )}
               </span>
             </div>
           </div>
@@ -265,24 +272,91 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
             </div>
           </div>
 
+          {/* Sección de Trazabilidad & Auditoría Histórica */}
+          <div className="pt-3 border-t border-gray-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#00843D]" />
+                <span className="text-xs font-black text-[#173B56] uppercase tracking-tight">
+                  Trazabilidad & Historial del Requerimiento:
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                Auditoría Activa
+              </span>
+            </div>
+
+            {requerimiento.estado === 'ANULADO' && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-rose-800">
+                  <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Requerimiento Anulado / Dado de Baja</span>
+                </div>
+                <p className="text-[11px] text-rose-700 leading-tight">
+                  {requerimiento.motivoAnulacion || 'Anulado de la programación diaria.'}
+                </p>
+                {requerimiento.fechaAnulacion && (
+                  <p className="text-[10px] text-rose-600 font-medium">
+                    Fecha de anulación: {new Date(requerimiento.fechaAnulacion).toLocaleString('es-PE')}
+                    {requerimiento.usuarioAnulacion ? ` por ${requerimiento.usuarioAnulacion}` : ''}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Eventos cronológicos */}
+            <div className="bg-gray-50/80 border border-gray-200/80 rounded-xl p-3 text-xs space-y-2 max-h-36 overflow-y-auto">
+              {requerimiento.historialTrazabilidad && requerimiento.historialTrazabilidad.length > 0 ? (
+                requerimiento.historialTrazabilidad.map((h, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-[11px] border-l-2 border-[#00843D] pl-2 py-0.5">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between font-bold text-[#173B56]">
+                        <span>{h.accion}</span>
+                        <span className="text-[10px] text-gray-400 font-normal">
+                          {new Date(h.fecha).toLocaleString('es-PE')}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 text-[10px] mt-0.5">
+                        {h.detalle || 'Acción registrada en el sistema.'} — <span className="font-semibold text-gray-700">{h.usuario}</span>
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-[11px] text-gray-500 flex items-center justify-between">
+                  <span>
+                    Registrado el{' '}
+                    {requerimiento.fechaRegistro && !isNaN(new Date(requerimiento.fechaRegistro).getTime())
+                      ? new Date(requerimiento.fechaRegistro).toLocaleString('es-PE')
+                      : requerimiento.fecha}{' '}
+                    por {requerimiento.usuario}
+                  </span>
+                  <span className="font-bold text-[#00843D]">{requerimiento.totalPersonas} personas</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Status management section */}
           {canManageStatus ? (
             <div className="pt-3 border-t border-gray-100">
               <div className="flex items-center gap-1.5 mb-2">
-                <ShieldCheck className="w-4 h-4 text-[#00843D]" />
+                <Clock className="w-4 h-4 text-[#00843D]" />
                 <span className="text-xs font-black text-[#173B56] uppercase tracking-tight">
-                  {userRole === 'receptor' ? 'Gestión de Solicitud (Receptor):' : 'Control Operativo (Administrador):'}
+                  {userRole === 'receptor' ? 'Gestión de Solicitud (Receptor):' : 'Control Operativo de Estado:'}
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-                {(['PENDIENTE', 'EN REVISIÓN', 'APROBADO', 'ATENDIDO', 'RECHAZADO'] as EstadoRequerimiento[]).map(
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                {(['PENDIENTE', 'EN REVISIÓN', 'APROBADO', 'ATENDIDO', 'RECHAZADO', 'ANULADO'] as EstadoRequerimiento[]).map(
                   (st) => (
                     <button
                       key={st}
                       onClick={() => handleQuickStatusUpdate(st)}
                       className={`px-2 py-2 text-[10px] font-black rounded-xl uppercase transition-all flex items-center justify-center ${
                         requerimiento.estado === st
-                          ? 'bg-[#00843D] text-white shadow-md ring-2 ring-[#00843D]/30 scale-[1.02]'
+                          ? st === 'ANULADO'
+                            ? 'bg-rose-700 text-white shadow-md ring-2 ring-rose-300 scale-[1.02]'
+                            : 'bg-[#00843D] text-white shadow-md ring-2 ring-[#00843D]/30 scale-[1.02]'
                           : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                       }`}
                     >
@@ -309,16 +383,16 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
 
         {/* Modal Footer */}
         <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3">
-          {canManageStatus ? (
+          {canManageStatus && requerimiento.estado !== 'ANULADO' ? (
             <button
               id="btn-delete-from-modal"
               type="button"
               onClick={() => setShowConfirmDelete(true)}
               className="px-4 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs"
-              title="Eliminar este requerimiento de la base de datos"
+              title="Anular este requerimiento conservando trazabilidad en el historial"
             >
               <Trash2 className="w-4 h-4" />
-              <span>Eliminar Requerimiento</span>
+              <span>Anular Requerimiento</span>
             </button>
           ) : (
             <div />
@@ -327,7 +401,7 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
           <button
             onClick={onClose}
             className={`${
-              canManageStatus ? 'px-6' : 'w-full'
+              canManageStatus && requerimiento.estado !== 'ANULADO' ? 'px-6' : 'w-full'
             } py-2.5 rounded-xl bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white text-xs font-bold transition-colors`}
           >
             Cerrar Detalle
@@ -335,7 +409,7 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
         </div>
       </div>
 
-      {/* Confirmation dialog for deleting requirement from modal */}
+      {/* Confirmation dialog for deleting/annulling requirement from modal */}
       {showConfirmDelete && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-red-150 p-6 overflow-hidden">
@@ -345,7 +419,7 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
               </div>
               <div>
                 <h3 className="text-base font-black text-[#173B56]">
-                  ¿Eliminar Requerimiento?
+                  ¿Anular Requerimiento?
                 </h3>
                 <p className="text-xs text-red-600 font-bold">
                   {requerimiento.numeroRequerimiento}
@@ -354,13 +428,13 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
             </div>
 
             <p className="text-xs text-gray-600 mb-4 leading-relaxed">
-              ¿Estás seguro de que deseas eliminar este requerimiento (<strong>{requerimiento.fundo}</strong>, <strong>{requerimiento.totalPersonas} personas</strong>)? Esta acción es irreversible y lo eliminará del servidor web.
+              ¿Estás seguro de anular este requerimiento (<strong>{requerimiento.fundo}</strong>, <strong>{requerimiento.totalPersonas} personas</strong>) del día <strong>{requerimiento.fecha}</strong>?
             </p>
 
-            <div className="flex items-start gap-2 bg-red-50 p-3 rounded-xl border border-red-200 text-xs text-red-800 mb-5">
-              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 bg-emerald-50 p-3.5 rounded-xl border border-emerald-200 text-xs text-emerald-900 mb-5">
+              <ShieldCheck className="w-4 h-4 text-[#00843D] shrink-0 mt-0.5" />
               <p className="text-[11px] leading-relaxed">
-                Se eliminarán todos los desgloses de paraderos y registros de personas asociados a esta solicitud.
+                <strong>Trazabilidad Garantizada:</strong> El requerimiento se marcará como <strong>ANULADO</strong> y permanecerá guardado en el <strong>historial de los días</strong> con todas sus cantidades y paraderos registrados para auditoría operativa.
               </p>
             </div>
 
@@ -375,7 +449,7 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  deleteRequerimiento(requerimiento.id);
+                  deleteRequerimiento(requerimiento.id, userRole === 'admin' ? 'Administrador' : 'Supervisor', 'Anulado desde modal de detalle');
                   setShowConfirmDelete(false);
                   if (onDelete) onDelete(requerimiento.id);
                   if (onStatusChange) onStatusChange();
@@ -384,7 +458,7 @@ export const RequirementDetailModal: React.FC<RequirementDetailModalProps> = ({
                 className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>Sí, Eliminar</span>
+                <span>Sí, Anular y Guardar en Historial</span>
               </button>
             </div>
           </div>

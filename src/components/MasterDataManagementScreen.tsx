@@ -1584,7 +1584,7 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
                     {codigo}
                   </span>
                 )}
-                <span className="text-sm font-bold text-[#173B56] truncate" title={name}>
+                <span className="text-sm font-bold text-[#173B56] break-words leading-snug" title={name}>
                   {name}
                 </span>
               </div>
