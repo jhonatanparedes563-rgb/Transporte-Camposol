@@ -17,6 +17,7 @@ import {
   History,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, AppUser } from '../types';
+import { getHorarioDisplay } from '../data/masterData';
 
 interface UserHomeScreenProps {
   onNewRequirement: () => void;
@@ -330,7 +331,11 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
               <div className="flex items-center justify-between pt-1 border-t border-gray-200/50">
                 <span className="text-gray-400 font-bold text-[10px] uppercase">Movimiento:</span>
                 <span className="font-black text-[#00843D]">
-                  {latestReq.movimiento === 'INGRESO' ? '↓ INGRESO' : '↑ SALIDA'} ({latestReq.horaRecojo})
+                  {latestReq.movimiento === 'INGRESO'
+                    ? `↓ INGRESO (${getHorarioDisplay(latestReq).textoHorario})`
+                    : latestReq.movimiento === 'SALIDA'
+                    ? `↑ SALIDA (${getHorarioDisplay(latestReq).textoHorario})`
+                    : `${latestReq.movimiento} (${getHorarioDisplay(latestReq).textoHorario})`}
                 </span>
               </div>
             </div>

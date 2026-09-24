@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, UserRole } from '../types';
 import { updateRequerimientoEstado } from '../services/storageService';
+import { getHorarioDisplay } from '../data/masterData';
 
 interface MyRequirementsScreenProps {
   requerimientos: Requerimiento[];
@@ -369,7 +370,7 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                         <span>Horarios:</span>
                       </span>
                       <span className="font-medium text-gray-700">
-                        {req.horaRecojo} / {req.horaSalida}
+                        {getHorarioDisplay(req).textoHorario}
                       </span>
                     </div>
 

@@ -1875,7 +1875,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-bold uppercase border ${
                                   req.movimiento === 'INGRESO'
                                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : 'bg-blue-50 text-blue-800 border-blue-200'
+                                    : req.movimiento === 'SALIDA'
+                                    ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                    : 'bg-purple-50 text-purple-800 border-purple-200'
                                 }`}
                               >
                                 {req.movimiento}
@@ -1883,14 +1885,26 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                               <div className="text-xs text-gray-600 font-medium mt-1">
                                 {(() => {
                                   const h = getHorarioDisplay(req);
-                                  return h.isIngreso ? (
-                                    <div className="text-[11px] text-emerald-800 font-semibold space-x-1">
-                                      <span>Norte: <strong>{h.horaNorte}</strong></span>
-                                      <span className="text-gray-400">|</span>
-                                      <span>Sur: <strong>{h.horaSur}</strong></span>
+                                  if (h.isIngreso) {
+                                    return (
+                                      <div className="text-[11px] text-emerald-800 font-semibold space-x-1 whitespace-nowrap">
+                                        <span>Norte: <strong>{h.horaNorte}</strong></span>
+                                        <span className="text-gray-400">|</span>
+                                        <span>Sur: <strong>{h.horaSur}</strong></span>
+                                      </div>
+                                    );
+                                  }
+                                  if (h.isSalida) {
+                                    return (
+                                      <div className="text-[11px] text-blue-800 font-semibold whitespace-nowrap">
+                                        <span>Hora: <strong>{h.horaNormal}</strong></span>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div className="text-[11px] text-gray-700 font-semibold whitespace-nowrap">
+                                      <span>Hora: <strong>{h.horaNormal}</strong></span>
                                     </div>
-                                  ) : (
-                                    <span>Recojo: {req.horaRecojo} | Salida: {req.horaSalida}</span>
                                   );
                                 })()}
                               </div>

@@ -349,12 +349,16 @@ export function getHorarioDisplay(req: {
   horaRecojoSur?: string;
 }): {
   isIngreso: boolean;
+  isSalida: boolean;
   horaNorte: string;
   horaSur: string;
+  horaNormal: string;
   textoHorario: string;
   textoTurnoHeader: string;
 } {
-  const isIngreso = req.movimiento === 'INGRESO';
+  const movUpper = (req.movimiento || '').toUpperCase().trim();
+  const isIngreso = movUpper === 'INGRESO';
+  const isSalida = movUpper === 'SALIDA';
 
   let horaNorte = req.horaRecojoNorte || '';
   let horaSur = req.horaRecojoSur || '';
@@ -397,20 +401,40 @@ export function getHorarioDisplay(req: {
 
     const textoHorario = `Norte: ${horaNorte} | Sur: ${horaSur}`;
     const textoTurnoHeader = `Norte: ${horaNorte} • Sur: ${horaSur}`;
-    return { isIngreso: true, horaNorte, horaSur, textoHorario, textoTurnoHeader };
+    return {
+      isIngreso: true,
+      isSalida: false,
+      horaNorte,
+      horaSur,
+      horaNormal: '',
+      textoHorario,
+      textoTurnoHeader,
+    };
   }
 
   // Si es SALIDA o Tarea normal:
-  const base = req.horaRecojo || '13:00';
-  const tieneSalidaDistinta =
-    req.horaSalida && req.horaSalida !== base && !req.horaSalida.includes('(');
-  const textoNormal = tieneSalidaDistinta ? `${base} - ${req.horaSalida}` : base;
+  let horaNormal = '';
+  if (isSalida) {
+    horaNormal = req.horaSalida || req.horaRecojo || '13:00';
+  } else {
+    horaNormal = req.horaRecojo || req.horaSalida || '13:00';
+  }
+
+  const matchTime = horaNormal.match(/\b([01]\d|2[0-3]):([0-5]\d)\b/);
+  if (matchTime) {
+    horaNormal = matchTime[0];
+  }
+
+  const textoHorario = `Hora: ${horaNormal}`;
+  const textoTurnoHeader = isSalida ? `Salida ${horaNormal}` : `Turno ${horaNormal}`;
 
   return {
     isIngreso: false,
+    isSalida,
     horaNorte: '',
     horaSur: '',
-    textoHorario: textoNormal,
-    textoTurnoHeader: `Turno ${textoNormal}`,
+    horaNormal,
+    textoHorario,
+    textoTurnoHeader,
   };
 }

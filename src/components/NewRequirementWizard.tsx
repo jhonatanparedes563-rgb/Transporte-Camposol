@@ -74,7 +74,7 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
           : 'ARÁNDANO',
       movimiento: 'Programa personal por tarea',
       horaRecojo: '13:00',
-      horaSalida: '14:00',
+      horaSalida: '13:00',
       observaciones: '',
       cantidadesPorParadero: {},
       matrizCantidades: {},
