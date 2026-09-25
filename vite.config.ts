@@ -14,7 +14,7 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
         manifest: {
-          id: '/',
+          id: '/Transporte-Camposol/',
           name: 'CAMPOSOL Transporte de Personal',
           short_name: 'CAMPOSOL',
           description: 'Aplicación móvil para registro y gestión de requerimientos de transporte de personal para CAMPOSOL.',
@@ -22,8 +22,8 @@ export default defineConfig(() => {
           background_color: '#F5F8F7',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '/',
-          scope: '/',
+          start_url: '/Transporte-Camposol/',
+          scope: '/Transporte-Camposol/',
           icons: [
             {
               src: '/pwa-192x192.png',
