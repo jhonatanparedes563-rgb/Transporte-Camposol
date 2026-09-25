@@ -33,7 +33,7 @@ export const CamposolLogo: React.FC<CamposolLogoProps> = ({
     '2xl': 'w-28 h-28',
   };
 
-  const src = variant === 'icon' ? './icon.svg' : './camposol-emblem.svg';
+ const src = variant === 'icon' ? '/Transporte-Camposol/icon.svg' : '/Transporte-Camposol/camposol-emblem.svg';
 
   return (
     <img
