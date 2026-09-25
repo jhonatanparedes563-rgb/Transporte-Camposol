@@ -16,7 +16,7 @@ export const CamposolLogo: React.FC<CamposolLogoProps> = ({
   if (variant === 'banner') {
     return (
       <img
-        src="/camposol-banner.svg"
+        src="/Transporte-Camposol/camposol-banner.svg"
         alt={alt}
         referrerPolicy="no-referrer"
         className={`inline-block object-contain rounded-xl select-none ${className}`}
@@ -33,7 +33,7 @@ export const CamposolLogo: React.FC<CamposolLogoProps> = ({
     '2xl': 'w-28 h-28',
   };
 
-  const src = variant === 'icon' ? '/icon.svg' : '/camposol-emblem.svg';
+  const src = variant === 'icon' ? './icon.svg' : './camposol-emblem.svg';
 
   return (
     <img
