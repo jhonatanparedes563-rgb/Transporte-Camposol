@@ -4,6 +4,7 @@ import { UserHomeScreen } from './UserHomeScreen';
 import { NewRequirementWizard } from './NewRequirementWizard';
 import { MyRequirementsScreen } from './MyRequirementsScreen';
 import { Requerimiento, UserRole, AppUser } from '../types';
+import { getPublicAssetUrl } from './CamposolLogo';
 
 interface UserMobileLayoutProps {
   currentScreen: 'home' | 'new-request' | 'my-requests';
@@ -47,12 +48,18 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
             ) : (
-              <div className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-0.5">
                 <img
-                  src="/camposol-emblem.svg"
+                  src={getPublicAssetUrl('camposol-emblem.png')}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.src.includes('.svg')) {
+                      target.src = getPublicAssetUrl('camposol-emblem.svg');
+                    }
+                  }}
                   alt="CAMPOSOL"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
             )}

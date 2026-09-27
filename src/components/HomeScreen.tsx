@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlusCircle, ClipboardList, Bus, Users, Clock, ArrowRight, CheckCircle2, MapPin, Database, ShieldCheck, User, Inbox } from 'lucide-react';
 import { Requerimiento, UserRole } from '../types';
+import { getPublicAssetUrl } from './CamposolLogo';
 
 interface HomeScreenProps {
   onNewRequirement: () => void;
@@ -72,12 +73,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
             {/* Brand Header */}
             <div className="inline-flex items-center justify-center mb-3">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-lg border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-lg border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-1">
                 <img
-                  src="/camposol-emblem.svg"
+                  src={getPublicAssetUrl('camposol-emblem.png')}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.src.includes('.svg')) {
+                      target.src = getPublicAssetUrl('camposol-emblem.svg');
+                    }
+                  }}
                   alt="CAMPOSOL"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>

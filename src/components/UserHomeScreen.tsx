@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, AppUser } from '../types';
 import { getHorarioDisplay } from '../data/masterData';
+import { getPublicAssetUrl } from './CamposolLogo';
 
 interface UserHomeScreenProps {
   onNewRequirement: () => void;
@@ -118,12 +119,18 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
         </div>
 
         <div className="flex items-center gap-3 mb-1.5">
-          <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-0.5">
             <img
-              src="/camposol-emblem.svg"
+              src={getPublicAssetUrl('camposol-emblem.png')}
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.includes('.svg')) {
+                  target.src = getPublicAssetUrl('camposol-emblem.svg');
+                }
+              }}
               alt="CAMPOSOL"
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           </div>
           <div>

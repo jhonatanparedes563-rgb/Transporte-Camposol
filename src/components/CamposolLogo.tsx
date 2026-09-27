@@ -1,5 +1,15 @@
 import React from 'react';
 
+/**
+ * Retorna la URL correcta de un recurso público respetando el BASE_URL de Vite
+ * (por ejemplo '/Transporte-Camposol/' en GitHub Pages o '/' en desarrollo local).
+ */
+export const getPublicAssetUrl = (assetPath: string): string => {
+  const clean = assetPath.replace(/^\/+/, '');
+  const base = (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
+  return base.endsWith('/') ? `${base}${clean}` : `${base}/${clean}`;
+};
+
 interface CamposolLogoProps {
   className?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -16,7 +26,13 @@ export const CamposolLogo: React.FC<CamposolLogoProps> = ({
   if (variant === 'banner') {
     return (
       <img
-       src="/Transporte-Camposol/camposol-banner.svg?v=2"
+        src={getPublicAssetUrl('camposol-banner.png')}
+        onError={(e) => {
+          const target = e.currentTarget;
+          if (!target.src.includes('.svg')) {
+            target.src = getPublicAssetUrl('camposol-banner.svg');
+          }
+        }}
         alt={alt}
         referrerPolicy="no-referrer"
         className={`inline-block object-contain rounded-xl select-none ${className}`}
@@ -33,13 +49,22 @@ export const CamposolLogo: React.FC<CamposolLogoProps> = ({
     '2xl': 'w-28 h-28',
   };
 
-const src = variant === 'icon' ? '/Transporte-Camposol/icon.svg?v=2' : '/Transporte-Camposol/camposol-emblem.svg?v=2';
+  const primaryAsset = variant === 'icon' ? 'icon.svg' : 'camposol-emblem.png';
+  const fallbackAsset = variant === 'icon' ? 'pwa-192x192.png' : 'camposol-emblem.svg';
+
   return (
     <img
-      src={src}
+      src={getPublicAssetUrl(primaryAsset)}
+      onError={(e) => {
+        const target = e.currentTarget;
+        if (!target.src.includes(fallbackAsset)) {
+          target.src = getPublicAssetUrl(fallbackAsset);
+        }
+      }}
       alt={alt}
       referrerPolicy="no-referrer"
       className={`inline-block object-contain rounded-full shadow-xs shrink-0 select-none ${sizeClasses[size] || ''} ${className}`}
     />
   );
 };
+

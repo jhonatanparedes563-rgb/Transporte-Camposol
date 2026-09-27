@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { authenticateUser, requestPasswordRecovery, restoreMainAdminUser, setActiveSessionUser } from '../services/authService';
 import { AppUser } from '../types';
+import { getPublicAssetUrl } from './CamposolLogo';
 
 interface LoginScreenProps {
   onLoginSuccess: (user: AppUser) => void;
@@ -108,12 +109,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           <div className="bg-[#58A33E] p-6 sm:p-7 text-center text-white relative">
             <div className="flex flex-col items-center">
               {/* Emblema Oficial CAMPOSOL con borde dorado */}
-              <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg mb-3 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg mb-3 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-1">
                 <img
-                  src="/camposol-emblem.svg"
+                  src={getPublicAssetUrl('camposol-emblem.png')}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.src.includes('.svg')) {
+                      target.src = getPublicAssetUrl('camposol-emblem.svg');
+                    }
+                  }}
                   alt="CAMPOSOL"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
 
