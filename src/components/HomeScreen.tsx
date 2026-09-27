@@ -46,7 +46,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               {isAdmin ? 'Panel de Administrador (Receptor)' : 'Vista de Usuario (Solicitante)'}
             </div>
             <div className="text-[10px] sm:text-xs text-gray-500 font-medium">
-              {isAdmin ? 'Recepción de solicitudes, maestros y control total' : 'Registro de buses y consulta de estado'}
+              {isAdmin ? 'Recepción de solicitudes, maestros y control total' : 'Registro de solicitudes y consulta de estado'}
             </div>
           </div>
         </div>
@@ -98,14 +98,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </h2>
               <div className="inline-block mt-2 px-4 py-1.5 bg-[#F5F8F7] border border-[#00843D]/15 rounded-full">
                 <span className="text-xs font-extrabold text-[#00843D] tracking-wider uppercase">
-                  {isAdmin ? 'COORDINACIÓN & RECEPCIÓN CENTRAL' : 'SOLICITUD DE REQUERIMIENTO DE BUS'}
+                  {isAdmin ? 'COORDINACIÓN & RECEPCIÓN CENTRAL' : 'SOLICITUD DE TRANSPORTE DE PERSONAL'}
                 </span>
               </div>
             </div>
 
             <p className="mt-3 text-xs sm:text-sm text-gray-500 max-w-sm mx-auto">
               {isAdmin
-                ? 'Monitorea las solicitudes de las áreas, programa buses y gestiona los maestros y paraderos.'
+                ? 'Monitorea las solicitudes de las áreas, procesa requerimientos y gestiona los maestros y paraderos.'
                 : 'Completa la información de tu área, fundo, comedor y cantidad de personal por paradero.'}
             </p>
           </div>

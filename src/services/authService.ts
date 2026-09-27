@@ -501,6 +501,3 @@ export function restoreMainAdminUser(): AppUser {
   setActiveSessionUser(admin);
   return admin;
 }
-
-
-

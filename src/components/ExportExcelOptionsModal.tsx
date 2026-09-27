@@ -224,7 +224,7 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
                 </p>
                 <ul className="text-[10px] text-gray-500 mt-1 space-y-0.5 list-disc list-inside">
                   <li><strong>Hoja 1 (Detalle para Sumas):</strong> Cada paradero en una fila con columna numérica de pasajeros para usar <code className="bg-gray-100 px-1 rounded text-gray-700">=SUMA()</code>.</li>
-                  <li><strong>Hoja 2 (Resumen por Paradero):</strong> Totales consolidados de cada paradero con porcentajes y buses.</li>
+                  <li><strong>Hoja 2 (Resumen por Paradero):</strong> Totales consolidados de cada paradero con porcentajes y pasajeros.</li>
                   <li><strong>Hoja 3 (Matriz Cruzada):</strong> Columnas numéricas individuales por cada paradero con fila de suma total al final.</li>
                 </ul>
               </div>

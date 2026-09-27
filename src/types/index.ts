@@ -18,6 +18,9 @@ export interface AppUser {
   estado: UserStatus;
   fechaCreacion?: string;
   ultimoAcceso?: string;
+  terminosAceptados?: boolean;
+  fechaAceptacionTerminos?: string;
+  versionTerminosAceptada?: string;
 }
 
 export type EstadoRequerimiento = 
@@ -78,6 +81,7 @@ export interface Requerimiento {
   userUsername?: string; // Nombre de usuario (login) del solicitante
   userRole?: UserRole; // Rol asignado
   fechaRegistro: string; // ISO timestamp
+  updatedAt?: string;
   totalPersonas: number;
   estado: EstadoRequerimiento;
   fechaAnulacion?: string;

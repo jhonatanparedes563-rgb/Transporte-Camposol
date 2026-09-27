@@ -140,8 +140,8 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
   const [filterCultivo, setFilterCultivo] = useState<string>('TODOS');
   const [filterMovimiento, setFilterMovimiento] = useState<string>('TODOS');
   const [filterEstado, setFilterEstado] = useState<string>('TODOS');
-  const [filterFechaDesde, setFilterFechaDesde] = useState<string>('');
-  const [filterFechaHasta, setFilterFechaHasta] = useState<string>('');
+  const [filterFechaDesde, setFilterFechaDesde] = useState<string>(() => getTodayStr());
+  const [filterFechaHasta, setFilterFechaHasta] = useState<string>(() => getTodayStr());
   const [tableSearch, setTableSearch] = useState<string>('');
 
   // Table pagination
@@ -178,8 +178,15 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
 
     // Recorrer únicamente requerimientos reales existentes en la base de datos
     requerimientos.forEach((req) => {
+      // Ignorar cualquier requerimiento demo o ficticio
+      if (req.id?.startsWith('req-uuid-')) return;
+
       const matched = detalles.filter(
-        (d) => d.requerimientoId === req.id || d.numeroRequerimiento === req.numeroRequerimiento
+        (d) =>
+          (d.requerimientoId === req.id || d.numeroRequerimiento === req.numeroRequerimiento) &&
+          !d.id?.startsWith('det-001-') &&
+          !d.id?.startsWith('det-002-') &&
+          !d.id?.startsWith('det-003-')
       );
 
       if (matched.length > 0) {
@@ -311,10 +318,6 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
   const distinctParaderos = useMemo(() => {
     return new Set(filteredRows.map((r) => r.paradero)).size;
   }, [filteredRows]);
-
-  // Estimación de Flota (Standard 40-pax bus + 15-pax vans)
-  const estimatedBuses = Math.ceil(totalPersonal / 40);
-  const estimatedVans = Math.ceil(totalPersonal / 15);
 
   // Zona Sur vs Norte
   const totalZonaSur = useMemo(() => {
@@ -542,8 +545,9 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
     setFilterCultivo('TODOS');
     setFilterMovimiento('TODOS');
     setFilterEstado('TODOS');
-    setFilterFechaDesde('');
-    setFilterFechaHasta('');
+    const today = getTodayStr();
+    setFilterFechaDesde(today);
+    setFilterFechaHasta(today);
     setTableSearch('');
     setTablePage(1);
   };
@@ -555,8 +559,9 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
     filterCultivo !== 'TODOS' ||
     filterMovimiento !== 'TODOS' ||
     filterEstado !== 'TODOS' ||
-    !!filterFechaDesde ||
-    !!filterFechaHasta;
+    filterFechaDesde !== getTodayStr() ||
+    filterFechaHasta !== getTodayStr() ||
+    !!tableSearch;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-20">
@@ -584,10 +589,10 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#173B56] tracking-tight">
-            Centro de Reportes & Analítica de Transporte
+            Reportes & Analítica
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl font-normal leading-relaxed">
-            Consolidado gerencial de demanda de pasajeros, cálculo de flota requerida y distribución territorial por fundo y paradero.
+          <p className="text-xs sm:text-sm text-slate-500 max-w-xl font-normal">
+            Demanda de pasajeros, cálculo de flota y distribución territorial.
           </p>
         </div>
 
@@ -645,12 +650,9 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               <SlidersHorizontal className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Filtros de Segmentación Operativa
+              <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                Filtros
               </h3>
-              <p className="text-[11px] text-slate-500">
-                Segmenta por zona, fundo, centro de costos o fecha operativa
-              </p>
             </div>
           </div>
 
@@ -872,25 +874,24 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. ROW DE 6 KPIS GERENCIALES                                  */}
+      {/* 3. ROW DE 5 KPIS GERENCIALES                                  */}
       {/* ------------------------------------------------------------- */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {/* KPI 1: Personas Totales */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Personal Total
             </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-[#00843D] flex items-center justify-center">
-              <Users className="w-3.5 h-3.5" />
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center">
+              <Users className="w-4 h-4" />
             </div>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-extrabold text-[#00843D] tracking-tight tabular-nums">
               {totalPersonal.toLocaleString()}
             </div>
-            <div className="mt-1.5 space-y-1">
-              {/* Dual mini progress bar */}
+            <div className="mt-2 space-y-1">
               <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
                 <div
                   className="h-full bg-[#00843D]"
@@ -903,9 +904,9 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                   title={`Salida: ${pctSalida}%`}
                 />
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
-                <span>{pctIngreso}% Ing.</span>
-                <span>{pctSalida}% Sal.</span>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-0.5">
+                <span>{pctIngreso}% Ingreso</span>
+                <span>{pctSalida}% Salida</span>
               </div>
             </div>
           </div>
@@ -914,59 +915,39 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         {/* KPI 2: Requerimientos */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Requerimientos
             </span>
-            <div className="w-7 h-7 rounded-lg bg-slate-100 text-[#173B56] flex items-center justify-center">
-              <Layers className="w-3.5 h-3.5" />
+            <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#173B56] flex items-center justify-center">
+              <Layers className="w-4 h-4" />
             </div>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-extrabold text-[#173B56] tracking-tight tabular-nums">
               {distinctReqs}
             </div>
-            <div className="text-[11px] font-medium text-slate-500 mt-1">
-              {filteredRows.length} paraderos solicitados
+            <div className="text-xs font-semibold text-slate-500 mt-1.5">
+              {filteredRows.length} paraderos activos
             </div>
           </div>
         </div>
 
-        {/* KPI 3: Estimación de Flota */}
+        {/* KPI 3: Fundos Activos */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Flota Sugerida
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Bus className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 tracking-tight tabular-nums">
-              ~{estimatedBuses}
-            </div>
-            <div className="text-[11px] font-medium text-slate-500 mt-1">
-              Buses (40 pax) ó {estimatedVans} Vans
-            </div>
-          </div>
-        </div>
-
-        {/* KPI 4: Fundos Activos */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Fundos Activos
             </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-[#00843D] flex items-center justify-center">
-              <Building className="w-3.5 h-3.5" />
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center">
+              <Building className="w-4 h-4" />
             </div>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight tabular-nums">
               {distinctFundos}
             </div>
-            <div className="text-[11px] font-medium text-slate-500 mt-1 truncate" title={fundosRanking[0]?.fundo}>
-              Top: <strong className="text-slate-700">{fundosRanking[0]?.fundo || 'N/A'}</strong>
+            <div className="text-xs font-semibold text-slate-600 mt-1.5 truncate" title={fundosRanking[0]?.fundo}>
+              Top: <span className="text-[#00843D] font-bold">{fundosRanking[0]?.fundo || 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -974,19 +955,19 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         {/* KPI 5: Paraderos con Demanda */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Paraderos Activos
             </span>
-            <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <MapPin className="w-3.5 h-3.5" />
+            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+              <MapPin className="w-4 h-4" />
             </div>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-extrabold text-sky-700 tracking-tight tabular-nums">
               {distinctParaderos}
             </div>
-            <div className="text-[11px] font-medium text-slate-500 mt-1 truncate" title={paraderosRanking[0]?.paradero}>
-              Líder: <strong className="text-slate-700">{paraderosRanking[0]?.paradero || 'N/A'}</strong>
+            <div className="text-xs font-semibold text-slate-600 mt-1.5 truncate" title={paraderosRanking[0]?.paradero}>
+              Top: <span className="text-sky-700 font-bold">{paraderosRanking[0]?.paradero || 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -994,25 +975,25 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         {/* KPI 6: Balance Zonal */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Balance Zonal
             </span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Compass className="w-3.5 h-3.5" />
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Compass className="w-4 h-4" />
             </div>
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-indigo-800">Norte: {totalZonaNorte}</span>
-              <span className="text-amber-800">Sur: {totalZonaSur}</span>
+              <span className="text-indigo-700">Norte: {totalZonaNorte}</span>
+              <span className="text-amber-700">Sur: {totalZonaSur}</span>
             </div>
             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
               <div className="h-full bg-indigo-600" style={{ width: `${pctNorte}%` }} title={`Norte: ${pctNorte}%`} />
               <div className="h-full bg-amber-500" style={{ width: `${pctSur}%` }} title={`Sur: ${pctSur}%`} />
             </div>
-            <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
-              <span>{pctNorte}% Norte</span>
-              <span>{pctSur}% Sur</span>
+            <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-0.5">
+              <span>{pctNorte}%</span>
+              <span>{pctSur}%</span>
             </div>
           </div>
         </div>
@@ -1024,24 +1005,21 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       <div className="space-y-6">
         {/* FILA A: GRÁFICO DE TENDENCIA TEMPORAL + PICOS HORARIOS */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Gráfico 1: Evolución Diaria (Columnas estilizadas y elegantes) */}
+          {/* Gráfico 1: Evolución Diaria */}
           <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Evolución Diaria del Personal
+                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                    Evolución Diaria
                   </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Demanda de transporte consolidada por fecha operativa
-                  </p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-[#00843D] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200/60">
-                {timelineData.length} fechas registradas
+              <span className="text-xs font-bold text-[#00843D] bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
+                {timelineData.length} fechas
               </span>
             </div>
 
@@ -1074,7 +1052,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
 
                         {/* Top count pill */}
                         <div className="mb-1.5 transition-transform group-hover:scale-110">
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-black text-[#00843D] bg-emerald-50 border border-emerald-200/60 shadow-2xs">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black text-[#00843D] bg-emerald-50 border border-emerald-200/60 shadow-2xs">
                             {d.personal}
                           </span>
                         </div>
@@ -1111,24 +1089,21 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             )}
           </div>
 
-          {/* Gráfico 2: Picos por Franja Horaria (Turnos Críticos) */}
+          {/* Gráfico 2: Picos por Franja Horaria */}
           <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Picos de Demanda por Horario
+                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                    Demanda por Horario
                   </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Despacho de flota por franja operativa
-                  </p>
                 </div>
               </div>
-              <span className="text-[11px] text-slate-400 font-medium">
-                {totalPersonal} pers.
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                {totalPersonal} personas
               </span>
             </div>
 
@@ -1136,7 +1111,6 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               {timeSlotsData.map((slot, index) => {
                 const pct = totalPersonal > 0 ? Math.round((slot.count / totalPersonal) * 100) : 0;
                 const widthPct = Math.round((slot.count / (maxTimeSlotVal || 1)) * 100);
-                const busesInSlot = Math.ceil(slot.count / 40);
 
                 // Distinct colors for shifts
                 const colors = [
@@ -1149,22 +1123,17 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                 const theme = colors[index % colors.length];
 
                 return (
-                  <div key={slot.name} className="p-2.5 rounded-xl hover:bg-slate-50 transition-colors space-y-1.5">
+                  <div key={slot.name} className={`p-2.5 rounded-xl hover:bg-slate-50 transition-colors space-y-1.5 ${slot.count === 0 ? 'opacity-40' : ''}`}>
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-800">{slot.name}</span>
-                        {slot.count > 0 && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${theme.badge}`}>
-                            ~{busesInSlot} bus{busesInSlot > 1 ? 'es' : ''}
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2 font-mono">
                         <span className="text-slate-400 text-[11px]">{pct}%</span>
                         <span className="text-slate-900 font-black">{slot.count} pers.</span>
                       </div>
                     </div>
-                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full bg-gradient-to-r ${theme.bar} rounded-full transition-all duration-500`}
                         style={{ width: `${widthPct}%` }}
@@ -1183,26 +1152,25 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
                   <Building className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
                     Demanda por Fundo
                   </h3>
-                  <p className="text-[11px] text-slate-500">Destino de cuadrillas</p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-slate-400">
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
                 {fundosRanking.length} fundos
               </span>
             </div>
 
-            <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
               {fundosRanking.map((f, idx) => (
                 <div key={f.fundo} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-800 truncate pr-2 flex items-center gap-1.5">
+                    <span className="text-slate-800 truncate pr-2 flex items-center gap-2">
                       <span className={`w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold font-mono ${
                         idx === 0 ? 'bg-[#00843D] text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
@@ -1211,7 +1179,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                       <span>{f.fundo}</span>
                     </span>
                     <span className="text-[#00843D] font-black shrink-0 font-mono">
-                      {f.count} <span className="text-[10px] font-normal text-slate-400">({f.pct}%)</span>
+                      {f.count} <span className="text-[11px] font-normal text-slate-400">({f.pct}%)</span>
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -1229,26 +1197,25 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
                   <Briefcase className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
                     Demanda por Área
                   </h3>
-                  <p className="text-[11px] text-slate-500">Centro de costos solicitante</p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-slate-400">
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
                 {areasRanking.length} áreas
               </span>
             </div>
 
-            <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
               {areasRanking.map((a, idx) => (
                 <div key={a.area} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-800 truncate pr-2 flex items-center gap-1.5">
+                    <span className="text-slate-800 truncate pr-2 flex items-center gap-2">
                       <span className={`w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold font-mono ${
                         idx === 0 ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
@@ -1257,7 +1224,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                       <span>{a.area}</span>
                     </span>
                     <span className="text-sky-700 font-black shrink-0 font-mono">
-                      {a.count} <span className="text-[10px] font-normal text-slate-400">({a.pct}%)</span>
+                      {a.count} <span className="text-[11px] font-normal text-slate-400">({a.pct}%)</span>
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -1275,26 +1242,25 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
                   <Sprout className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
                     Demanda por Cultivo
                   </h3>
-                  <p className="text-[11px] text-slate-500">Líneas de producción agrícola</p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-slate-400">
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
                 {cultivosRanking.length} cultivos
               </span>
             </div>
 
-            <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
               {cultivosRanking.map((c, idx) => (
                 <div key={c.cultivo} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-800 truncate pr-2 flex items-center gap-1.5">
+                    <span className="text-slate-800 truncate pr-2 flex items-center gap-2">
                       <span className={`w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold font-mono ${
                         idx === 0 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
@@ -1303,7 +1269,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                       <span>{c.cultivo}</span>
                     </span>
                     <span className="text-indigo-700 font-black shrink-0 font-mono">
-                      {c.count} <span className="text-[10px] font-normal text-slate-400">({c.pct}%)</span>
+                      {c.count} <span className="text-[11px] font-normal text-slate-400">({c.pct}%)</span>
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -1323,60 +1289,53 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           {/* Gráfico 6: Distribución Zonal (Donut Sur vs Norte) */}
           <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
                 <PieChart className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                <h3 className="text-sm font-bold text-slate-800 tracking-tight">
                   Distribución por Zona
                 </h3>
-                <p className="text-[11px] text-slate-500">Rutas Sur vs Rutas Norte</p>
               </div>
             </div>
 
             {/* High-fidelity Donut representation */}
-            <div className="flex items-center justify-center py-3">
-              <div className="relative w-44 h-44 rounded-full flex items-center justify-center bg-slate-50 shadow-inner">
+            <div className="flex items-center justify-center py-2">
+              <div className="relative w-40 h-40 rounded-full flex items-center justify-center bg-slate-50 shadow-inner">
                 <div
                   className="absolute inset-0 rounded-full transition-all duration-700"
                   style={{
                     background: `conic-gradient(#D97706 0% ${pctSur}%, #0284C7 ${pctSur}% 100%)`,
                   }}
                 />
-                <div className="w-28 h-28 rounded-full bg-white flex flex-col items-center justify-center z-10 shadow-sm border border-slate-100">
+                <div className="w-26 h-26 rounded-full bg-white flex flex-col items-center justify-center z-10 shadow-xs border border-slate-100">
                   <span className="text-2xl font-black text-[#173B56] tabular-nums">{totalPersonal}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Pasajeros</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pasajeros</span>
                 </div>
               </div>
             </div>
 
             {/* Legend & Breakdown cards */}
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/70 space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-800 font-bold">
+              <div className="bg-amber-50/80 p-3 rounded-xl border border-amber-200/70 space-y-1">
+                <div className="flex items-center gap-1.5 text-amber-900 font-bold">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0" />
                   <span>Zona Sur</span>
                 </div>
-                <div className="text-lg font-black text-amber-900 font-mono">
+                <div className="text-lg font-black text-amber-950 font-mono">
                   {totalZonaSur}{' '}
                   <span className="text-xs font-normal text-amber-700">({pctSur}%)</span>
                 </div>
-                <div className="text-[10px] text-amber-700 font-medium">
-                  ~{Math.ceil(totalZonaSur / 40)} buses asignados
-                </div>
               </div>
 
-              <div className="bg-sky-50/70 p-3 rounded-xl border border-sky-200/70 space-y-1">
-                <div className="flex items-center gap-1.5 text-sky-800 font-bold">
+              <div className="bg-sky-50/80 p-3 rounded-xl border border-sky-200/70 space-y-1">
+                <div className="flex items-center gap-1.5 text-sky-900 font-bold">
                   <span className="w-2.5 h-2.5 rounded-full bg-sky-600 shrink-0" />
                   <span>Zona Norte</span>
                 </div>
-                <div className="text-lg font-black text-sky-900 font-mono">
+                <div className="text-lg font-black text-sky-950 font-mono">
                   {totalZonaNorte}{' '}
                   <span className="text-xs font-normal text-sky-700">({pctNorte}%)</span>
-                </div>
-                <div className="text-[10px] text-sky-700 font-medium">
-                  ~{Math.ceil(totalZonaNorte / 40)} buses asignados
                 </div>
               </div>
             </div>
@@ -1385,57 +1344,52 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           {/* Gráfico 7: Movimiento (Ingreso vs Salida) */}
           <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
                 <Activity className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                <h3 className="text-sm font-bold text-slate-800 tracking-tight">
                   Flujo de Movimiento
                 </h3>
-                <p className="text-[11px] text-slate-500">Ingreso a labores vs Retorno</p>
               </div>
             </div>
 
-            <div className="space-y-4 py-2">
+            <div className="space-y-3.5 py-1">
               {/* Ingreso Card */}
-              <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200/70 space-y-2">
+              <div className="p-3.5 bg-emerald-50/80 rounded-xl border border-emerald-200/70 space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-emerald-950">
                   <span className="flex items-center gap-1.5">
                     <ArrowUpRight className="w-4 h-4 text-[#00843D]" />
-                    <span>INGRESO (Subida a fundos)</span>
+                    <span>Ingreso</span>
                   </span>
-                  <span className="text-base font-black text-[#00843D] font-mono">{totalIngreso} pers.</span>
+                  <span className="text-base font-black text-[#00843D] font-mono">
+                    {totalIngreso} <span className="text-xs font-normal text-emerald-700">({pctIngreso}%)</span>
+                  </span>
                 </div>
                 <div className="w-full h-2 bg-emerald-200/70 rounded-full overflow-hidden">
                   <div className="h-full bg-[#00843D] rounded-full" style={{ width: `${pctIngreso}%` }} />
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-emerald-700 font-medium">
-                  <span>~{Math.ceil(totalIngreso / 40)} unidades de subida</span>
-                  <span className="font-bold">{pctIngreso}% del total</span>
-                </div>
               </div>
 
               {/* Salida Card */}
-              <div className="p-4 bg-blue-50/70 rounded-xl border border-blue-200/70 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-blue-950">
+              <div className="p-3.5 bg-sky-50/80 rounded-xl border border-sky-200/70 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-sky-950">
                   <span className="flex items-center gap-1.5">
-                    <ArrowDownLeft className="w-4 h-4 text-blue-700" />
-                    <span>SALIDA (Retorno a paraderos)</span>
+                    <ArrowDownLeft className="w-4 h-4 text-sky-700" />
+                    <span>Salida</span>
                   </span>
-                  <span className="text-base font-black text-blue-800 font-mono">{totalSalida} pers.</span>
+                  <span className="text-base font-black text-sky-800 font-mono">
+                    {totalSalida} <span className="text-xs font-normal text-sky-700">({pctSalida}%)</span>
+                  </span>
                 </div>
-                <div className="w-full h-2 bg-blue-200/70 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 rounded-full" style={{ width: `${pctSalida}%` }} />
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-blue-700 font-medium">
-                  <span>~{Math.ceil(totalSalida / 40)} unidades de retorno</span>
-                  <span className="font-bold">{pctSalida}% del total</span>
+                <div className="w-full h-2 bg-sky-200/70 rounded-full overflow-hidden">
+                  <div className="h-full bg-sky-600 rounded-full" style={{ width: `${pctSalida}%` }} />
                 </div>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-500 font-medium border-t border-slate-100 pt-2.5">
-              Suma combinada: <strong className="text-slate-800">{totalPersonal} personas en tránsito</strong>
+            <div className="text-xs font-bold text-slate-700 bg-slate-50 p-2.5 rounded-xl text-center border border-slate-100">
+              Total: <span className="text-[#00843D] font-extrabold">{totalPersonal}</span> personas
             </div>
           </div>
 
@@ -1443,22 +1397,21 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
                   <Utensils className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
                     Demanda por Comedor
                   </h3>
-                  <p className="text-[11px] text-slate-500">Garitas y comedores de campo</p>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-slate-400">
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
                 {comedoresRanking.length} comedores
               </span>
             </div>
 
-            <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
               {comedoresRanking.map((c) => (
                 <div key={c.comedor} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
@@ -1466,7 +1419,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                       Comedor {c.comedor}
                     </span>
                     <span className="text-orange-700 font-black shrink-0 font-mono">
-                      {c.count} <span className="text-[10px] font-normal text-slate-400">({c.pct}%)</span>
+                      {c.count} <span className="text-[11px] font-normal text-slate-400">({c.pct}%)</span>
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -1479,30 +1432,27 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               ))}
             </div>
 
-            <div className="text-[11px] text-slate-500 font-medium border-t border-slate-100 pt-2.5">
-              Control logístico de alimentación y garitas
+            <div className="text-xs text-slate-400 text-center pt-1 font-medium">
+              Garitas y comedores de campo
             </div>
           </div>
         </div>
 
         {/* FILA D: TOP 15 PARADEROS CRÍTICOS */}
         <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
                 <BarChart3 className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Top 15 Paraderos con Mayor Afluencia
+                <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                  Top Paraderos
                 </h3>
-                <p className="text-[11px] text-slate-500">
-                  Ranking operativo ordenado por volumen de colaboradores transportados
-                </p>
               </div>
             </div>
-            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg">
-              Mostrando {Math.min(paraderosRanking.length, 15)} de {distinctParaderos} paraderos
+            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+              Top {Math.min(paraderosRanking.length, 15)} de {distinctParaderos}
             </span>
           </div>
 
@@ -1753,11 +1703,11 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
 
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
           <span className="text-[10px] font-bold text-[#00843D] uppercase tracking-wider block">
-            Control de Capacidad
+            Demanda Operativa
           </span>
-          <p className="text-xs font-bold text-slate-900">Cálculo de Flota</p>
+          <p className="text-xs font-bold text-slate-900">Total Pasajeros</p>
           <span className="text-[11px] text-slate-400 block">
-            Estimación de buses y optimización de rutas
+            Consolidado exacto por turno y paradero
           </span>
         </div>
 

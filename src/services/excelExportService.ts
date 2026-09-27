@@ -205,7 +205,6 @@ export function exportarExcelOperativoCompleto(
       'Zona': p.zona,
       'Total Pasajeros (SUMAR)': p.totalPersonas,
       '% del Total': `${p.porcentaje}%`,
-      'Buses Estimados (40p)': Math.ceil(p.totalPersonas / 40),
       'Detalle Comedores / Desglose': p.comedoresDetalle.map((c) => `${c.comedor}: ${c.cantidad}`).join(' | '),
     });
   });
@@ -217,8 +216,7 @@ export function exportarExcelOperativoCompleto(
       'Zona': 'SUR',
       'Total Pasajeros (SUMAR)': sumaSurGlobal,
       '% del Total': `${sumaTotalPersonas > 0 ? Math.round((sumaSurGlobal / sumaTotalPersonas) * 1000) / 10 : 0}%`,
-      'Buses Estimados (40p)': Math.ceil(sumaSurGlobal / 40),
-      'Detalle Comedores / Desglose': `Subtotal para flota Zona Sur (~${Math.ceil(sumaSurGlobal / 40)} bus(es))`,
+      'Detalle Comedores / Desglose': `Subtotal Zona Sur`,
     });
   }
 
@@ -230,7 +228,6 @@ export function exportarExcelOperativoCompleto(
       'Zona': p.zona,
       'Total Pasajeros (SUMAR)': p.totalPersonas,
       '% del Total': `${p.porcentaje}%`,
-      'Buses Estimados (40p)': Math.ceil(p.totalPersonas / 40),
       'Detalle Comedores / Desglose': p.comedoresDetalle.map((c) => `${c.comedor}: ${c.cantidad}`).join(' | '),
     });
   });
@@ -242,8 +239,7 @@ export function exportarExcelOperativoCompleto(
       'Zona': 'NORTE',
       'Total Pasajeros (SUMAR)': sumaNorteGlobal,
       '% del Total': `${sumaTotalPersonas > 0 ? Math.round((sumaNorteGlobal / sumaTotalPersonas) * 1000) / 10 : 0}%`,
-      'Buses Estimados (40p)': Math.ceil(sumaNorteGlobal / 40),
-      'Detalle Comedores / Desglose': `Subtotal para flota Zona Norte (~${Math.ceil(sumaNorteGlobal / 40)} bus(es))`,
+      'Detalle Comedores / Desglose': `Subtotal Zona Norte`,
     });
   }
 
@@ -254,7 +250,6 @@ export function exportarExcelOperativoCompleto(
     'Zona': 'TODAS',
     'Total Pasajeros (SUMAR)': sumaTotalPersonas,
     '% del Total': '100%',
-    'Buses Estimados (40p)': Math.ceil(sumaTotalPersonas / 40),
     'Detalle Comedores / Desglose': `Suma global (${consolidadoGlobal.length} paraderos)`,
   });
 
@@ -263,9 +258,8 @@ export function exportarExcelOperativoCompleto(
     { wch: 10 },
     { wch: 34 },
     { wch: 12 },
-    { wch: 24 },
+    { wch: 25 },
     { wch: 14 },
-    { wch: 22 },
     { wch: 45 },
   ];
   XLSX.utils.book_append_sheet(workbook, sheetResumen, '2. Resumen Por Paradero');
@@ -279,8 +273,6 @@ export function exportarExcelOperativoCompleto(
       'Cantidad de Paraderos': surGlobal.length,
       'Total Pasajeros (SUMAR)': sumaSurGlobal,
       '% del Total': `${sumaTotalPersonas > 0 ? Math.round((sumaSurGlobal / sumaTotalPersonas) * 1000) / 10 : 0}%`,
-      'Buses Estimados (40 pers/bus)': Math.ceil(sumaSurGlobal / 40),
-      'Ocupación Estimada': `${sumaSurGlobal} / ${Math.ceil(sumaSurGlobal / 40) * 40} asientos`,
       'Paraderos Incluidos': surGlobal.map((p) => `${p.paradero} (${p.totalPersonas})`).join(', '),
     },
     {
@@ -288,8 +280,6 @@ export function exportarExcelOperativoCompleto(
       'Cantidad de Paraderos': norteGlobal.length,
       'Total Pasajeros (SUMAR)': sumaNorteGlobal,
       '% del Total': `${sumaTotalPersonas > 0 ? Math.round((sumaNorteGlobal / sumaTotalPersonas) * 1000) / 10 : 0}%`,
-      'Buses Estimados (40 pers/bus)': Math.ceil(sumaNorteGlobal / 40),
-      'Ocupación Estimada': `${sumaNorteGlobal} / ${Math.ceil(sumaNorteGlobal / 40) * 40} asientos`,
       'Paraderos Incluidos': norteGlobal.map((p) => `${p.paradero} (${p.totalPersonas})`).join(', '),
     },
     {
@@ -297,8 +287,6 @@ export function exportarExcelOperativoCompleto(
       'Cantidad de Paraderos': consolidadoGlobal.length,
       'Total Pasajeros (SUMAR)': sumaTotalPersonas,
       '% del Total': '100%',
-      'Buses Estimados (40 pers/bus)': Math.ceil(sumaTotalPersonas / 40),
-      'Ocupación Estimada': `${sumaTotalPersonas} / ${Math.ceil(sumaTotalPersonas / 40) * 40} asientos`,
       'Paraderos Incluidos': 'Todos los paraderos requeridos',
     },
   ];

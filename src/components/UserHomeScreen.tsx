@@ -144,7 +144,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
         </div>
 
         <p className="text-xs text-gray-500 leading-relaxed mt-2">
-          Registra y consulta tus requerimientos de buses para el ingreso o salida de personal de tu área.
+          Registra y consulta tus requerimientos para el ingreso o salida de personal de tu área.
         </p>
 
         {/* User identification badge from active session */}

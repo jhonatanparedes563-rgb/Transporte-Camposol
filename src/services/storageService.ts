@@ -296,7 +296,15 @@ export function getStoredRequerimientos(): Requerimiento[] {
       localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(INITIAL_REQUERIMIENTOS));
       return INITIAL_REQUERIMIENTOS;
     }
-    return JSON.parse(raw);
+    const parsed: Requerimiento[] = JSON.parse(raw);
+    // Filtrar cualquier requerimiento demo/mock residual para garantizar 100% datos reales
+    const cleaned = parsed.filter((r) => !r.id.startsWith('req-uuid-'));
+    if (cleaned.length !== parsed.length) {
+      const finalReqs = cleaned.length > 0 ? cleaned : INITIAL_REQUERIMIENTOS;
+      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(finalReqs));
+      return finalReqs;
+    }
+    return parsed;
   } catch (err) {
     console.error('Error loading requerimientos:', err);
     return INITIAL_REQUERIMIENTOS;
@@ -310,7 +318,17 @@ export function getStoredDetalles(): DetalleRequerimiento[] {
       localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(INITIAL_DETALLES));
       return INITIAL_DETALLES;
     }
-    return JSON.parse(raw);
+    const parsed: DetalleRequerimiento[] = JSON.parse(raw);
+    // Filtrar cualquier detalle demo/mock residual
+    const cleaned = parsed.filter(
+      (d) => !d.id.startsWith('det-001-') && !d.id.startsWith('det-002-') && !d.id.startsWith('det-003-')
+    );
+    if (cleaned.length !== parsed.length) {
+      const finalDets = cleaned.length > 0 ? cleaned : INITIAL_DETALLES;
+      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(finalDets));
+      return finalDets;
+    }
+    return parsed;
   } catch (err) {
     console.error('Error loading detalles:', err);
     return INITIAL_DETALLES;

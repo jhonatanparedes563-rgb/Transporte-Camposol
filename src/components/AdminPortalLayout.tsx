@@ -214,6 +214,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   const supervisoresList = useMemo(() => {
     const set = new Set<string>();
     requerimientos.forEach((r) => {
+      if (r.id?.startsWith('req-uuid-')) return;
       if (r.usuario) set.add(r.usuario);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
@@ -302,6 +303,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   // Filtered requirements calculation
   const filteredRequerimientos = useMemo(() => {
     return requerimientos.filter((r) => {
+      // Ignorar requerimientos mock o ficticios
+      if (r.id?.startsWith('req-uuid-')) return false;
+
       // Date range filter
       if (filterFechaDesde && r.fecha < filterFechaDesde) return false;
       if (filterFechaHasta && r.fecha > filterFechaHasta) return false;
@@ -348,6 +352,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   // Requerimientos en el apartado exclusivo de Historial & Trazabilidad
   const historialRequerimientos = useMemo(() => {
     return requerimientos.filter((r) => {
+      // Ignorar requerimientos mock o ficticios
+      if (r.id?.startsWith('req-uuid-')) return false;
+
       // En este apartado se visualizan todos los requerimientos anulados o dados de baja
       if (r.estado !== 'ANULADO') return false;
 
@@ -404,8 +411,6 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     const atendidos = filteredRequerimientos.filter((r) => r.estado === 'ATENDIDO').length;
     const rechazados = filteredRequerimientos.filter((r) => r.estado === 'RECHAZADO').length;
     const totalPasajeros = filteredRequerimientos.reduce((acc, curr) => acc + (curr.totalPersonas || 0), 0);
-    // Estimated 40-passenger buses
-    const busesEstimados = Math.ceil(totalPasajeros / 40);
 
     return {
       total,
@@ -414,7 +419,6 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
       atendidos,
       rechazados,
       totalPasajeros,
-      busesEstimados,
     };
   }, [filteredRequerimientos]);
 
@@ -724,7 +728,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   ? 'bg-[#E8F5EF] text-[#00843D] font-black'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
               }`}
-              title="Procesos (Recepción y programación de buses)"
+              title="Procesos (Recepción y gestión de requerimientos)"
             >
               <div className="flex items-center gap-3">
                 <Layers className="w-5 h-5 shrink-0" />
@@ -1390,7 +1394,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           {currentSection === 'procesos' && (
             <>
           {/* Top KPI Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs">
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span className="font-semibold">Solicitudes</span>
@@ -1434,15 +1438,6 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               </div>
               <div className="text-2xl font-black text-[#173B56] mt-1">{metrics.totalPasajeros}</div>
               <div className="text-[10px] text-gray-400 mt-0.5">Pasajeros a movilizar</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs">
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span className="font-semibold">Buses Estimados</span>
-                <Bus className="w-4 h-4 text-[#00843D]" />
-              </div>
-              <div className="text-2xl font-black text-[#00843D] mt-1">{metrics.busesEstimados}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">Capacidad base (40p)</div>
             </div>
           </div>
 
@@ -2075,9 +2070,6 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                     const totalSur = surList.reduce((acc, p) => acc + p.totalPersonas, 0);
                                     const totalNorte = norteList.reduce((acc, p) => acc + p.totalPersonas, 0);
                                     const totalGen = agrupados.reduce((acc, p) => acc + p.totalPersonas, 0);
-                                    const busesSur = Math.ceil(totalSur / 40);
-                                    const busesNorte = Math.ceil(totalNorte / 40);
-                                    const busesTot = Math.ceil(totalGen / 40);
 
                                     return (
                                       <div className="space-y-3">

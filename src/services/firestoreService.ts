@@ -124,14 +124,14 @@ export async function initializeFirestoreSync(): Promise<void> {
         if (!snapshot.empty) {
           const reqs: Requerimiento[] = [];
           snapshot.forEach((d) => {
-            reqs.push(d.data() as Requerimiento);
+            const r = d.data() as Requerimiento;
+            if (!r.id?.startsWith('req-uuid-')) {
+              reqs.push(r);
+            }
           });
           // Ordenar por fecha o número descendente
           reqs.sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
           scheduleDebouncedUpdate({ requerimientos: reqs });
-        } else {
-          // Si está vacía en Firestore, sembramos los iniciales
-          seedInitialRequerimientos();
         }
       },
       (err) => {
@@ -148,11 +148,16 @@ export async function initializeFirestoreSync(): Promise<void> {
         if (!snapshot.empty) {
           const dets: DetalleRequerimiento[] = [];
           snapshot.forEach((d) => {
-            dets.push(d.data() as DetalleRequerimiento);
+            const det = d.data() as DetalleRequerimiento;
+            if (
+              !det.id?.startsWith('det-001-') &&
+              !det.id?.startsWith('det-002-') &&
+              !det.id?.startsWith('det-003-')
+            ) {
+              dets.push(det);
+            }
           });
           scheduleDebouncedUpdate({ detalles: dets });
-        } else {
-          seedInitialDetalles();
         }
       },
       (err) => {
