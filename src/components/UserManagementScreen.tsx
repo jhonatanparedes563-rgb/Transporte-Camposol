@@ -931,6 +931,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     onChange={(e) => setCreateForm({ ...createForm, area: e.target.value })}
                     className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
                   >
+                    <option value="TODAS LAS ÁREAS">TODAS LAS ÁREAS</option>
                     {areas.map((a) => (
                       <option key={a.id} value={a.area}>
                         {a.area}
@@ -1195,6 +1196,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     onChange={(e) => setEditForm({ ...editForm, area: e.target.value })}
                     className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
                   >
+                    <option value="TODAS LAS ÁREAS">TODAS LAS ÁREAS</option>
                     {areas.map((a) => (
                       <option key={a.id} value={a.area}>
                         {a.area}
