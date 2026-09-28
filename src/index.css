@@ -1,1 +1,49 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400;1,700&display=swap');
+
+@theme {
+  --font-sans: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+html, body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 13.5px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Aplicación global y uniforme de la tipografía Roboto en toda la plataforma */
+body, button, input, select, textarea, table, th, td, label, span, p, a, div {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Normalización de tamaño de texto general en un tamaño estándar cómodo y uniforme */
+p, label, input, select, textarea, td {
+  font-size: 13px;
+}
+
+/* Ajuste de textos diminutos para evitar disparidades y mantener un solo tamaño base consistente */
+.text-\[9px\], .text-\[10px\], .text-\[11px\], .text-xs {
+  font-size: 12.5px;
+}
+
+/* Títulos y subtítulos un poco más grandecitos para que resalten con claridad */
+h1 {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em;
+}
+
+h3 {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
