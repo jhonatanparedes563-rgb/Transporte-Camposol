@@ -123,9 +123,9 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   ];
 
   return (
-    <div className="flex-1 flex flex-col w-full max-w-xl mx-auto py-2">
+    <div className="flex-1 flex flex-col w-full py-0.5">
       {/* 4-Step Progress Header */}
-      <div className="mb-4 bg-white p-3 rounded-2xl border border-gray-200 shadow-2xs">
+      <div className="mb-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-2xs">
         <div className="flex items-center justify-between gap-1">
           {stepsInfo.map((s) => {
             const isActive = currentStep === s.id;

@@ -102,32 +102,32 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
   };
 
   return (
-    <form onSubmit={handleContinue} className="space-y-4 max-w-lg mx-auto w-full pb-20">
+    <form onSubmit={handleContinue} className="space-y-3 w-full pb-6">
       {/* Title & Subtitle Matching Mockup */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs text-center space-y-1">
-        <h2 className="text-xl sm:text-2xl font-black text-[#173B56] tracking-tight uppercase">
+      <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs text-center space-y-0.5">
+        <h2 className="text-lg sm:text-xl font-black text-[#173B56] tracking-tight uppercase">
           REQUERIMIENTO DE BUS
         </h2>
-        <p className="text-xs sm:text-sm text-gray-500 font-medium">
+        <p className="text-xs text-gray-500 font-medium">
           {draft.movimiento || 'Programa personal por tarea'}
         </p>
       </div>
 
       {/* User Info Bar if logged in */}
       {currentUser && (
-        <div className="bg-emerald-50/60 p-3 rounded-xl border border-[#00843D]/20 flex items-center justify-between text-xs text-[#173B56]">
-          <div className="flex items-center gap-2">
+        <div className="bg-emerald-50/70 p-3 rounded-xl border border-[#00843D]/20 flex flex-col gap-2 text-xs text-[#173B56]">
+          <div className="flex items-center gap-2 min-w-0">
             <UserCheck className="w-4 h-4 text-[#00843D] shrink-0" />
-            <span>
+            <span className="truncate">
               Solicitante: <strong className="font-bold">{currentUser.nombre}</strong>
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold bg-white text-[#00843D] px-2 py-0.5 rounded border border-[#00843D]/20">
+          <div className="flex flex-wrap items-center gap-1.5 pl-6">
+            <span className="text-[10px] font-bold bg-white text-[#00843D] px-2.5 py-0.5 rounded-md border border-[#00843D]/20 whitespace-nowrap">
               {currentUser.fundo || 'Fundo Asignado'}
             </span>
             {currentUser.cultivo && (
-              <span className="text-[10px] font-bold bg-white text-[#00843D] px-2 py-0.5 rounded border border-[#00843D]/20">
+              <span className="text-[10px] font-bold bg-white text-[#00843D] px-2.5 py-0.5 rounded-md border border-[#00843D]/20 whitespace-nowrap">
                 {currentUser.cultivo}
               </span>
             )}

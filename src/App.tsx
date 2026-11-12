@@ -11,16 +11,12 @@ import { UserMobileLayout } from './components/UserMobileLayout';
 import { LoginScreen } from './components/LoginScreen';
 import { Requerimiento, UserRole, AppUser } from './types';
 import { getStoredRequerimientos, subscribeToDataChanges } from './services/storageService';
-import { getCurrentSession, logoutSession, restoreMainAdminUser } from './services/authService';
+import { getCurrentSession, logoutSession } from './services/authService';
 
 export default function App() {
-  // Authentication State: Inicializar como Administrador para ingreso directo al portal administrativo
+  // Authentication State: Si no hay sesión activa, pedir usuario y contraseña en LoginScreen
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
-    const session = getCurrentSession();
-    if (session && (session.rol === 'admin' || session.rol === 'receptor')) {
-      return session;
-    }
-    return restoreMainAdminUser();
+    return getCurrentSession();
   });
 
   const [currentScreen, setCurrentScreen] = useState<'home' | 'new-request' | 'my-requests'>('home');

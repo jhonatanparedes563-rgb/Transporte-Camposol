@@ -32,17 +32,17 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
   const totalReqs = requerimientos.length;
 
   return (
-    <div className="min-h-screen bg-slate-200/70 sm:py-6 sm:px-4 flex items-center justify-center font-sans antialiased text-[#173B56]">
-      {/* Centered Mobile Device Frame (Phone container) */}
-      <div className="w-full max-w-md bg-[#F5F8F7] h-screen h-[100dvh] sm:h-[844px] sm:max-h-[calc(100vh-2rem)] sm:rounded-[38px] sm:shadow-2xl sm:border sm:border-gray-300/80 flex flex-col relative overflow-hidden">
+    <div className="min-h-[100dvh] w-full bg-[#F5F8F7] lg:bg-slate-200/70 lg:py-4 lg:px-4 flex items-stretch lg:items-center justify-center font-sans antialiased text-[#173B56]">
+      {/* Mobile App Container: Full-bleed edge-to-edge on phones/tablets, centered frame only on wide desktop */}
+      <div className="w-full lg:max-w-lg bg-[#F5F8F7] min-h-[100dvh] h-[100dvh] lg:h-[844px] lg:max-h-[calc(100vh-2rem)] lg:rounded-[32px] lg:shadow-2xl lg:border lg:border-gray-300/80 flex flex-col relative overflow-hidden">
         {/* Mobile App Header */}
         <header className="sticky top-0 z-40 bg-[#00843D] text-white px-4 py-3 shadow-md flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             {currentScreen !== 'home' ? (
               <button
                 id="btn-mobile-back"
                 onClick={() => onNavigate('home')}
-                className="p-1.5 -ml-1.5 rounded-xl hover:bg-[#006e33] active:bg-[#005728] transition-colors focus:outline-none cursor-pointer"
+                className="p-1.5 -ml-1.5 rounded-xl hover:bg-[#006e33] active:bg-[#005728] transition-colors focus:outline-none cursor-pointer shrink-0"
                 aria-label="Volver al inicio"
               >
                 <ArrowLeft className="w-5 h-5 text-white" />
@@ -64,14 +64,14 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               </div>
             )}
 
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="font-black tracking-wider text-sm text-white">CAMPOSOL</span>
-                <span className="text-[9px] uppercase font-black tracking-widest bg-white/20 text-white px-1.5 py-0.2 rounded-md">
+                <span className="text-[9px] uppercase font-black tracking-widest bg-white/20 text-white px-1.5 py-0.5 rounded-md">
                   SOLICITANTE
                 </span>
               </div>
-              <div className="text-[11px] text-emerald-100 font-medium">
+              <div className="text-[11px] text-emerald-100 font-medium truncate">
                 {currentScreen === 'new-request'
                   ? 'Nuevo Requerimiento'
                   : currentScreen === 'my-requests'
@@ -82,7 +82,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
           </div>
 
           {/* User Profile Pill & Logout Button */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {onLogout && (
               <button
                 id="btn-mobile-logout"
@@ -98,7 +98,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
         </header>
 
         {/* Scrollable Screen Content */}
-        <main className="flex-1 overflow-y-auto overscroll-contain">
+        <main className="flex-1 overflow-y-auto overscroll-contain w-full">
           {currentScreen === 'home' && (
             <UserHomeScreen
               onNewRequirement={() => onNavigate('new-request')}
@@ -110,7 +110,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
           )}
 
           {currentScreen === 'new-request' && (
-            <div className="p-3">
+            <div className="p-3 sm:p-4 w-full">
               <NewRequirementWizard
                 onCancel={() => onNavigate('home')}
                 onSuccess={(saved) => {
@@ -126,7 +126,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
           )}
 
           {currentScreen === 'my-requests' && (
-            <div className="p-1">
+            <div className="p-2 sm:p-3 w-full">
               <MyRequirementsScreen
                 requerimientos={requerimientos}
                 onSelectRequirement={onOpenRequirementDetail}
