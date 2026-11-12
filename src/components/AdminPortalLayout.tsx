@@ -449,44 +449,44 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     switch (estado) {
       case 'PENDIENTE':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs whitespace-nowrap">
+            <Clock className="w-3 h-3 text-amber-600" />
             PENDIENTE
           </span>
         );
       case 'APROBADO':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs whitespace-nowrap">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
             APROBADO
           </span>
         );
       case 'ATENDIDO':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs">
-            <CheckCheck className="w-3.5 h-3.5 text-blue-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs whitespace-nowrap">
+            <CheckCheck className="w-3 h-3 text-blue-600" />
             ATENDIDO
           </span>
         );
       case 'RECHAZADO':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-50 text-red-800 border border-red-200 shadow-2xs">
-            <XCircle className="w-3.5 h-3.5 text-red-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-50 text-red-800 border border-red-200 shadow-2xs whitespace-nowrap">
+            <XCircle className="w-3 h-3 text-red-600" />
             RECHAZADO
           </span>
         );
       case 'ANULADO':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs">
-            <XCircle className="w-3.5 h-3.5 text-rose-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs whitespace-nowrap">
+            <XCircle className="w-3 h-3 text-rose-600" />
             ANULADO (Historial)
           </span>
         );
       case 'EN REVISIÓN':
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs">
-            <AlertCircle className="w-3.5 h-3.5 text-purple-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs whitespace-nowrap">
+            <AlertCircle className="w-3 h-3 text-purple-600" />
             EN REVISIÓN
           </span>
         );
@@ -665,10 +665,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
       >
         {/* Sidebar Top: Logo & Collapse Button */}
         <div>
-          <div className="h-20 px-4 flex items-center justify-between border-b border-gray-100">
-            <div className="flex items-center gap-3 overflow-hidden">
+          <div className="h-16 px-3.5 flex items-center justify-between border-b border-gray-100">
+            <div className="flex items-center gap-2.5 min-w-0">
               {/* Camposol Corporate Badge */}
-              <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs shrink-0 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-0.5">
+              <div className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-0.5">
                 <img
                   src={getPublicAssetUrl('camposol-emblem.png')}
                   onError={(e) => {
@@ -683,11 +683,11 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 />
               </div>
               {!sidebarCollapsed && (
-                <div className="truncate">
+                <div className="min-w-0">
                   <div className="text-sm font-black text-[#00843D] tracking-tight leading-none uppercase">
                     CAMPOSOL
                   </div>
-                  <div className="text-[10px] font-bold text-gray-500 tracking-wider uppercase mt-0.5">
+                  <div className="text-[9.5px] font-bold text-gray-500 tracking-normal uppercase mt-0.5 whitespace-nowrap">
                     Transporte Agrícola
                   </div>
                 </div>
@@ -995,7 +995,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
         {/* ------------------------------------------------------------- */}
         {/* MAIN BODY VIEW (Procesos, Torre de Control, Maestros, etc.)   */}
         {/* ------------------------------------------------------------- */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-5">
+        <main className="flex-1 overflow-y-auto p-5 space-y-4">
           {/* Sub-view: Historial & Trazabilidad (Otro apartado para bajas y auditoría) */}
           {currentSection === 'historial' && (
             <div className="space-y-5">
@@ -1432,355 +1432,350 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             <>
           {/* Top KPI Metrics Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs">
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span className="font-semibold">Solicitudes</span>
-                <Layers className="w-4 h-4 text-gray-400" />
+            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 shadow-2xs flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-semibold text-gray-500">Solicitudes</div>
+                <div className="text-xl font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">{metrics.total}</div>
               </div>
-              <div className="text-2xl font-black text-[#173B56] mt-1">{metrics.total}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">Total filtrado</div>
+              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                <Layers className="w-4 h-4" />
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 border border-amber-200/80 shadow-xs bg-gradient-to-br from-white to-amber-50/40">
-              <div className="flex items-center justify-between text-xs text-amber-800">
-                <span className="font-bold">Pendientes</span>
-                <Clock className="w-4 h-4 text-amber-500" />
+            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-amber-400 shadow-2xs flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-semibold text-gray-500">Pendientes</div>
+                <div className="text-xl font-bold text-amber-600 tabular-nums leading-tight mt-0.5">{metrics.pendientes}</div>
               </div>
-              <div className="text-2xl font-black text-amber-600 mt-1">{metrics.pendientes}</div>
-              <div className="text-[10px] text-amber-700/80 mt-0.5">Requieren atención</div>
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4" />
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 border border-emerald-200/80 shadow-xs bg-gradient-to-br from-white to-emerald-50/40">
-              <div className="flex items-center justify-between text-xs text-emerald-800">
-                <span className="font-bold">Aprobados</span>
-                <CheckCircle2 className="w-4 h-4 text-[#00843D]" />
+            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-[#009A44] shadow-2xs flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-semibold text-gray-500">Aprobados</div>
+                <div className="text-xl font-bold text-[#009A44] tabular-nums leading-tight mt-0.5">{metrics.aprobados}</div>
               </div>
-              <div className="text-2xl font-black text-[#00843D] mt-1">{metrics.aprobados}</div>
-              <div className="text-[10px] text-emerald-700/80 mt-0.5">Programados</div>
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#009A44] flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 border border-blue-200/80 shadow-xs bg-gradient-to-br from-white to-blue-50/40">
-              <div className="flex items-center justify-between text-xs text-blue-800">
-                <span className="font-bold">Atendidos</span>
-                <CheckCheck className="w-4 h-4 text-blue-600" />
+            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-sky-500 shadow-2xs flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-semibold text-gray-500">Atendidos</div>
+                <div className="text-xl font-bold text-sky-600 tabular-nums leading-tight mt-0.5">{metrics.atendidos}</div>
               </div>
-              <div className="text-2xl font-black text-blue-600 mt-1">{metrics.atendidos}</div>
-              <div className="text-[10px] text-blue-700/80 mt-0.5">Servicio cumplido</div>
+              <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                <CheckCheck className="w-4 h-4" />
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs">
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span className="font-semibold">Total Personal</span>
-                <Users className="w-4 h-4 text-[#173B56]" />
+            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 shadow-2xs flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-semibold text-gray-500">Total Personal</div>
+                <div className="text-xl font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">{metrics.totalPasajeros}</div>
               </div>
-              <div className="text-2xl font-black text-[#173B56] mt-1">{metrics.totalPasajeros}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">Pasajeros a movilizar</div>
+              <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#1E293B] flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
             </div>
           </div>
 
           {/* ------------------------------------------------------------- */}
           {/* HIGH-PRECISION STRUCTURED FILTERS PANEL                      */}
           {/* ------------------------------------------------------------- */}
-          <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#E8F5EF] text-[#00843D] flex items-center justify-center">
-                  <Filter className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-black text-[#173B56] uppercase tracking-wide">
-                    Filtros
-                  </h3>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleResetFilters}
-                  className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-[#173B56] hover:bg-gray-100 rounded-xl transition-colors flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Limpiar</span>
-                </button>
-                <button
-                  id="btn-export-excel-header"
-                  onClick={() => setShowExportModal(true)}
-                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
-                  title="Descargar en Excel"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  <span>Exportar a Excel</span>
-                </button>
-                <button
-                  onClick={onNewRequirement}
-                  className="px-4 py-1.5 text-xs font-bold text-white bg-[#00843D] hover:bg-[#006e33] rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Nuevo Requerimiento</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Date Presets */}
-            <div className="flex flex-wrap items-center gap-2 pt-0.5 pb-1 text-xs">
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-[#00843D]" />
-                Rápido:
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  const hoy = getTodayStr();
-                  setFilterFechaDesde(hoy);
-                  setFilterFechaHasta(hoy);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
-                  filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
-                    ? 'bg-[#00843D] text-white border-[#00843D] shadow-xs'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                Hoy
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const ayer = getYesterdayStr();
-                  setFilterFechaDesde(ayer);
-                  setFilterFechaHasta(ayer);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
-                  filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr()
-                    ? 'bg-[#00843D] text-white border-[#00843D] shadow-xs'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                Ayer
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const manana = getTomorrowStr();
-                  setFilterFechaDesde(manana);
-                  setFilterFechaHasta(manana);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
-                  filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr()
-                    ? 'bg-[#00843D] text-white border-[#00843D] shadow-xs'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                Mañana
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilterFechaDesde('');
-                  setFilterFechaHasta('');
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
-                  !filterFechaDesde && !filterFechaHasta
-                    ? 'bg-[#173B56] text-white border-[#173B56] shadow-xs'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                Todo el historial
-              </button>
-            </div>
-
-            {/* Filter Inputs Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-              {/* Fecha Desde */}
+          <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs overflow-hidden">
+            {/* Top Toolbar Header */}
+            <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-[#00843D]" />
-                  <span>Desde</span>
-                </label>
-                <input
-                  type="date"
-                  value={filterFechaDesde}
-                  onChange={(e) => setFilterFechaDesde(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56]"
-                />
-              </div>
-
-              {/* Fecha Hasta */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-[#00843D]" />
-                  <span>Hasta</span>
-                </label>
-                <input
-                  type="date"
-                  value={filterFechaHasta}
-                  onChange={(e) => setFilterFechaHasta(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56]"
-                />
-              </div>
-
-              {/* Área */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
-                  <Building className="w-3 h-3 text-[#00843D]" />
-                  <span>Área</span>
-                </label>
-                <select
-                  value={filterArea}
-                  onChange={(e) => setFilterArea(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56]"
-                >
-                  <option value="TODAS">Todas</option>
-                  {areas.map((a) => (
-                    <option key={a.id} value={a.area}>
-                      {a.area}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Fundo */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-[#00843D]" />
-                  <span>Fundo</span>
-                </label>
-                <select
-                  value={filterFundo}
-                  onChange={(e) => setFilterFundo(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56]"
-                >
-                  <option value="TODOS">Todos</option>
-                  {fundos.map((f) => (
-                    <option key={f.id} value={f.fundo}>
-                      {f.fundo}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Supervisor / Solicitante */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
-                  <User className="w-3 h-3 text-[#00843D]" />
-                  <span>Supervisor</span>
-                </label>
-                <select
-                  value={filterSupervisor}
-                  onChange={(e) => setFilterSupervisor(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56]"
-                >
-                  <option value="TODOS">Todos</option>
-                  {supervisoresList.map((sup) => (
-                    <option key={sup} value={sup}>
-                      {sup}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Estado */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-[#00843D]" />
-                  <span>Estado</span>
-                </label>
-                <select
-                  value={filterEstado}
-                  onChange={(e) => setFilterEstado(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-[#173B56] font-bold"
-                >
-                  <option value="TODOS">Todos</option>
-                  <option value="PENDIENTE">PENDIENTE</option>
-                  <option value="EN REVISIÓN">EN REVISIÓN</option>
-                  <option value="APROBADO">APROBADO</option>
-                  <option value="ATENDIDO">ATENDIDO</option>
-                  <option value="RECHAZADO">RECHAZADO</option>
-                  <option value="ANULADO">ANULADO (Historial)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Keyword search input */}
-            <div className="relative pt-1">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
-              <input
-                type="text"
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="Buscar por código, fundo, área o supervisor..."
-                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#173B56] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#00843D]"
-              />
-            </div>
-          </div>
-
-          {/* ------------------------------------------------------------- */}
-          {/* OPERATIONAL DATA TABLE (ERP / Intranet Camposol Style)         */}
-          {/* ------------------------------------------------------------- */}
-          <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
-            {/* Table Action Bar */}
-            <div className="p-4 bg-gray-50/70 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-[#173B56] flex items-center gap-2 flex-wrap">
-                  <span>Mostrando {filteredRequerimientos.length} de {requerimientos.length} requerimientos</span>
+                <h3 className="text-sm font-bold text-[#1E293B] leading-tight">
+                  Recepción de requerimientos
+                </h3>
+                <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                  <span>
+                    Visualizar, filtrar y gestionar requerimientos • Mostrando{' '}
+                    <strong className="text-[#1E293B] font-semibold">{filteredRequerimientos.length}</strong> de{' '}
+                    <strong className="text-[#1E293B] font-semibold">{requerimientos.length}</strong>
+                  </span>
                   {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr() && (
-                    <span className="px-2.5 py-0.5 text-xs font-bold bg-[#E8F5EF] text-[#00843D] rounded-md border border-[#00843D]/20">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-[#009A44] rounded-full border border-emerald-200/70">
                       DEL DÍA ({getTodayStr()})
                     </span>
                   )}
                   {filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr() && (
-                    <span className="px-2.5 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 rounded-md border border-amber-200">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 rounded-full border border-amber-200/70">
                       DE AYER ({getYesterdayStr()})
                     </span>
                   )}
                   {filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr() && (
-                    <span className="px-2.5 py-0.5 text-xs font-bold bg-blue-50 text-blue-800 rounded-md border border-blue-200">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-sky-50 text-sky-700 rounded-full border border-sky-200/70">
                       DE MAÑANA ({getTomorrowStr()})
                     </span>
                   )}
-                </span>
-                {selectedReqIds.length > 0 && (
-                  <span className="px-2.5 py-0.5 text-xs font-bold bg-[#E8F5EF] text-[#00843D] rounded-full">
-                    {selectedReqIds.length} seleccionados
-                  </span>
-                )}
+                </div>
               </div>
 
-              {/* Batch Actions for Admin */}
+              {/* Right Action Icons + Pill Search */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  id="btn-export-excel-header"
+                  type="button"
+                  onClick={() => setShowExportModal(true)}
+                  className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#009A44] hover:text-[#007a35] hover:bg-emerald-50/70 rounded-lg transition-colors cursor-pointer"
+                  title="Exportar a Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span className="text-[10px] font-medium">Descarga</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onNewRequirement}
+                  className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#009A44] hover:text-[#007a35] hover:bg-emerald-50/70 rounded-lg transition-colors cursor-pointer"
+                  title="Crear nuevo requerimiento"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span className="text-[10px] font-medium">Nuevo</span>
+                </button>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    placeholder="Palabra clave"
+                    className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-gray-300 rounded-full text-xs text-gray-700 placeholder-gray-400 focus:border-[#009A44] focus:outline-none transition-colors"
+                  />
+                  <Search className="w-4 h-4 text-[#009A44] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Floating-Label Pill Filter Inputs (4-column executive layout, zero clipping) */}
+            <div className="px-5 pt-2 pb-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-3.5 gap-y-3.5">
+                {/* Fecha Desde */}
+                <div className="relative">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                    Fecha desde
+                  </label>
+                  <input
+                    type="date"
+                    value={filterFechaDesde}
+                    onChange={(e) => setFilterFechaDesde(e.target.value)}
+                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                  />
+                </div>
+
+                {/* Fecha Hasta */}
+                <div className="relative">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                    Fecha hasta
+                  </label>
+                  <input
+                    type="date"
+                    value={filterFechaHasta}
+                    onChange={(e) => setFilterFechaHasta(e.target.value)}
+                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                  />
+                </div>
+
+                {/* Área */}
+                <div className="relative">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                    Área
+                  </label>
+                  <select
+                    value={filterArea}
+                    onChange={(e) => setFilterArea(e.target.value)}
+                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                  >
+                    <option value="TODAS">Todas</option>
+                    {areas.map((a) => (
+                      <option key={a.id} value={a.area}>
+                        {a.area}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Fundo */}
+                <div className="relative">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                    Fundo
+                  </label>
+                  <select
+                    value={filterFundo}
+                    onChange={(e) => setFilterFundo(e.target.value)}
+                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                  >
+                    <option value="TODOS">Todos</option>
+                    {fundos.map((f) => (
+                      <option key={f.id} value={f.fundo}>
+                        {f.fundo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Supervisor / Solicitante */}
+                <div className="relative">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                    Supervisor
+                  </label>
+                  <select
+                    value={filterSupervisor}
+                    onChange={(e) => setFilterSupervisor(e.target.value)}
+                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                  >
+                    <option value="TODOS">Todos</option>
+                    {supervisoresList.map((sup) => (
+                      <option key={sup} value={sup}>
+                        {sup}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Estado */}
+                <div className="relative">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                    Estado
+                  </label>
+                  <select
+                    value={filterEstado}
+                    onChange={(e) => setFilterEstado(e.target.value)}
+                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                  >
+                    <option value="TODOS">Todos</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="EN REVISIÓN">EN REVISIÓN</option>
+                    <option value="APROBADO">APROBADO</option>
+                    <option value="ATENDIDO">ATENDIDO</option>
+                    <option value="RECHAZADO">RECHAZADO</option>
+                    <option value="ANULADO">ANULADO (Historial)</option>
+                  </select>
+                </div>
+
+                {/* Quick Date Presets + Limpiar aligned cleanly in Row 2 */}
+                <div className="sm:col-span-2 flex flex-wrap items-center justify-between lg:justify-end gap-2 self-center">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-medium text-gray-400 mr-0.5">Rápido:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const hoy = getTodayStr();
+                        setFilterFechaDesde(hoy);
+                        setFilterFechaHasta(hoy);
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                        filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
+                          ? 'bg-[#009A44] text-white border-[#009A44]'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Hoy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ayer = getYesterdayStr();
+                        setFilterFechaDesde(ayer);
+                        setFilterFechaHasta(ayer);
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                        filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr()
+                          ? 'bg-[#009A44] text-white border-[#009A44]'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Ayer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const manana = getTomorrowStr();
+                        setFilterFechaDesde(manana);
+                        setFilterFechaHasta(manana);
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                        filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr()
+                          ? 'bg-[#009A44] text-white border-[#009A44]'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Mañana
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterFechaDesde('');
+                        setFilterFechaHasta('');
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                        !filterFechaDesde && !filterFechaHasta
+                          ? 'bg-[#173B56] text-white border-[#173B56]'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Todo el historial
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="px-4 py-1.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-[11px] font-medium text-gray-700 transition-colors cursor-pointer"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+
               {selectedReqIds.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleBatchApprove}
-                    className="px-3 py-1.5 bg-[#00843D] hover:bg-[#006e33] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Aprobar Seleccionados ({selectedReqIds.length})</span>
-                  </button>
-                  <button
-                    onClick={handleBatchAtender}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-                  >
-                    <CheckCheck className="w-3.5 h-3.5" />
-                    <span>Marcar Atendidos ({selectedReqIds.length})</span>
-                  </button>
-                  <button
-                    id="btn-batch-delete"
-                    onClick={handleBatchDelete}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-                    title="Eliminar requerimientos seleccionados"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Eliminar ({selectedReqIds.length})</span>
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                  <span className="text-[11px] font-semibold text-[#009A44]">
+                    {selectedReqIds.length} requerimiento{selectedReqIds.length !== 1 ? 's' : ''} seleccionado{selectedReqIds.length !== 1 ? 's' : ''}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleBatchApprove}
+                      className="px-3 py-1 bg-[#009A44] hover:bg-[#007a35] text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Aprobar Seleccionados</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBatchAtender}
+                      className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <CheckCheck className="w-3 h-3" />
+                      <span>Marcar Atendidos</span>
+                    </button>
+                    <button
+                      id="btn-batch-delete"
+                      type="button"
+                      onClick={handleBatchDelete}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Table */}
+            {/* Clean Light-Blue Table Header + Flat White Rows */}
             <div className="overflow-x-auto max-h-[calc(100vh-340px)]">
-              <table className="w-full text-left text-xs">
-                <thead className="sticky top-0 z-10 bg-gray-100 text-gray-700 uppercase font-bold tracking-wider text-xs border-b border-gray-200 shadow-2xs">
+              <table className="w-full text-left text-[11px]">
+                <thead className="sticky top-0 z-10 bg-[#EDF6FC] text-[#1D7FC4] font-semibold text-[11px] border-y border-[#DCECF7]">
                   <tr>
-                    <th className="py-3 px-4 w-10">
+                    <th className="py-2.5 px-3 w-8">
                       <input
                         type="checkbox"
                         onChange={handleSelectAll}
@@ -1788,35 +1783,35 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                           paginatedRequerimientos.length > 0 &&
                           paginatedRequerimientos.every((r) => selectedReqIds.includes(r.id))
                         }
-                        className="rounded-sm border-gray-300 text-[#00843D] focus:ring-[#00843D]"
+                        className="rounded-sm border-gray-300 text-[#009A44] focus:ring-[#009A44]"
                       />
                     </th>
-                    <th className="py-3 px-4">Código Requerimiento</th>
-                    <th className="py-3 px-4">Fecha & Turno</th>
-                    <th className="py-3 px-4">Área / Fundo</th>
-                    <th className="py-3 px-4">Movimiento & Horas</th>
-                    <th className="py-3 px-4">Personal Solicitado</th>
-                    <th className="py-3 px-4">Supervisor</th>
-                    <th className="py-3 px-4 text-center">Estado</th>
-                    <th className="py-3 px-4 text-center">Acciones</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Código Req.</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Fecha & Turno</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Área / Fundo</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Movimiento & Horas</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Personal</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Supervisor</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap">Estado</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap border-l border-[#DCECF7]/70">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-150">
+                <tbody className="bg-white divide-y divide-gray-100 text-gray-700">
                   {filteredRequerimientos.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-gray-500">
-                        <Inbox className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-                        <span className="block font-bold text-[#173B56] text-sm">
+                      <td colSpan={9} className="py-10 text-center text-gray-500">
+                        <Inbox className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                        <span className="block font-semibold text-[#1E293B] text-xs">
                           {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
                             ? `No hay requerimientos programados para el día de hoy (${getTodayStr()})`
                             : 'No se encontraron requerimientos con los filtros seleccionados'}
                         </span>
-                        <span className="text-xs text-gray-400 mt-1 block max-w-md mx-auto">
+                        <span className="text-[11px] text-gray-400 mt-1 block max-w-md mx-auto">
                           {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
                             ? 'Los registros de ayer o de otras fechas no se muestran por defecto a menos que se filtren específicamente.'
                             : 'Prueba cambiando o limpiando los filtros seleccionados.'}
                         </span>
-                        <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                        <div className="flex flex-wrap items-center justify-center gap-2 mt-3.5">
                           <button
                             type="button"
                             onClick={() => {
@@ -1824,9 +1819,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                               setFilterFechaDesde(ayer);
                               setFilterFechaHasta(ayer);
                             }}
-                            className="px-3.5 py-1.5 bg-[#E8F5EF] text-[#00843D] hover:bg-[#d4ede0] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-[#00843D]/20 shadow-2xs"
+                            className="px-3.5 py-1.5 bg-white text-[#009A44] hover:bg-emerald-50 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer border border-emerald-300"
                           >
-                            <Calendar className="w-3.5 h-3.5" />
+                            <Calendar className="w-3 h-3" />
                             <span>Ver Requerimientos de Ayer ({getYesterdayStr()})</span>
                           </button>
                           <button
@@ -1835,7 +1830,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                               setFilterFechaDesde('');
                               setFilterFechaHasta('');
                             }}
-                            className="px-3.5 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-gray-200"
+                            className="px-3.5 py-1.5 bg-white text-gray-600 hover:bg-gray-50 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer border border-gray-300"
                           >
                             <span>Ver Todo el Historial</span>
                           </button>
@@ -1851,161 +1846,134 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       return (
                         <React.Fragment key={req.id}>
                           <tr
-                            className={`hover:bg-emerald-50/30 transition-colors ${
-                              isSelected ? 'bg-[#E8F5EF]/40' : ''
+                            className={`hover:bg-[#F7FBFE] transition-colors ${
+                              isSelected ? 'bg-emerald-50/40' : ''
                             }`}
                           >
-                            <td className="py-3 px-4">
+                            <td className="py-2.5 px-3">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => handleToggleSelectRow(req.id)}
-                                className="rounded-sm border-gray-300 text-[#00843D] focus:ring-[#00843D]"
+                                className="rounded-sm border-gray-300 text-[#009A44] focus:ring-[#009A44]"
                               />
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-2.5 px-3">
                               <button
                                 onClick={() => onOpenRequirementDetail(req)}
-                                className="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md transition-colors text-left"
+                                className="font-medium text-[#1E293B] hover:text-[#009A44] hover:underline transition-colors text-left whitespace-nowrap cursor-pointer"
                                 title="Ver detalle del requerimiento"
                               >
                                 {req.numeroRequerimiento}
                               </button>
-                              <div className="text-xs text-gray-500 font-medium mt-1">
-                                <div className="text-gray-500 text-[11px] whitespace-nowrap">
-                                  Reg: {req.fechaRegistro ? req.fechaRegistro.slice(0, 10) : '-'}
-                                </div>
-                                {formatHoraSimple(req.fechaRegistro) ? (
-                                  <div
-                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50/90 px-1.5 py-0.5 rounded-md border border-emerald-200/70 mt-0.5 whitespace-nowrap shadow-2xs"
-                                    title={`Hora exacta registrada: ${formatHoraRegistro(req.fechaRegistro)}`}
-                                  >
-                                    <Clock className="w-3 h-3 text-emerald-600 shrink-0" />
-                                    <span>{formatHoraSimple(req.fechaRegistro)}</span>
-                                  </div>
-                                ) : null}
+                              <div className="text-[10px] text-gray-400 whitespace-nowrap mt-0.5">
+                                {req.fechaRegistro ? req.fechaRegistro.slice(0, 10) : '-'}
+                                {formatHoraSimple(req.fechaRegistro) ? ` • ${formatHoraSimple(req.fechaRegistro)}` : ''}
                               </div>
                             </td>
-                            <td className="py-3 px-4">
-                              <div className="text-xs font-bold text-[#173B56]">{req.fecha}</div>
+                            <td className="py-2.5 px-3">
+                              <div className="text-[11px] text-gray-700 whitespace-nowrap">{req.fecha}</div>
                               <button
                                 type="button"
                                 onClick={() => toggleExpandReq(req.id)}
-                                className="text-xs font-semibold text-[#00843D] hover:underline flex items-center gap-1 mt-1 cursor-pointer"
+                                className="text-[10px] font-medium text-[#009A44] hover:underline flex items-center gap-0.5 mt-0.5 cursor-pointer whitespace-nowrap"
                                 title="Haz clic para desplegar el resumen de paraderos"
                               >
                                 <span>{paraderosCount} paradero{paraderosCount !== 1 ? 's' : ''}</span>
                                 {expandedReqIds.includes(req.id) ? (
-                                  <ChevronUp className="w-3.5 h-3.5 text-[#00843D]" />
+                                  <ChevronUp className="w-3 h-3 text-[#009A44]" />
                                 ) : (
-                                  <ChevronDown className="w-3.5 h-3.5 text-[#00843D]" />
+                                  <ChevronDown className="w-3 h-3 text-[#009A44]" />
                                 )}
                               </button>
                             </td>
-                            <td className="py-3 px-4">
-                              <div className="text-xs font-bold text-[#173B56]">{req.area}</div>
-                              <div className="text-xs text-gray-600 font-medium flex items-center gap-1 mt-1">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                <span>{req.fundo}</span>
-                              </div>
+                            <td className="py-2.5 px-3">
+                              <div className="text-[11px] font-medium text-[#1E293B]">{req.area}</div>
+                              <div className="text-[10px] text-gray-500 mt-0.5">{req.fundo}</div>
                             </td>
-                            <td className="py-3 px-4">
-                              <span
-                                className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-bold uppercase border ${
-                                  req.movimiento === 'INGRESO'
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : req.movimiento === 'SALIDA'
-                                    ? 'bg-blue-50 text-blue-800 border-blue-200'
-                                    : 'bg-purple-50 text-purple-800 border-purple-200'
-                                }`}
-                              >
-                                {req.movimiento}
-                              </span>
-                              <div className="text-xs text-gray-600 font-medium mt-1">
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`text-[10px] font-semibold uppercase ${
+                                    req.movimiento === 'INGRESO'
+                                      ? 'text-[#009A44]'
+                                      : req.movimiento === 'SALIDA'
+                                      ? 'text-sky-600'
+                                      : 'text-purple-600'
+                                  }`}
+                                >
+                                  {req.movimiento}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-gray-500 mt-0.5 whitespace-nowrap">
                                 {(() => {
                                   const h = getHorarioDisplay(req);
                                   if (h.isIngreso) {
                                     return (
-                                      <div className="text-[11px] text-emerald-800 font-semibold space-x-1 whitespace-nowrap">
-                                        <span>Norte: <strong>{h.horaNorte}</strong></span>
-                                        <span className="text-gray-400">|</span>
-                                        <span>Sur: <strong>{h.horaSur}</strong></span>
-                                      </div>
-                                    );
-                                  }
-                                  if (h.isSalida) {
-                                    return (
-                                      <div className="text-[11px] text-blue-800 font-semibold whitespace-nowrap">
-                                        <span>Hora: <strong>{h.horaNormal}</strong></span>
-                                      </div>
+                                      <span>
+                                        Norte: <strong className="font-medium text-gray-700">{h.horaNorte}</strong> | Sur: <strong className="font-medium text-gray-700">{h.horaSur}</strong>
+                                      </span>
                                     );
                                   }
                                   return (
-                                    <div className="text-[11px] text-gray-700 font-semibold whitespace-nowrap">
-                                      <span>Hora: <strong>{h.horaNormal}</strong></span>
-                                    </div>
+                                    <span>
+                                      Hora: <strong className="font-medium text-gray-700">{h.horaNormal}</strong>
+                                    </span>
                                   );
                                 })()}
                               </div>
                             </td>
-                            <td className="py-3 px-4">
-                              <div className="text-xs font-bold text-[#173B56] flex items-center gap-1">
-                                <span className="text-xs font-black text-[#173B56]">{req.totalPersonas}</span>
-                                <span className="text-xs font-medium text-gray-600">personas</span>
-                              </div>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span className="font-semibold text-[#1E293B]">{req.totalPersonas}</span>{' '}
+                              <span className="text-[10px] text-gray-500">pers.</span>
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-2.5 px-3">
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSupervisorModalReq(req);
                                 }}
-                                className="group flex items-center gap-2 text-left p-1 -m-1 rounded-xl hover:bg-emerald-50 text-[#173B56] transition-colors cursor-pointer"
+                                className="group text-left hover:text-[#009A44] transition-colors cursor-pointer"
                                 title="Haz clic para ver detalles del supervisor"
                               >
-                                <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#00843D] group-hover:bg-[#00843D] group-hover:text-white flex items-center justify-center shrink-0 transition-colors font-bold text-xs">
-                                  {(req.usuario || 'S').slice(0, 1).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <span className="text-xs font-bold text-gray-800 group-hover:text-[#00843D] block truncate max-w-[130px]">
-                                    {req.usuario || 'Supervisor'}
-                                  </span>
-                                  <span className="text-xs font-semibold text-[#00843D] flex items-center gap-0.5 mt-0.5">
-                                    <span>Ver paraderos</span>
-                                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                                  </span>
-                                </div>
+                                <span className="text-[11px] text-gray-700 group-hover:text-[#009A44] block truncate max-w-[140px]">
+                                  {req.usuario || 'Supervisor'}
+                                </span>
+                                <span className="text-[10px] text-[#009A44] flex items-center gap-0.5">
+                                  <span>Ver paraderos</span>
+                                  <ChevronRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
+                                </span>
                               </button>
                               {req.observaciones && (
                                 <span
-                                  className="text-xs text-gray-400 italic block truncate max-w-[130px] mt-1"
+                                  className="text-[10px] text-gray-400 italic block truncate max-w-[140px] mt-0.5"
                                   title={req.observaciones}
                                 >
                                   {req.observaciones}
                                 </span>
                               )}
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-2.5 px-3 text-center">
                               {renderEstadoBadge(req.estado)}
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-2.5 px-3">
                               <div className="flex items-center justify-center gap-1.5">
                                 {/* Ver Detalle */}
                                 <button
                                   onClick={() => onOpenRequirementDetail(req)}
-                                  className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-[#173B56] hover:text-[#00843D] transition-colors shadow-2xs"
+                                  className="p-1 rounded-md text-[#009A44] hover:bg-emerald-50 transition-colors cursor-pointer"
                                   title="Ver detalles y desglose de paraderos"
                                   aria-label="Ver detalles"
                                 >
-                                  <Eye className="w-4 h-4" />
+                                  <Eye className="w-3.5 h-3.5" />
                                 </button>
 
                                 {/* Aprobar rápido */}
                                 {req.estado !== 'APROBADO' && req.estado !== 'ATENDIDO' && (
                                   <button
                                     onClick={() => handleQuickStatusChange(req.id, 'APROBADO')}
-                                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#00843D] border border-emerald-300 rounded-lg text-xs font-bold transition-colors shadow-2xs"
+                                    className="px-2 py-0.5 bg-white hover:bg-emerald-50 text-[#009A44] border border-emerald-300 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
                                     title="Aprobar requerimiento"
                                   >
                                     Aprobar
@@ -2016,7 +1984,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 {req.estado === 'APROBADO' && (
                                   <button
                                     onClick={() => handleQuickStatusChange(req.id, 'ATENDIDO')}
-                                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-xs font-bold transition-colors shadow-2xs"
+                                    className="px-2 py-0.5 bg-white hover:bg-sky-50 text-sky-600 border border-sky-300 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
                                     title="Marcar como atendido"
                                   >
                                     Atender
@@ -2027,11 +1995,11 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 <button
                                   id={`btn-eliminar-req-${req.id}`}
                                   onClick={() => setReqToDelete(req)}
-                                  className="p-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 transition-colors shadow-2xs"
+                                  className="p-1 rounded-md text-orange-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                   title="Eliminar requerimiento"
                                   aria-label="Eliminar requerimiento"
                                 >
-                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             </td>
@@ -2222,23 +2190,23 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
             {/* Barra de Paginación de Requerimientos (Soporte para 200+ registros diarios) */}
             {filteredRequerimientos.length > 0 && (
-              <div className="bg-gray-50/90 px-6 py-3.5 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4 text-xs">
+              <div className="bg-white px-5 py-2.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-[11px]">
                 {/* Contador de registros */}
                 <div className="flex items-center gap-3">
                   <span className="text-gray-500 font-medium">
                     Mostrando{' '}
-                    <strong className="text-[#173B56]">
+                    <strong className="text-[#1E293B] font-semibold">
                       {pageSize === -1 ? 1 : (currentPage - 1) * pageSize + 1}
                     </strong>{' '}
                     a{' '}
-                    <strong className="text-[#173B56]">
+                    <strong className="text-[#1E293B] font-semibold">
                       {pageSize === -1
                         ? filteredRequerimientos.length
                         : Math.min(currentPage * pageSize, filteredRequerimientos.length)}
                     </strong>{' '}
-                    de <strong className="text-[#00843D]">{filteredRequerimientos.length}</strong> requerimientos
+                    de <strong className="text-[#009A44] font-semibold">{filteredRequerimientos.length}</strong> requerimientos
                     {selectedReqIds.length > 0 && (
-                      <span className="ml-2 px-2.5 py-0.5 rounded-full bg-[#E8F5EF] text-[#00843D] font-bold text-xs border border-[#00843D]/20">
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-50 text-[#009A44] font-semibold text-[10px] border border-emerald-200">
                         {selectedReqIds.length} seleccionados
                       </span>
                     )}
@@ -2246,14 +2214,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 </div>
 
                 {/* Controles de Paginación */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   {/* Selector de registros por página */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-gray-500 font-medium">Por página:</span>
                     <select
                       value={pageSize}
                       onChange={(e) => setPageSize(Number(e.target.value))}
-                      className="px-2.5 py-1 bg-white border border-gray-200 rounded-xl font-bold text-[#173B56] focus:outline-hidden focus:ring-2 focus:ring-[#00843D] text-xs cursor-pointer shadow-2xs"
+                      className="px-2.5 py-1 bg-white border border-gray-300 rounded-full font-medium text-[#1E293B] focus:outline-hidden focus:border-[#009A44] text-[11px] cursor-pointer"
                     >
                       <option value={25}>25</option>
                       <option value={50}>50</option>
