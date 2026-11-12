@@ -6,6 +6,8 @@ import {
   MaestroFundo,
   MaestroParadero,
   MaestroComedor,
+  MaestroUnidadBus,
+  ProgramacionViajesDia,
   AppUser,
 } from '../types';
 import {
@@ -15,6 +17,7 @@ import {
   MAESTRO_FUNDOS,
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
+  MAESTRO_UNIDADES_BUS,
   normalizeParaderoKey,
   getParaderoOrderIndex,
 } from '../data/masterData';
@@ -33,6 +36,8 @@ const AREAS_STORAGE_KEY = 'camposol_maestro_areas_v1';
 const FUNDOS_STORAGE_KEY = 'camposol_maestro_fundos_v1';
 const PARADEROS_STORAGE_KEY = 'camposol_maestro_paraderos_v1';
 const COMEDORES_STORAGE_KEY = 'camposol_maestro_comedores_v1';
+const UNIDADES_BUS_STORAGE_KEY = 'camposol_maestro_unidades_bus_v1';
+const PROGRAMACIONES_VIAJES_KEY = 'camposol_programaciones_viajes_v1';
 const USERS_STORAGE_KEY = 'camposol_users_v2';
 const LAST_REVISION_KEY = 'camposol_last_revision_v1';
 const DRAFT_REQ_STORAGE_KEY = 'camposol_current_req_draft_v1';
@@ -299,8 +304,11 @@ export function getStoredRequerimientos(): Requerimiento[] {
     const parsed: Requerimiento[] = JSON.parse(raw);
     // Filtrar cualquier requerimiento demo/mock residual para garantizar 100% datos reales
     const cleaned = parsed.filter((r) => !r.id.startsWith('req-uuid-'));
-    if (cleaned.length !== parsed.length) {
-      const finalReqs = cleaned.length > 0 ? cleaned : INITIAL_REQUERIMIENTOS;
+    // Incorporar requerimientos operativos oficiales de Procesos faltantes preservando los históricos del usuario
+    const existingNums = new Set(cleaned.map((r) => r.numeroRequerimiento));
+    const faltantes = INITIAL_REQUERIMIENTOS.filter((r) => !existingNums.has(r.numeroRequerimiento));
+    if (faltantes.length > 0 || cleaned.length !== parsed.length) {
+      const finalReqs = [...cleaned, ...faltantes];
       localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(finalReqs));
       return finalReqs;
     }
@@ -323,8 +331,11 @@ export function getStoredDetalles(): DetalleRequerimiento[] {
     const cleaned = parsed.filter(
       (d) => !d.id.startsWith('det-001-') && !d.id.startsWith('det-002-') && !d.id.startsWith('det-003-')
     );
-    if (cleaned.length !== parsed.length) {
-      const finalDets = cleaned.length > 0 ? cleaned : INITIAL_DETALLES;
+    // Incorporar detalles de paraderos oficiales de Procesos faltantes sin sobreescribir históricos
+    const existingDetIds = new Set(cleaned.map((d) => d.id));
+    const faltantes = INITIAL_DETALLES.filter((d) => !existingDetIds.has(d.id));
+    if (faltantes.length > 0 || cleaned.length !== parsed.length) {
+      const finalDets = [...cleaned, ...faltantes];
       localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(finalDets));
       return finalDets;
     }
@@ -978,22 +989,89 @@ export function saveStoredComedores(comedores: MaestroComedor[]): void {
   });
 }
 
+export function getStoredUnidadesBus(): MaestroUnidadBus[] {
+  try {
+    const raw = localStorage.getItem(UNIDADES_BUS_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(UNIDADES_BUS_STORAGE_KEY, JSON.stringify(MAESTRO_UNIDADES_BUS));
+      return MAESTRO_UNIDADES_BUS;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return MAESTRO_UNIDADES_BUS;
+    }
+    return parsed;
+  } catch (err) {
+    console.error('Error loading unidades bus:', err);
+    return MAESTRO_UNIDADES_BUS;
+  }
+}
+
+export function saveStoredUnidadesBus(unidades: MaestroUnidadBus[]): void {
+  localStorage.setItem(UNIDADES_BUS_STORAGE_KEY, JSON.stringify(unidades));
+  broadcastLocalChange();
+}
+
+export function getStoredProgramacionesViajes(): ProgramacionViajesDia[] {
+  try {
+    const raw = localStorage.getItem(PROGRAMACIONES_VIAJES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error('Error loading programaciones viajes:', err);
+    return [];
+  }
+}
+
+export function saveStoredProgramacionViaje(prog: ProgramacionViajesDia): void {
+  try {
+    const list = getStoredProgramacionesViajes();
+    const existingIndex = list.findIndex((p) => p.id === prog.id);
+    let updated: ProgramacionViajesDia[];
+    if (existingIndex >= 0) {
+      updated = [...list];
+      updated[existingIndex] = prog;
+    } else {
+      updated = [prog, ...list];
+    }
+    localStorage.setItem(PROGRAMACIONES_VIAJES_KEY, JSON.stringify(updated));
+    broadcastLocalChange();
+  } catch (err) {
+    console.error('Error saving programacion viaje:', err);
+  }
+}
+
+export function deleteStoredProgramacionViaje(id: string): void {
+  try {
+    const list = getStoredProgramacionesViajes();
+    const updated = list.filter((p) => p.id !== id);
+    localStorage.setItem(PROGRAMACIONES_VIAJES_KEY, JSON.stringify(updated));
+    broadcastLocalChange();
+  } catch (err) {
+    console.error('Error deleting programacion viaje:', err);
+  }
+}
+
 export function resetMasterDataToDefault(): {
   areas: MaestroArea[];
   fundos: MaestroFundo[];
   paraderos: MaestroParadero[];
   comedores: MaestroComedor[];
+  unidadesBus: MaestroUnidadBus[];
 } {
   localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(MAESTRO_AREAS));
   localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(MAESTRO_FUNDOS));
   localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(MAESTRO_PARADEROS));
   localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(MAESTRO_COMEDORES));
+  localStorage.setItem(UNIDADES_BUS_STORAGE_KEY, JSON.stringify(MAESTRO_UNIDADES_BUS));
   broadcastLocalChange();
   return {
     areas: MAESTRO_AREAS,
     fundos: MAESTRO_FUNDOS,
     paraderos: MAESTRO_PARADEROS,
     comedores: MAESTRO_COMEDORES,
+    unidadesBus: MAESTRO_UNIDADES_BUS,
   };
 }
 

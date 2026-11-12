@@ -19,8 +19,12 @@
    - Wizard por pasos (Área, Fundo, Comedor, Paraderos con conteo numérico de pasajeros).
    - Consulta de mis solicitudes y seguimiento.
 4. **Módulos de Control y Maestros (`MasterDataManagementScreen.tsx`, `UserManagementScreen.tsx`)**:
-   - Catálogos maestros protegidos (Paraderos, Fundos, Áreas, Comedores).
+   - Catálogos maestros protegidos (Paraderos, Fundos, Áreas, Comedores, Flota de Buses: 2 Pisos 60p, Bus Large 55p, Bus 49p, Minibús 30p, Combi 15p, Mini Van 10p).
    - Gestión de usuarios y credenciales operativas.
+5. **Módulo de Optimización de Flota y Viajes (`TripOptimizationScreen.tsx`, `tripOptimizationService.ts`)**:
+   - Asignación matemática de unidades según demanda real.
+   - Respeto estricto de zonas (SUR/NORTE), rutas canónicas y compatibilidad de fundos.
+   - Hojas de ruta y exportación de despacho en Excel.
 
 ## 3. AISLAMIENTO QUIRÚRGICO DE MODIFICACIONES
 - Cuando el usuario solicite un cambio o ajuste:

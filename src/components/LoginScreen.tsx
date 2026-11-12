@@ -11,6 +11,7 @@ import {
   Mail,
   Send,
   CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import { authenticateUser, requestPasswordRecovery, restoreMainAdminUser, setActiveSessionUser } from '../services/authService';
 import { AppUser } from '../types';
@@ -24,9 +25,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   // Modo de vista: 'login' o 'recovery'
   const [viewMode, setViewMode] = useState<'login' | 'recovery'>('login');
 
-  // Estados para Login (campos limpios sin credenciales precargadas)
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  // Credenciales por defecto listas para ingreso inmediato
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('camposol2026');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -261,6 +262,40 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     </>
                   )}
                 </button>
+
+                {/* Acceso Directo de 1 Clic para Administrador */}
+                <div className="pt-2 border-t border-gray-100 space-y-2">
+                  <button
+                    id="btn-direct-admin-login"
+                    type="button"
+                    onClick={() => {
+                      const admin = restoreMainAdminUser();
+                      onLoginSuccess(admin);
+                    }}
+                    className="w-full py-3 px-4 bg-[#173B56] hover:bg-[#122e43] text-white font-black rounded-2xl text-xs uppercase tracking-wider transition-colors shadow flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-[#58A33E]" />
+                    <span>INGRESAR DIRECTO COMO ADMINISTRADOR</span>
+                  </button>
+
+                  <div className="bg-emerald-50/80 border border-emerald-200/60 rounded-xl p-2.5 text-[11px] text-emerald-900 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold">Usuario:</span> <span className="font-mono font-bold text-[#00843D]">admin</span>
+                      <span className="mx-2 text-gray-300">|</span>
+                      <span className="font-bold">Clave:</span> <span className="font-mono font-bold text-[#00843D]">camposol2026</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUsername('admin');
+                        setPassword('camposol2026');
+                      }}
+                      className="text-[10px] font-bold text-[#00843D] hover:underline cursor-pointer"
+                    >
+                      Autocompletar
+                    </button>
+                  </div>
+                </div>
               </form>
             </div>
           )}

@@ -61,6 +61,83 @@ export interface MaestroComedor {
   comedor: string;
 }
 
+export interface MaestroUnidadBus {
+  id: string;
+  nombre: string; // e.g. "2 PISOS", "BUS LARGE", "BUS", "MINIBUS", "COMBI", "MINI VAN"
+  capacidad: number; // e.g. 60, 55, 49, 30, 15, 10
+  descripcion?: string;
+  activo: boolean;
+}
+
+export interface ParadaViaje {
+  paradero: string;
+  zona: ZonaParadero;
+  cantidadPasajeros: number;
+  orden?: number;
+  requerimientosCodigos?: string[];
+}
+
+export interface FundoDestinoViaje {
+  fundo: string;
+  cantidadPasajeros: number;
+}
+
+export interface ViajeProgramado {
+  id: string;
+  codigoViaje: string; // VJ-001
+  fecha: string; // YYYY-MM-DD
+  semana?: number; // e.g. 40
+  servicioNumero?: number; // 1, 2, 3...
+  fyp?: string; // CAMPO
+  fundo: string;
+  proveedor?: string; // Ecobus, Mobil, Puerto Rico, etc.
+  movil?: string; // Bus, Mini Bus, Combi, etc.
+  placa?: string;
+  dni?: string;
+  conductor?: string;
+  tipo?: 'SAL' | 'ING';
+  hora?: string;
+  area?: string;
+  origen?: string;
+  destino?: string;
+  plan?: number;
+  sayta?: string;
+  paraderoInicial?: string;
+  horaSayta?: string;
+  obsSayta?: string;
+  capSayta?: number;
+  encargado?: string;
+  supervisor?: string;
+  turnoText?: string;
+  turno: string;
+  movimiento: MovimientoType;
+  zona: ZonaParadero | 'MIXTA';
+  unidad: MaestroUnidadBus;
+  totalPasajeros: number;
+  capacidadUnidad: number;
+  porcentajeOcupacion: number;
+  asientosDisponibles: number;
+  fundos: FundoDestinoViaje[];
+  recorridoParaderos: ParadaViaje[];
+  requerimientosIds: string[];
+  estado: 'PROGRAMADO' | 'EN_RUTA' | 'COMPLETADO' | 'CANCELADO';
+  chofer?: string;
+  observaciones?: string;
+}
+
+export interface ProgramacionViajesDia {
+  id: string;
+  fecha: string;
+  movimiento: MovimientoType | 'TODOS';
+  turno?: string;
+  fechaGeneracion: string;
+  viajes: ViajeProgramado[];
+  totalPasajeros: number;
+  totalCapacidad: number;
+  eficienciaGlobal: number;
+  resumenUnidades: Record<string, number>;
+}
+
 // Entidad principal: REQUERIMIENTOS
 export interface Requerimiento {
   id: string;

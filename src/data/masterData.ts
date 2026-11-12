@@ -3,6 +3,7 @@ import {
   MaestroFundo,
   MaestroParadero,
   MaestroComedor,
+  MaestroUnidadBus,
   Requerimiento,
   DetalleRequerimiento,
 } from '../types';
@@ -54,6 +55,16 @@ export const MAESTRO_MOVIMIENTOS: string[] = [
   'Programa personal por tarea',
   'INGRESO',
   'SALIDA',
+];
+
+// Maestro Oficial de Flota y Unidades de Transporte
+export const MAESTRO_UNIDADES_BUS: MaestroUnidadBus[] = [
+  { id: 'BUS-01', nombre: '2 PISOS', capacidad: 60, descripcion: 'Bus interprovincial 2 pisos - Alta capacidad (60 pax)', activo: true },
+  { id: 'BUS-02', nombre: 'BUS LARGE', capacidad: 55, descripcion: 'Bus interprovincial largo (55 pax)', activo: true },
+  { id: 'BUS-03', nombre: 'BUS', capacidad: 49, descripcion: 'Bus estándar de transporte de personal (49 pax)', activo: true },
+  { id: 'BUS-04', nombre: 'MINIBUS', capacidad: 30, descripcion: 'Minibús de ruta intermedia (30 pax)', activo: true },
+  { id: 'BUS-05', nombre: 'COMBI', capacidad: 15, descripcion: 'Combi de traslado rápido (15 pax)', activo: true },
+  { id: 'BUS-06', nombre: 'MINI VAN', capacidad: 10, descripcion: 'Van ligera de supervisión y traslado (10 pax)', activo: true },
 ];
 
 // Orden Canónico Oficial de Rutas de Paraderos (Virú y Chao)
@@ -298,6 +309,296 @@ export const INITIAL_REQUERIMIENTOS: Requerimiento[] = [
     "estado": "ATENDIDO",
     "fechaRegistro": "2026-09-25T20:21:53.771Z",
     "userUsername": "eparedes"
+  },
+  {
+    "id": "req-1790400010001-ops-101",
+    "numeroRequerimiento": "REQ-000010",
+    "fecha": "2026-09-28",
+    "fechaRegistro": "2026-09-28T05:30:00.000Z",
+    "usuario": "Roberto Mendoza Valderrama",
+    "userId": "usr-1790015788736-rmen",
+    "userUsername": "rmendoza",
+    "userRole": "usuario",
+    "area": "PRODUCCIÓN",
+    "fundo": "AGRICULTOR 1",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "INGRESO",
+    "horaRecojo": "05:00 (N) / 05:15 (S)",
+    "horaSalida": "05:00 (N) / 05:15 (S)",
+    "horaRecojoNorte": "05:00",
+    "horaRecojoSur": "05:15",
+    "totalPersonas": 58,
+    "estado": "APROBADO",
+    "observaciones": "Personal de turno mañana para labores de campo",
+    "parcelas": ["57"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T05:30:00.000Z",
+        "detalle": "Requerimiento registrado para el servicio del 2026-09-28 con 58 personas.",
+        "usuario": "Roberto Mendoza Valderrama"
+      },
+      {
+        "accion": "APROBADO",
+        "fecha": "2026-09-28T06:00:00.000Z",
+        "detalle": "Aprobado por jefatura de transporte.",
+        "usuario": "Admin General"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010002-ops-102",
+    "numeroRequerimiento": "REQ-000011",
+    "fecha": "2026-09-28",
+    "fechaRegistro": "2026-09-28T05:45:00.000Z",
+    "usuario": "Carlos Ramos Castillo",
+    "userId": "usr-1790015788736-cram",
+    "userUsername": "cramos",
+    "userRole": "usuario",
+    "area": "COSECHA",
+    "fundo": "MAR VERDE",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "INGRESO",
+    "horaRecojo": "06:00",
+    "horaSalida": "06:00",
+    "totalPersonas": 105,
+    "estado": "APROBADO",
+    "observaciones": "Cuadrilla principal de cosecha de arándano en Mar Verde",
+    "parcelas": ["520"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T05:45:00.000Z",
+        "detalle": "Requerimiento de cosecha registrado para 105 personas.",
+        "usuario": "Carlos Ramos Castillo"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010003-ops-103",
+    "numeroRequerimiento": "REQ-000012",
+    "fecha": "2026-09-28",
+    "fechaRegistro": "2026-09-28T06:00:00.000Z",
+    "usuario": "Marilú Sánchez Cruz",
+    "userId": "usr-1790015788736-msan",
+    "userUsername": "msanchez",
+    "userRole": "usuario",
+    "area": "SANIDAD",
+    "fundo": "GLORIA",
+    "cultivo": "PALTO",
+    "movimiento": "INGRESO",
+    "horaRecojo": "06:30",
+    "horaSalida": "06:30",
+    "totalPersonas": 28,
+    "estado": "PENDIENTE",
+    "observaciones": "Aplicadores y evaluadores sanitarios de campo",
+    "parcelas": ["562"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T06:00:00.000Z",
+        "detalle": "Requerimiento de sanidad registrado para 28 personas.",
+        "usuario": "Marilú Sánchez Cruz"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010004-ops-104",
+    "numeroRequerimiento": "REQ-000013",
+    "fecha": "2026-09-28",
+    "fechaRegistro": "2026-09-28T08:00:00.000Z",
+    "usuario": "Jorge Alva Cárdenas",
+    "userId": "usr-1790015788736-jalv",
+    "userUsername": "jalva",
+    "userRole": "usuario",
+    "area": "PACKING",
+    "fundo": "COMPACTO CHAO",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "SALIDA",
+    "horaRecojo": "13:00",
+    "horaSalida": "13:00",
+    "totalPersonas": 45,
+    "estado": "APROBADO",
+    "observaciones": "Despacho de salida de línea de empaque turno 1",
+    "parcelas": ["57"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T08:00:00.000Z",
+        "detalle": "Requerimiento de salida packing 45 personas.",
+        "usuario": "Jorge Alva Cárdenas"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010005-ops-105",
+    "numeroRequerimiento": "REQ-000014",
+    "fecha": "2026-09-28",
+    "fechaRegistro": "2026-09-28T09:00:00.000Z",
+    "usuario": "Esther Paredes Rodríguez",
+    "userId": "usr-1790015788736-kxw1",
+    "userUsername": "eparedes",
+    "userRole": "usuario",
+    "area": "LAB. ARANDANO",
+    "fundo": "AGRICULTOR 1",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "SALIDA",
+    "horaRecojo": "14:00",
+    "horaSalida": "14:00",
+    "totalPersonas": 14,
+    "estado": "APROBADO",
+    "observaciones": "Salida de personal técnico de laboratorio",
+    "parcelas": ["57"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T09:00:00.000Z",
+        "detalle": "Requerimiento de salida laboratorio 14 personas.",
+        "usuario": "Esther Paredes Rodríguez"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010006-ops-106",
+    "numeroRequerimiento": "REQ-000015",
+    "fecha": "2026-09-28",
+    "fechaRegistro": "2026-09-28T09:30:00.000Z",
+    "usuario": "Daniela Ríos Flores",
+    "userId": "usr-1790015788736-drio",
+    "userUsername": "drios",
+    "userRole": "usuario",
+    "area": "MANTENIMIENTO",
+    "fundo": "TANGUCHE",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "SALIDA",
+    "horaRecojo": "15:00",
+    "horaSalida": "15:00",
+    "totalPersonas": 9,
+    "estado": "APROBADO",
+    "observaciones": "Técnicos electromecánicos de bombeo",
+    "parcelas": ["520"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T09:30:00.000Z",
+        "detalle": "Requerimiento de salida mantenimiento 9 personas.",
+        "usuario": "Daniela Ríos Flores"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010007-ops-107",
+    "numeroRequerimiento": "REQ-000016",
+    "fecha": "2026-09-28",
+    "fechaRegistro": "2026-09-28T10:00:00.000Z",
+    "usuario": "Víctor Hugo Benites",
+    "userId": "usr-1790015788736-vben",
+    "userUsername": "vbenites",
+    "userRole": "usuario",
+    "area": "PRODUCCIÓN",
+    "fundo": "AGRICULTOR 2",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "SALIDA",
+    "horaRecojo": "20:00",
+    "horaSalida": "20:00",
+    "totalPersonas": 48,
+    "estado": "PENDIENTE",
+    "observaciones": "Salida de cuadrilla de campo turno tarde",
+    "parcelas": ["562"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T10:00:00.000Z",
+        "detalle": "Requerimiento de producción salida tarde 48 personas.",
+        "usuario": "Víctor Hugo Benites"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010008-ops-108",
+    "numeroRequerimiento": "REQ-000017",
+    "fecha": "2026-09-29",
+    "fechaRegistro": "2026-09-28T11:00:00.000Z",
+    "usuario": "Roberto Mendoza Valderrama",
+    "userId": "usr-1790015788736-rmen",
+    "userUsername": "rmendoza",
+    "userRole": "usuario",
+    "area": "PRODUCCIÓN",
+    "fundo": "AGRICULTOR 1",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "INGRESO",
+    "horaRecojo": "05:00 (N) / 05:15 (S)",
+    "horaSalida": "05:00 (N) / 05:15 (S)",
+    "horaRecojoNorte": "05:00",
+    "horaRecojoSur": "05:15",
+    "totalPersonas": 60,
+    "estado": "PENDIENTE",
+    "observaciones": "Ingreso programado para labores de poda y desmalezado",
+    "parcelas": ["57"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T11:00:00.000Z",
+        "detalle": "Requerimiento registrado para mañana 60 personas.",
+        "usuario": "Roberto Mendoza Valderrama"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010009-ops-109",
+    "numeroRequerimiento": "REQ-000018",
+    "fecha": "2026-09-29",
+    "fechaRegistro": "2026-09-28T11:30:00.000Z",
+    "usuario": "Carlos Ramos Castillo",
+    "userId": "usr-1790015788736-cram",
+    "userUsername": "cramos",
+    "userRole": "usuario",
+    "area": "COSECHA",
+    "fundo": "MAR VERDE",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "INGRESO",
+    "horaRecojo": "06:00",
+    "horaSalida": "06:00",
+    "totalPersonas": 54,
+    "estado": "PENDIENTE",
+    "observaciones": "Cuadrilla 2 cosecha arándano",
+    "parcelas": ["520"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T11:30:00.000Z",
+        "detalle": "Requerimiento cosecha mañana 54 personas.",
+        "usuario": "Carlos Ramos Castillo"
+      }
+    ]
+  },
+  {
+    "id": "req-1790400010010-ops-110",
+    "numeroRequerimiento": "REQ-000019",
+    "fecha": "2026-09-29",
+    "fechaRegistro": "2026-09-28T12:00:00.000Z",
+    "usuario": "Jorge Alva Cárdenas",
+    "userId": "usr-1790015788736-jalv",
+    "userUsername": "jalva",
+    "userRole": "usuario",
+    "area": "PACKING",
+    "fundo": "COMPACTO CHAO",
+    "cultivo": "ARÁNDANO",
+    "movimiento": "SALIDA",
+    "horaRecojo": "13:00",
+    "horaSalida": "13:00",
+    "totalPersonas": 29,
+    "estado": "PENDIENTE",
+    "observaciones": "Salida packing turno mañana",
+    "parcelas": ["57"],
+    "historialTrazabilidad": [
+      {
+        "accion": "CREADO",
+        "fecha": "2026-09-28T12:00:00.000Z",
+        "detalle": "Requerimiento salida packing 29 personas.",
+        "usuario": "Jorge Alva Cárdenas"
+      }
+    ]
   }
 ];
 
@@ -686,6 +987,336 @@ export const INITIAL_DETALLES: DetalleRequerimiento[] = [
     "comedor": "57",
     "requerimientoId": "req-1790367713768-hfiollx-108",
     "parcela": "57"
+  },
+  {
+    "id": "det-1790400010001-d1",
+    "requerimientoId": "req-1790400010001-ops-101",
+    "numeroRequerimiento": "REQ-000010",
+    "paradero": "VILLA VIRU",
+    "zona": "NORTE",
+    "cantidad": 18,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010001-d2",
+    "requerimientoId": "req-1790400010001-ops-101",
+    "numeroRequerimiento": "REQ-000010",
+    "paradero": "VALDEMAR",
+    "zona": "NORTE",
+    "cantidad": 14,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010001-d3",
+    "requerimientoId": "req-1790400010001-ops-101",
+    "numeroRequerimiento": "REQ-000010",
+    "paradero": "LA PLAZUELA HUACAPONGO",
+    "zona": "NORTE",
+    "cantidad": 14,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010001-d4",
+    "requerimientoId": "req-1790400010001-ops-101",
+    "numeroRequerimiento": "REQ-000010",
+    "paradero": "LA BRASIL",
+    "zona": "NORTE",
+    "cantidad": 12,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010002-d1",
+    "requerimientoId": "req-1790400010002-ops-102",
+    "numeroRequerimiento": "REQ-000011",
+    "paradero": "SEGUNDO PARADERO",
+    "zona": "SUR",
+    "cantidad": 35,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010002-d2",
+    "requerimientoId": "req-1790400010002-ops-102",
+    "numeroRequerimiento": "REQ-000011",
+    "paradero": "PRIMER PARADERO",
+    "zona": "SUR",
+    "cantidad": 28,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010002-d3",
+    "requerimientoId": "req-1790400010002-ops-102",
+    "numeroRequerimiento": "REQ-000011",
+    "paradero": "TERCER PARADERO",
+    "zona": "SUR",
+    "cantidad": 22,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010002-d4",
+    "requerimientoId": "req-1790400010002-ops-102",
+    "numeroRequerimiento": "REQ-000011",
+    "paradero": "VALLE DE DIOS",
+    "zona": "SUR",
+    "cantidad": 20,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010003-d1",
+    "requerimientoId": "req-1790400010003-ops-103",
+    "numeroRequerimiento": "REQ-000012",
+    "paradero": "PUENTE VIRU",
+    "zona": "NORTE",
+    "cantidad": 10,
+    "comedor": "562",
+    "parcela": "562",
+    "cultivo": "PALTO"
+  },
+  {
+    "id": "det-1790400010003-d2",
+    "requerimientoId": "req-1790400010003-ops-103",
+    "numeroRequerimiento": "REQ-000012",
+    "paradero": "SANTA ELENA",
+    "zona": "NORTE",
+    "cantidad": 10,
+    "comedor": "562",
+    "parcela": "562",
+    "cultivo": "PALTO"
+  },
+  {
+    "id": "det-1790400010003-d3",
+    "requerimientoId": "req-1790400010003-ops-103",
+    "numeroRequerimiento": "REQ-000012",
+    "paradero": "BITIN",
+    "zona": "NORTE",
+    "cantidad": 8,
+    "comedor": "562",
+    "parcela": "562",
+    "cultivo": "PALTO"
+  },
+  {
+    "id": "det-1790400010004-d1",
+    "requerimientoId": "req-1790400010004-ops-104",
+    "numeroRequerimiento": "REQ-000013",
+    "paradero": "CHAO CENTRO",
+    "zona": "SUR",
+    "cantidad": 16,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010004-d2",
+    "requerimientoId": "req-1790400010004-ops-104",
+    "numeroRequerimiento": "REQ-000013",
+    "paradero": "BUENAVISTA",
+    "zona": "SUR",
+    "cantidad": 15,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010004-d3",
+    "requerimientoId": "req-1790400010004-ops-104",
+    "numeroRequerimiento": "REQ-000013",
+    "paradero": "SAN JOSE",
+    "zona": "SUR",
+    "cantidad": 14,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010005-d1",
+    "requerimientoId": "req-1790400010005-ops-105",
+    "numeroRequerimiento": "REQ-000014",
+    "paradero": "CARMELO",
+    "zona": "NORTE",
+    "cantidad": 6,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010005-d2",
+    "requerimientoId": "req-1790400010005-ops-105",
+    "numeroRequerimiento": "REQ-000014",
+    "paradero": "CALIFORNIA",
+    "zona": "NORTE",
+    "cantidad": 8,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010006-d1",
+    "requerimientoId": "req-1790400010006-ops-106",
+    "numeroRequerimiento": "REQ-000015",
+    "paradero": "LAS DELICIAS",
+    "zona": "SUR",
+    "cantidad": 5,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010006-d2",
+    "requerimientoId": "req-1790400010006-ops-106",
+    "numeroRequerimiento": "REQ-000015",
+    "paradero": "NUEVO CHAO",
+    "zona": "SUR",
+    "cantidad": 4,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010007-d1",
+    "requerimientoId": "req-1790400010007-ops-107",
+    "numeroRequerimiento": "REQ-000016",
+    "paradero": "V. RAUL VIRU",
+    "zona": "NORTE",
+    "cantidad": 20,
+    "comedor": "562",
+    "parcela": "562",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010007-d2",
+    "requerimientoId": "req-1790400010007-ops-107",
+    "numeroRequerimiento": "REQ-000016",
+    "paradero": "EL NIÑO",
+    "zona": "NORTE",
+    "cantidad": 16,
+    "comedor": "562",
+    "parcela": "562",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010007-d3",
+    "requerimientoId": "req-1790400010007-ops-107",
+    "numeroRequerimiento": "REQ-000016",
+    "paradero": "TOMAVAL",
+    "zona": "NORTE",
+    "cantidad": 12,
+    "comedor": "562",
+    "parcela": "562",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010008-d1",
+    "requerimientoId": "req-1790400010008-ops-108",
+    "numeroRequerimiento": "REQ-000017",
+    "paradero": "VILLA VIRU",
+    "zona": "NORTE",
+    "cantidad": 20,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010008-d2",
+    "requerimientoId": "req-1790400010008-ops-108",
+    "numeroRequerimiento": "REQ-000017",
+    "paradero": "VALDEMAR",
+    "zona": "NORTE",
+    "cantidad": 15,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010008-d3",
+    "requerimientoId": "req-1790400010008-ops-108",
+    "numeroRequerimiento": "REQ-000017",
+    "paradero": "LA BRASIL",
+    "zona": "NORTE",
+    "cantidad": 15,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010008-d4",
+    "requerimientoId": "req-1790400010008-ops-108",
+    "numeroRequerimiento": "REQ-000017",
+    "paradero": "PUENTE VIRU",
+    "zona": "NORTE",
+    "cantidad": 10,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010009-d1",
+    "requerimientoId": "req-1790400010009-ops-109",
+    "numeroRequerimiento": "REQ-000018",
+    "paradero": "SEGUNDO PARADERO",
+    "zona": "SUR",
+    "cantidad": 24,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010009-d2",
+    "requerimientoId": "req-1790400010009-ops-109",
+    "numeroRequerimiento": "REQ-000018",
+    "paradero": "PRIMER PARADERO",
+    "zona": "SUR",
+    "cantidad": 16,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010009-d3",
+    "requerimientoId": "req-1790400010009-ops-109",
+    "numeroRequerimiento": "REQ-000018",
+    "paradero": "VALLE DE DIOS",
+    "zona": "SUR",
+    "cantidad": 14,
+    "comedor": "520",
+    "parcela": "520",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010010-d1",
+    "requerimientoId": "req-1790400010010-ops-110",
+    "numeroRequerimiento": "REQ-000019",
+    "paradero": "CHAO CENTRO",
+    "zona": "SUR",
+    "cantidad": 15,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
+  },
+  {
+    "id": "det-1790400010010-d2",
+    "requerimientoId": "req-1790400010010-ops-110",
+    "numeroRequerimiento": "REQ-000019",
+    "paradero": "SAN JOSE",
+    "zona": "SUR",
+    "cantidad": 14,
+    "comedor": "57",
+    "parcela": "57",
+    "cultivo": "ARÁNDANO"
   }
 ];
 

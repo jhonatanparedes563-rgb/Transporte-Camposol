@@ -19,12 +19,14 @@ import {
   Compass,
   Upload,
   FileSpreadsheet,
+  Bus,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
   MaestroArea,
   MaestroFundo,
   MaestroParadero,
+  MaestroUnidadBus,
 } from '../types';
 import {
   getStoredAreas,
@@ -33,12 +35,14 @@ import {
   saveStoredFundos,
   getStoredParaderos,
   saveStoredParaderos,
+  getStoredUnidadesBus,
+  saveStoredUnidadesBus,
   resetMasterDataToDefault,
   exportToCSV,
   inferParaderoZona,
 } from '../services/storageService';
 
-type MasterCategory = 'paraderos' | 'fundos' | 'areas';
+type MasterCategory = 'paraderos' | 'fundos' | 'areas' | 'buses';
 
 interface MasterDataManagementScreenProps {
   onBack: () => void;
@@ -72,6 +76,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   const [paraderos, setParaderos] = useState<MaestroParadero[]>([]);
   const [fundos, setFundos] = useState<MaestroFundo[]>([]);
   const [areas, setAreas] = useState<MaestroArea[]>([]);
+  const [unidades, setUnidades] = useState<MaestroUnidadBus[]>([]);
 
   // Excel Import state
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -83,6 +88,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   // Creation state
   const [newItemName, setNewItemName] = useState('');
   const [newParaderoZona, setNewParaderoZona] = useState<'NORTE' | 'SUR'>('NORTE');
+  const [newUnidadCapacidad, setNewUnidadCapacidad] = useState<number>(40);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Filter for Paraderos: 'TODOS' | 'NORTE' | 'SUR'
@@ -92,6 +98,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingZona, setEditingZona] = useState<'NORTE' | 'SUR'>('NORTE');
+  const [editingCapacidad, setEditingCapacidad] = useState<number>(40);
 
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -109,6 +116,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     setParaderos(getStoredParaderos());
     setFundos(getStoredFundos());
     setAreas(getStoredAreas());
+    setUnidades(getStoredUnidadesBus());
   };
 
   const showNotification = (msg: string) => {
@@ -154,6 +162,18 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     return q ? areas.filter((a) => a.area.toLowerCase().includes(q)) : areas;
   }, [areas, searchQuery]);
 
+  const filteredBuses = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return q
+      ? unidades.filter(
+          (u) =>
+            u.nombre.toLowerCase().includes(q) ||
+            u.capacidad.toString().includes(q) ||
+            (u.descripcion && u.descripcion.toLowerCase().includes(q))
+        )
+      : unidades;
+  }, [unidades, searchQuery]);
+
   // Tab configurations (Comedores removed)
   const tabsConfig = [
     {
@@ -179,6 +199,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       icon: Briefcase,
       count: areas.length,
       placeholder: 'Ej. Cosecha Palto, Mantenimiento...',
+    },
+    {
+      id: 'buses' as MasterCategory,
+      label: 'Flota Buses',
+      singular: 'Unidad de Bus',
+      icon: Bus,
+      count: unidades.length,
+      placeholder: 'Ej. 2 PISOS, BUS LARGE, MINIBUS...',
     },
   ];
 
@@ -223,6 +251,26 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       setAreas(updated);
       saveStoredAreas(updated);
       showNotification(`Área "${cleanName}" agregada con éxito`);
+    } else if (activeTab === 'buses') {
+      if (unidades.some((u) => u.nombre.toLowerCase() === cleanName.toLowerCase())) {
+        setFormError('Ya existe una unidad con este nombre.');
+        return;
+      }
+      const cap = Number(newUnidadCapacidad) || 40;
+      const updated = [
+        ...unidades,
+        {
+          id: newId,
+          nombre: cleanName.toUpperCase(),
+          capacidad: cap,
+          descripcion: `Unidad de transporte (${cap} pax)`,
+          activo: true,
+        },
+      ];
+      setUnidades(updated);
+      saveStoredUnidadesBus(updated);
+      showNotification(`Unidad "${cleanName.toUpperCase()}" (${cap} pax) agregada`);
+      setNewUnidadCapacidad(40);
     }
 
     setNewItemName('');
@@ -276,11 +324,25 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       const updated = areas.map((a) => (a.id === id ? { ...a, area: cleanName } : a));
       setAreas(updated);
       saveStoredAreas(updated);
+    } else if (activeTab === 'buses') {
+      const cap = Number(editingCapacidad) || 40;
+      const updated = unidades.map((u) =>
+        u.id === id ? { ...u, nombre: cleanName.toUpperCase(), capacidad: cap, descripcion: `Capacidad ${cap} pax` } : u
+      );
+      setUnidades(updated);
+      saveStoredUnidadesBus(updated);
     }
 
     showNotification(`${currentTabInfo.singular} actualizado`);
     setEditingId(null);
     setEditingName('');
+  };
+
+  const handleToggleUnidadActivo = (id: string) => {
+    const updated = unidades.map((u) => (u.id === id ? { ...u, activo: !u.activo } : u));
+    setUnidades(updated);
+    saveStoredUnidadesBus(updated);
+    showNotification('Estado de unidad actualizado');
   };
 
   // Trigger Delete confirmation
@@ -300,6 +362,10 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       const updated = areas.filter((a) => a.id !== id);
       setAreas(updated);
       saveStoredAreas(updated);
+    } else if (activeTab === 'buses') {
+      const updated = unidades.filter((u) => u.id !== id);
+      setUnidades(updated);
+      saveStoredUnidadesBus(updated);
     }
 
     showNotification(`Eliminado: "${name}"`);
@@ -312,6 +378,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     setParaderos(res.paraderos);
     setFundos(res.fundos);
     setAreas(res.areas);
+    if (res.unidadesBus) setUnidades(res.unidadesBus);
     setShowResetConfirm(false);
     showNotification('Maestros restablecidos a los valores por defecto');
   };
@@ -869,8 +936,8 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               </div>
             </div>
 
-            {/* Quick KPI Count Summary - 3 items */}
-            <div className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-gray-100">
+            {/* Quick KPI Count Summary - 4 items */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5 pt-4 border-t border-gray-100">
               {tabsConfig.map((t) => {
                 const Icon = t.icon;
                 const isCurrent = activeTab === t.id;
@@ -948,6 +1015,24 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   <span>Agregar</span>
                 </button>
               </div>
+
+              {/* Capacidad selector when adding a new Bus */}
+              {activeTab === 'buses' && (
+                <div className="flex items-center justify-between bg-[#F5F8F7] px-3 py-2 rounded-xl border border-gray-200/80">
+                  <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                    <Bus className="w-3.5 h-3.5 text-[#00843D]" />
+                    <span>Capacidad (Pasajeros):</span>
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={newUnidadCapacidad}
+                    onChange={(e) => setNewUnidadCapacidad(Number(e.target.value) || 0)}
+                    className="w-24 p-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-[#173B56] text-right focus:outline-none focus:ring-1 focus:ring-[#00843D]"
+                  />
+                </div>
+              )}
 
               {/* Zona selector when adding a new Paradero */}
               {activeTab === 'paraderos' && (
@@ -1243,6 +1328,125 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     onDelete={() => setItemToDelete({ id: item.id, name: item.area })}
                   />
                 ))
+              ))}
+
+            {/* BUSES LIST */}
+            {activeTab === 'buses' &&
+              (filteredBuses.length === 0 ? (
+                <div className="sm:col-span-2">
+                  <EmptyMasterState
+                    searchQuery={searchQuery}
+                    onClearSearch={() => setSearchQuery('')}
+                    singular={currentTabInfo.singular}
+                  />
+                </div>
+              ) : (
+                filteredBuses.map((item, index) => {
+                  const isEditing = editingId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      className="bg-white rounded-2xl p-3 border border-gray-200/80 shadow-xs flex items-center justify-between gap-3 hover:border-[#00843D]/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="w-7 h-7 rounded-lg bg-[#E8F5EF] text-[#00843D] text-xs font-black flex items-center justify-center shrink-0">
+                          {index + 1}
+                        </span>
+
+                        {isEditing ? (
+                          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                            <input
+                              type="text"
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              autoFocus
+                              placeholder="Nombre de unidad..."
+                              className="flex-1 min-w-[120px] px-2.5 py-1.5 rounded-lg border border-[#00843D] text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#00843D]"
+                            />
+                            <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
+                              <span className="text-[10px] text-gray-500 font-bold">Cap:</span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={editingCapacidad}
+                                onChange={(e) => setEditingCapacidad(Number(e.target.value) || 0)}
+                                className="w-14 text-xs font-bold text-right bg-white border border-gray-300 rounded px-1"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => saveEditing(item.id)}
+                                className="p-1.5 bg-[#00843D] text-white rounded-lg hover:bg-[#006e33] transition-colors cursor-pointer"
+                                title="Guardar cambios"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                className="p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                                title="Cancelar"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2 pr-1">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-black text-[#173B56]">
+                                  {item.nombre}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-[#00843D]/30 text-[10px] font-black text-[#00843D]">
+                                  {item.capacidad} PAX
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+                                {item.descripcion || `Capacidad ${item.capacidad} pasajeros`}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleUnidadActivo(item.id)}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-black transition-all cursor-pointer ${
+                                item.activo
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}
+                              title={item.activo ? 'Unidad activa para optimización' : 'Unidad inactiva'}
+                            >
+                              {item.activo ? 'ACTIVO' : 'INACTIVO'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {!isEditing && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => {
+                              startEditing(item.id, item.nombre);
+                              setEditingCapacidad(item.capacidad);
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-[#00843D] hover:bg-[#E8F5EF] rounded-lg transition-colors cursor-pointer"
+                            title="Editar nombre y capacidad"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setItemToDelete({ id: item.id, name: item.nombre })}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Eliminar unidad"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               ))}
           </div>
         </div>

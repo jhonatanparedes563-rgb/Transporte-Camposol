@@ -43,6 +43,8 @@ import {
   ExternalLink,
   History,
   RotateCcw,
+  Sparkles,
+  Globe,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, UserRole, AppUser } from '../types';
 import {
@@ -61,6 +63,7 @@ import { consolidarParaderos, exportarRequerimientoIndividualExcel } from '../se
 import { getHorarioDisplay } from '../data/masterData';
 import { MasterDataManagementScreen } from './MasterDataManagementScreen';
 import { PowerBIAnalyticsView } from './PowerBIAnalyticsView';
+import { TripOptimizationScreen } from './TripOptimizationScreen';
 import { NewRequirementWizard } from './NewRequirementWizard';
 import { UserManagementScreen } from './UserManagementScreen';
 import { SupervisorParaderosModal } from './SupervisorParaderosModal';
@@ -82,7 +85,7 @@ interface AdminPortalLayoutProps {
   onOpenRoleSwitcher?: () => void;
 }
 
-type AdminSection = 'procesos' | 'historial' | 'maestros' | 'reportes' | 'base-datos' | 'nuevo' | 'usuarios';
+type AdminSection = 'procesos' | 'historial' | 'optimizacion' | 'maestros' | 'reportes' | 'base-datos' | 'nuevo' | 'usuarios';
 
 // Helper date functions for daily operational filtering (YYYY-MM-DD)
 const getTodayStr = (): string => {
@@ -763,6 +766,28 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               )}
             </button>
 
+            {/* 1.2 Optimización de Flota y Viajes */}
+            <button
+              id="menu-optimizacion-flota"
+              onClick={() => setCurrentSection('optimizacion')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                currentSection === 'optimizacion'
+                  ? 'bg-[#E8F5EF] text-[#00843D] font-black'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+              }`}
+              title="Optimización de viajes y asignación inteligente de flota"
+            >
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 shrink-0 text-[#00843D]" />
+                {!sidebarCollapsed && <span>Optimizar Viajes</span>}
+              </div>
+              {!sidebarCollapsed && (
+                <span className="px-2 py-0.5 text-[9px] font-black bg-emerald-100 text-[#00843D] rounded-full uppercase">
+                  Flota
+                </span>
+              )}
+            </button>
+
             {/* 2. Datos Maestros (Solo Administrador) */}
             {userRole === 'admin' && (
               <button
@@ -865,6 +890,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             <h1 className="text-xl font-black text-[#173B56] tracking-tight">
               {currentSection === 'procesos' && 'Procesos / Recepción de Requerimientos'}
               {currentSection === 'historial' && 'Historial & Trazabilidad / Auditoría de Requerimientos'}
+              {currentSection === 'optimizacion' && 'Optimización de Flota y Programación de Viajes'}
               {currentSection === 'maestros' && 'Datos Maestros / Catálogos Operativos'}
               {currentSection === 'reportes' && 'Reportes & Exportaciones Power BI'}
               {currentSection === 'base-datos' && 'Base de Datos Local & Respaldos'}
@@ -1316,6 +1342,17 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 requerimientos={requerimientos}
                 onBack={() => setCurrentSection('procesos')}
                 onRefreshParent={onRefreshData}
+              />
+            </div>
+          )}
+
+          {/* Sub-view: Optimización de Viajes y Programación de Flota */}
+          {currentSection === 'optimizacion' && (
+            <div>
+              <TripOptimizationScreen
+                requerimientos={requerimientos}
+                detalles={getStoredDetalles()}
+                onBack={() => setCurrentSection('procesos')}
               />
             </div>
           )}

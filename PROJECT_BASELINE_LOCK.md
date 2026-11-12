@@ -45,8 +45,14 @@ Cualquier agente, desarrollador o proceso debe seguir obligatoriamente estas reg
 - **Mis Solicitudes**: Listado filtrado exclusivamente a los requerimientos del usuario solicitante, con estado en tiempo real (Pendiente, Aprobado, Atendido, Rechazado).
 
 ### 4. Mantenimiento de Maestros y Usuarios
-- **Maestros (`MasterDataManagementScreen.tsx`)**: Paraderos con georreferenciación y zona (SUR/NORTE), Fundos, Áreas y Comedores.
+- **Maestros (`MasterDataManagementScreen.tsx`)**: Paraderos con georreferenciación y zona (SUR/NORTE), Fundos, Áreas y Flota de Buses (2 Pisos 60p, Bus Large 55p, Bus 49p, Minibús 30p, Combi 15p, Mini Van 10p).
 - **Usuarios (`UserManagementScreen.tsx`)**: Control de accesos por roles (`admin`, `receptor`, `usuario`), credenciales operativas y restablecimiento seguro.
+
+### 5. Optimización de Flota y Programación de Viajes (`TripOptimizationScreen.tsx` / `tripOptimizationService.ts`)
+- **Algoritmo de Asignación Óptima**: Selecciona la combinación exacta de unidades (2 Pisos, Bus Large, Bus, Minibús, Combi, Mini Van) para cubrir el 100% de los pasajeros minimizando asientos ociosos.
+- **Rutas y Recorridos**: Respeta las zonas SUR (Ruta Chao) y NORTE (Ruta Virú) y la secuencia física ordenada de los paraderos.
+- **Consolidación de Fundos**: Switch para agrupar fundos compatibles o mantener fundos exclusivos.
+- **Despacho y Hojas de Ruta**: Asignación de placas, conductores, desglose de paraderos y exportación completa a Excel.
 
 ---
 

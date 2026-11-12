@@ -14,9 +14,13 @@ import { getStoredRequerimientos, subscribeToDataChanges } from './services/stor
 import { getCurrentSession, logoutSession, restoreMainAdminUser } from './services/authService';
 
 export default function App() {
-  // Authentication State: Si no hay sesión activa, el usuario debe autenticarse en LoginScreen
+  // Authentication State: Inicializar como Administrador para ingreso directo al portal administrativo
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
-    return getCurrentSession();
+    const session = getCurrentSession();
+    if (session && (session.rol === 'admin' || session.rol === 'receptor')) {
+      return session;
+    }
+    return restoreMainAdminUser();
   });
 
   const [currentScreen, setCurrentScreen] = useState<'home' | 'new-request' | 'my-requests'>('home');
