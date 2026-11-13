@@ -43,7 +43,6 @@ import {
   ExternalLink,
   History,
   RotateCcw,
-  Sparkles,
   Globe,
   CalendarCheck2,
 } from 'lucide-react';
@@ -64,7 +63,6 @@ import { consolidarParaderos, exportarRequerimientoIndividualExcel } from '../se
 import { getHorarioDisplay } from '../data/masterData';
 import { MasterDataManagementScreen } from './MasterDataManagementScreen';
 import { PowerBIAnalyticsView } from './PowerBIAnalyticsView';
-import { TripOptimizationScreen } from './TripOptimizationScreen';
 import { ScheduleGeneratorScreen } from './ScheduleGeneratorScreen';
 import { NewRequirementWizard } from './NewRequirementWizard';
 import { UserManagementScreen } from './UserManagementScreen';
@@ -87,7 +85,7 @@ interface AdminPortalLayoutProps {
   onOpenRoleSwitcher?: () => void;
 }
 
-type AdminSection = 'procesos' | 'historial' | 'generador' | 'optimizacion' | 'maestros' | 'reportes' | 'base-datos' | 'nuevo' | 'usuarios';
+type AdminSection = 'procesos' | 'historial' | 'generador' | 'maestros' | 'reportes' | 'base-datos' | 'nuevo' | 'usuarios';
 
 // Helper date functions for daily operational filtering (YYYY-MM-DD)
 const getTodayStr = (): string => {
@@ -750,19 +748,19 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             <button
               id="menu-historial-trazabilidad"
               onClick={() => setCurrentSection('historial')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-left ${
                 currentSection === 'historial'
                   ? 'bg-[#E8F5EF] text-[#00843D] font-black'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
               }`}
               title="Historial de Requerimientos & Auditoría de Anulaciones"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <History className="w-5 h-5 shrink-0" />
-                {!sidebarCollapsed && <span>Historial & Trazabilidad</span>}
+                {!sidebarCollapsed && <span className="whitespace-nowrap">Historial</span>}
               </div>
               {!sidebarCollapsed && totalAnuladosCount > 0 && (
-                <span className="px-2 py-0.5 text-[10px] font-black bg-rose-100 text-rose-800 rounded-full">
+                <span className="px-2 py-0.5 text-[10px] font-black bg-rose-100 text-rose-800 rounded-full shrink-0">
                   {totalAnuladosCount}
                 </span>
               )}
@@ -772,42 +770,20 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             <button
               id="menu-generador-programacion"
               onClick={() => setCurrentSection('generador')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-left ${
                 currentSection === 'generador'
                   ? 'bg-[#E8F5EF] text-[#00843D] font-black'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
               }`}
               title="Generador de programación por paraderos y zonas"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <CalendarCheck2 className="w-5 h-5 shrink-0 text-[#176b45]" />
-                {!sidebarCollapsed && <span>Generar programación</span>}
+                {!sidebarCollapsed && <span className="whitespace-nowrap">Programación</span>}
               </div>
               {!sidebarCollapsed && (
-                <span className="px-2 py-0.5 text-[9px] font-black bg-[#eaf5ee] text-[#176b45] rounded-full uppercase">
+                <span className="px-2 py-0.5 text-[9px] font-black bg-[#eaf5ee] text-[#176b45] rounded-full uppercase shrink-0">
                   TDP
-                </span>
-              )}
-            </button>
-
-            {/* 1.3 Optimización de Flota y Viajes */}
-            <button
-              id="menu-optimizacion-flota"
-              onClick={() => setCurrentSection('optimizacion')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
-                currentSection === 'optimizacion'
-                  ? 'bg-[#E8F5EF] text-[#00843D] font-black'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
-              }`}
-              title="Optimización de viajes y asignación inteligente de flota"
-            >
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-5 h-5 shrink-0 text-[#00843D]" />
-                {!sidebarCollapsed && <span>Optimizar Viajes</span>}
-              </div>
-              {!sidebarCollapsed && (
-                <span className="px-2 py-0.5 text-[9px] font-black bg-emerald-100 text-[#00843D] rounded-full uppercase">
-                  Flota
                 </span>
               )}
             </button>
@@ -915,7 +891,6 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               {currentSection === 'procesos' && 'Procesos / Recepción de Requerimientos'}
               {currentSection === 'historial' && 'Historial & Trazabilidad / Auditoría de Requerimientos'}
               {currentSection === 'generador' && 'Operaciones / Generador de Programación'}
-              {currentSection === 'optimizacion' && 'Optimización de Flota y Programación de Viajes'}
               {currentSection === 'maestros' && 'Datos Maestros / Catálogos Operativos'}
               {currentSection === 'reportes' && 'Reportes & Exportaciones Power BI'}
               {currentSection === 'base-datos' && 'Base de Datos Local & Respaldos'}
@@ -1378,17 +1353,6 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 requerimientos={requerimientos}
                 onRefreshData={onRefreshData}
                 currentUser={currentUser}
-              />
-            </div>
-          )}
-
-          {/* Sub-view: Optimización de Viajes y Programación de Flota */}
-          {currentSection === 'optimizacion' && (
-            <div>
-              <TripOptimizationScreen
-                requerimientos={requerimientos}
-                detalles={getStoredDetalles()}
-                onBack={() => setCurrentSection('procesos')}
               />
             </div>
           )}
