@@ -340,7 +340,7 @@ export function optimizarViajes(
       const planPasajeros = Math.min(unidad.capacidad, remanentePasajerosGrupo);
       remanentePasajerosGrupo = Math.max(0, remanentePasajerosGrupo - planPasajeros);
       const ocupacion = unidad.capacidad > 0 ? Math.round((planPasajeros / unidad.capacidad) * 100) : 0;
-      const viajeFecha = grupo.fecha || (fecha !== 'TODOS' ? fecha : '2026-09-28');
+      const viajeFecha = grupo.fecha || (fecha !== 'TODOS' ? fecha : new Date().toISOString().slice(0, 10));
       const viajeSemana = getWeekNumber(viajeFecha);
 
       const nuevoViaje: ViajeProgramado = {
@@ -428,9 +428,9 @@ export function exportarPlanViajesExcel(programacion: ProgramacionViajesDia): vo
     'N° Servicio': v.servicioNumero || 1,
     'FYP': v.fyp || 'CAMPO',
     'FUNDO': v.fundo,
-    'PROVEEDOR': v.proveedor || 'Ecobus',
+    'PROVEEDOR': v.proveedor || 'Por asignar',
     'MOVIL': v.movil || v.unidad.nombre,
-    'PLACA': v.placa || '-',
+    'PLACA': v.placa || 'Por asignar',
     'DNI': v.dni || '-',
     'CONDUCTOR': v.conductor || v.chofer || 'Por asignar',
     'TIPO': v.tipo || (v.movimiento === 'INGRESO' ? 'ING' : 'SAL'),
@@ -439,14 +439,14 @@ export function exportarPlanViajesExcel(programacion: ProgramacionViajesDia): vo
     'ORIGEN': v.origen || 'CAMPO',
     'DESTINO': v.destino || v.recorridoParaderos.map((p) => p.paradero).join(', '),
     'PLAN': v.plan || v.totalPasajeros,
-    'Sayta': v.sayta || '2579',
-    'PARADERO INICIAL': v.paraderoInicial || 'V. RAUL, VIRU',
+    'Sayta': v.sayta || '-',
+    'PARADERO INICIAL': v.paraderoInicial || '-',
     '% Ocupabilidad': `${v.porcentajeOcupacion}%`,
     'Hora (Sayta)': v.horaSayta || v.hora || v.turno,
     'Obs. (Sayta)': v.obsSayta || `${v.servicioNumero || 1}-${v.area}`,
     'Cap. (Sayta)': v.capSayta || v.capacidadUnidad,
-    'ENCARGADO': v.encargado || 'SUPERVISOR',
-    'SUPERVISOR': v.supervisor || 'JSANCHEZ',
+    'ENCARGADO': v.encargado || '-',
+    'SUPERVISOR': v.supervisor || '-',
     'OBSERVACIONES': v.observaciones || '',
     'TURNO': v.turnoText || 'TARDE',
   }));

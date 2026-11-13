@@ -11,15 +11,11 @@ import {
   AppUser,
 } from '../types';
 import {
-  INITIAL_REQUERIMIENTOS,
-  INITIAL_DETALLES,
   MAESTRO_AREAS,
   MAESTRO_FUNDOS,
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
   MAESTRO_UNIDADES_BUS,
-  normalizeParaderoKey,
-  getParaderoOrderIndex,
 } from '../data/masterData';
 import {
   initializeFirestoreSync,
@@ -161,6 +157,10 @@ if (typeof window !== 'undefined') {
       localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(payload.comedores));
       changed = true;
     }
+    if (payload.unidadesBus && Array.isArray(payload.unidadesBus)) {
+      localStorage.setItem(UNIDADES_BUS_STORAGE_KEY, JSON.stringify(payload.unidadesBus));
+      changed = true;
+    }
     if (changed) {
       isOnline = true;
       lastSyncDate = new Date();
@@ -298,24 +298,22 @@ export function getStoredRequerimientos(): Requerimiento[] {
   try {
     const raw = localStorage.getItem(REQ_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(INITIAL_REQUERIMIENTOS));
-      return INITIAL_REQUERIMIENTOS;
+      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([]));
+      return [];
     }
     const parsed: Requerimiento[] = JSON.parse(raw);
-    // Filtrar cualquier requerimiento demo/mock residual para garantizar 100% datos reales
-    const cleaned = parsed.filter((r) => !r.id.startsWith('req-uuid-'));
-    // Incorporar requerimientos operativos oficiales de Procesos faltantes preservando los históricos del usuario
-    const existingNums = new Set(cleaned.map((r) => r.numeroRequerimiento));
-    const faltantes = INITIAL_REQUERIMIENTOS.filter((r) => !existingNums.has(r.numeroRequerimiento));
-    if (faltantes.length > 0 || cleaned.length !== parsed.length) {
-      const finalReqs = [...cleaned, ...faltantes];
-      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(finalReqs));
-      return finalReqs;
+    if (!Array.isArray(parsed)) return [];
+    // Filtrar únicamente registros demo/mock residuales preservando 100% los datos reales históricos y de Firestore
+    const cleaned = parsed.filter(
+      (r) => !r.id?.startsWith('req-uuid-') && !/-ops-1\d\d$/.test(r.id || '')
+    );
+    if (cleaned.length !== parsed.length) {
+      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(cleaned));
     }
-    return parsed;
+    return cleaned;
   } catch (err) {
     console.error('Error loading requerimientos:', err);
-    return INITIAL_REQUERIMIENTOS;
+    return [];
   }
 }
 
@@ -323,26 +321,27 @@ export function getStoredDetalles(): DetalleRequerimiento[] {
   try {
     const raw = localStorage.getItem(DET_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(INITIAL_DETALLES));
-      return INITIAL_DETALLES;
+      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([]));
+      return [];
     }
     const parsed: DetalleRequerimiento[] = JSON.parse(raw);
-    // Filtrar cualquier detalle demo/mock residual
+    if (!Array.isArray(parsed)) return [];
+    // Filtrar únicamente detalles demo/mock residuales preservando 100% los detalles reales
     const cleaned = parsed.filter(
-      (d) => !d.id.startsWith('det-001-') && !d.id.startsWith('det-002-') && !d.id.startsWith('det-003-')
+      (d) =>
+        !d.id?.startsWith('det-001-') &&
+        !d.id?.startsWith('det-002-') &&
+        !d.id?.startsWith('det-003-') &&
+        !d.id?.startsWith('det-179040001') &&
+        !/-ops-1\d\d$/.test(d.requerimientoId || '')
     );
-    // Incorporar detalles de paraderos oficiales de Procesos faltantes sin sobreescribir históricos
-    const existingDetIds = new Set(cleaned.map((d) => d.id));
-    const faltantes = INITIAL_DETALLES.filter((d) => !existingDetIds.has(d.id));
-    if (faltantes.length > 0 || cleaned.length !== parsed.length) {
-      const finalDets = [...cleaned, ...faltantes];
-      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(finalDets));
-      return finalDets;
+    if (cleaned.length !== parsed.length) {
+      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(cleaned));
     }
-    return parsed;
+    return cleaned;
   } catch (err) {
     console.error('Error loading detalles:', err);
-    return INITIAL_DETALLES;
+    return [];
   }
 }
 
@@ -805,13 +804,11 @@ export function deleteBatchRequerimientos(ids: string[]): number {
   return deletedCount;
 }
 
-// Reset data to initial state for testing
+// Reset data to clean empty state (no demo data)
 export function resetDataToDefault(): void {
-  localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(INITIAL_REQUERIMIENTOS));
-  localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(INITIAL_DETALLES));
+  localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([]));
+  localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([]));
   broadcastLocalChange();
-
-  fetch('/api/data/reset-demo', { method: 'POST' }).catch(() => {});
 }
 
 // -------------------------------------------------------------
@@ -1010,6 +1007,9 @@ export function getStoredUnidadesBus(): MaestroUnidadBus[] {
 export function saveStoredUnidadesBus(unidades: MaestroUnidadBus[]): void {
   localStorage.setItem(UNIDADES_BUS_STORAGE_KEY, JSON.stringify(unidades));
   broadcastLocalChange();
+  firestoreSaveMasterData({ unidadesBus: unidades }).catch((err) => {
+    console.warn('[Firestore] Error guardando flota de buses:', err);
+  });
 }
 
 export function getStoredProgramacionesViajes(): ProgramacionViajesDia[] {

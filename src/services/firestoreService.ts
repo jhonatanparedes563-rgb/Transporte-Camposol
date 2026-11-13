@@ -18,10 +18,9 @@ import {
   MaestroFundo,
   MaestroParadero,
   MaestroComedor,
+  MaestroUnidadBus,
 } from '../types';
 import {
-  INITIAL_REQUERIMIENTOS,
-  INITIAL_DETALLES,
   MAESTRO_AREAS,
   MAESTRO_FUNDOS,
   MAESTRO_PARADEROS,
@@ -72,6 +71,7 @@ type OnDataUpdate = (data: {
   fundos?: MaestroFundo[];
   paraderos?: MaestroParadero[];
   comedores?: MaestroComedor[];
+  unidadesBus?: MaestroUnidadBus[];
 }) => void;
 
 let updateCallback: OnDataUpdate | null = null;
@@ -84,6 +84,7 @@ let pendingUpdates: {
   fundos?: MaestroFundo[];
   paraderos?: MaestroParadero[];
   comedores?: MaestroComedor[];
+  unidadesBus?: MaestroUnidadBus[];
 } = {};
 
 let updateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -121,15 +122,17 @@ export async function initializeFirestoreSync(): Promise<void> {
     const unsubReq = onSnapshot(
       reqCol,
       (snapshot) => {
-        if (!snapshot.empty) {
+        if (!snapshot.empty || !snapshot.metadata.fromCache) {
           const reqs: Requerimiento[] = [];
           snapshot.forEach((d) => {
             const r = d.data() as Requerimiento;
-            if (!r.id?.startsWith('req-uuid-')) {
+            const isLegacyDemo =
+              r.id?.startsWith('req-uuid-') || /-ops-1\d\d$/.test(r.id || '');
+            if (!isLegacyDemo) {
               reqs.push(r);
             }
           });
-          // Ordenar por fecha o número descendente
+          // Ordenar por fecha de registro descendente
           reqs.sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
           scheduleDebouncedUpdate({ requerimientos: reqs });
         }
@@ -145,15 +148,17 @@ export async function initializeFirestoreSync(): Promise<void> {
     const unsubDet = onSnapshot(
       detCol,
       (snapshot) => {
-        if (!snapshot.empty) {
+        if (!snapshot.empty || !snapshot.metadata.fromCache) {
           const dets: DetalleRequerimiento[] = [];
           snapshot.forEach((d) => {
             const det = d.data() as DetalleRequerimiento;
-            if (
-              !det.id?.startsWith('det-001-') &&
-              !det.id?.startsWith('det-002-') &&
-              !det.id?.startsWith('det-003-')
-            ) {
+            const isLegacyDemo =
+              det.id?.startsWith('det-001-') ||
+              det.id?.startsWith('det-002-') ||
+              det.id?.startsWith('det-003-') ||
+              det.id?.startsWith('det-179040001') ||
+              /-ops-1\d\d$/.test(det.requerimientoId || '');
+            if (!isLegacyDemo) {
               dets.push(det);
             }
           });
@@ -199,6 +204,9 @@ export async function initializeFirestoreSync(): Promise<void> {
             fundos: data.fundos,
             paraderos: data.paraderos,
             comedores: data.comedores,
+            ...(Array.isArray(data.unidadesBus) && data.unidadesBus.length > 0
+              ? { unidadesBus: data.unidadesBus }
+              : {}),
           });
         } else {
           seedInitialMasterData();
@@ -217,35 +225,8 @@ export async function initializeFirestoreSync(): Promise<void> {
 }
 
 // ----------------------------------------------------------------------
-// FUNCIONES DE SIEMBRA INICIAL (SEED)
+// FUNCIONES DE SIEMBRA INICIAL DE USUARIOS Y MAESTROS (SIN DATOS FICTICIOS)
 // ----------------------------------------------------------------------
-async function seedInitialRequerimientos() {
-  try {
-    const batch = writeBatch(db);
-    INITIAL_REQUERIMIENTOS.forEach((r) => {
-      const docRef = doc(db, 'requerimientos', r.id);
-      batch.set(docRef, r);
-    });
-    await batch.commit();
-    console.log('[Firestore] Requerimientos iniciales sembrados en Firestore.');
-  } catch (err) {
-    console.warn('[Firestore] No se pudieron sembrar requerimientos:', err);
-  }
-}
-
-async function seedInitialDetalles() {
-  try {
-    const batch = writeBatch(db);
-    INITIAL_DETALLES.forEach((d) => {
-      const docRef = doc(db, 'detalles', d.id);
-      batch.set(docRef, d);
-    });
-    await batch.commit();
-    console.log('[Firestore] Detalles iniciales sembrados en Firestore.');
-  } catch (err) {
-    console.warn('[Firestore] No se pudieron sembrar detalles:', err);
-  }
-}
 
 async function seedInitialUsers() {
   try {
@@ -418,6 +399,7 @@ export async function firestoreSaveMasterData(data: {
   fundos?: MaestroFundo[];
   paraderos?: MaestroParadero[];
   comedores?: MaestroComedor[];
+  unidadesBus?: MaestroUnidadBus[];
 }): Promise<void> {
   const path = 'system_metadata/master_data';
   try {

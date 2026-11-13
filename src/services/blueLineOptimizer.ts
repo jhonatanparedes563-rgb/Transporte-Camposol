@@ -488,12 +488,18 @@ export function generateCorridorSchedule(params: {
 
     if (reqDets.length === 0) {
       if (req.totalPersonas <= 0) return;
-      const zoneFallback: ZonaParadero = req.fundo.toUpperCase().includes('CHAO') ? 'SUR' : 'NORTE';
-      const defaultStop = zoneFallback === 'SUR' ? 'SEGUNDO PARADERO' : 'LA BRASIL';
+      const zoneFallback: ZonaParadero =
+        req.fundo.toUpperCase().includes('CHAO') || isAgricultorCorridorFundo(req.fundo)
+          ? 'SUR'
+          : 'NORTE';
+      const masterZoneStop = paraderosMaestros.find(
+        (p) => (p.zona || inferParaderoZona(p.paradero)) === zoneFallback
+      )?.paradero;
+      const defaultStop = masterZoneStop || (zoneFallback === 'SUR' ? 'SEGUNDO PARADERO' : 'LA BRASIL');
       allDemandItems.push({
         paradero: defaultStop,
         zona: zoneFallback,
-        isBlueLine: true,
+        isBlueLine: isBlueLineParadero(defaultStop),
         cantidad: req.totalPersonas,
         fundo: req.fundo,
         area: req.area || 'PRODUCCIÓN',

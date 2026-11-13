@@ -181,7 +181,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   );
 
   useEffect(() => {
-    setLiveReqs(requerimientos.length > 0 ? requerimientos : getStoredRequerimientos());
+    setLiveReqs(requerimientos);
     setLiveDetalles(getStoredDetalles());
   }, [requerimientos]);
 
@@ -237,6 +237,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   }, [availableDates]);
 
   const [selectedFecha, setSelectedFecha] = useState<string>(initialDate);
+  const [hasManualDateSelection, setHasManualDateSelection] = useState<boolean>(false);
   const [rows, setRows] = useState<ScheduleRow[]>([]);
 
   const [zoneTab, setZoneTab] = useState<ZoneFilter>('TODOS');
@@ -277,11 +278,16 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   }, []);
 
   useEffect(() => {
-    if (selectedFecha !== 'TODOS' && !availableDates.includes(selectedFecha) && availableDates.length > 0) {
-      const today = getTodayStr();
-      setSelectedFecha(availableDates.includes(today) ? today : availableDates[0]);
+    if (!hasManualDateSelection) {
+      if (selectedFecha !== initialDate) {
+        setSelectedFecha(initialDate);
+      }
+      return;
     }
-  }, [availableDates, selectedFecha]);
+    if (selectedFecha !== 'TODOS' && !availableDates.includes(selectedFecha) && availableDates.length > 0) {
+      setSelectedFecha(initialDate);
+    }
+  }, [availableDates, initialDate, selectedFecha, hasManualDateSelection]);
 
   const buildScheduleFromRealData = useCallback(
     (fechaTarget: string, enableBlueLine: boolean) => {
@@ -602,13 +608,12 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       capacidad: 30,
       activo: true,
     };
-    const defaultFundo = maestroFundos[0]?.fundo || 'AGRICULTOR 1';
-    const defaultStops =
-      maestroParaderos
-        .filter((p) => (p.zona || 'NORTE') === 'NORTE')
-        .slice(0, 2)
-        .map((p) => p.paradero)
-        .join(' · ') || 'LA BRASIL · VILLA VIRU';
+    const defaultFundo = maestroFundos[0]?.fundo || '';
+    const defaultStops = maestroParaderos
+      .filter((p) => (p.zona || 'NORTE') === 'NORTE')
+      .slice(0, 2)
+      .map((p) => p.paradero)
+      .join(' · ');
 
     setIsNewRow(true);
     setEditingRow({
@@ -945,10 +950,18 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               </label>
               <select
                 value={selectedFecha}
-                onChange={(e) => setSelectedFecha(e.target.value)}
+                onChange={(e) => {
+                  setHasManualDateSelection(true);
+                  setSelectedFecha(e.target.value);
+                }}
                 className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors cursor-pointer"
               >
                 <option value="TODOS">Todas ({eligibleReqs.length} req.)</option>
+                {selectedFecha !== 'TODOS' && !availableDates.includes(selectedFecha) && (
+                  <option value={selectedFecha}>
+                    {formatDateDDMMYYYY(selectedFecha)} (0 req.)
+                  </option>
+                )}
                 {availableDates.map((dateStr) => {
                   const count = eligibleReqs.filter((r) => r.fecha === dateStr).length;
                   return (
