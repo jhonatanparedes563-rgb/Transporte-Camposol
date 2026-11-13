@@ -95,6 +95,7 @@ interface ScheduleRow {
   consolidatedRuleNote?: string;
   zonasEspecificas?: string[];
   macrozonas?: string[];
+  zonaDestinoFinal?: string;
   unidadObj: MaestroUnidadBus;
 }
 
@@ -111,6 +112,25 @@ interface SavedAssignmentOverlay {
 }
 
 const ASSIGNMENTS_STORAGE_KEY = 'camposol_generador_asignaciones_v1';
+
+const resolveZonaFromLastParadero = (
+  paradas: Array<{ paradero: string }>,
+  fallbackZone: ZonaParadero | 'LÍNEA AZUL'
+): string => {
+  for (let i = paradas.length - 1; i >= 0; i--) {
+    const pName = (paradas[i]?.paradero || '').trim();
+    if (!pName) continue;
+    const info = getParaderoZonaInfo(pName);
+    const zEsp = (info.zonaEspecifica || '').trim();
+    if (zEsp && zEsp.toUpperCase() !== 'NORTE' && zEsp.toUpperCase() !== 'SUR') {
+      return zEsp.toUpperCase();
+    }
+  }
+  return inferParaderoInicial(
+    fallbackZone === 'LÍNEA AZUL' ? 'NORTE' : fallbackZone,
+    paradas.map((p) => p.paradero)
+  );
+};
 
 const getPrimaryReqCode = (reqCodes: string[]): string => {
   if (!reqCodes || reqCodes.length === 0) return 'ZZZ-999999';
@@ -350,6 +370,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           }
           if (info.macrozona) macroSet.add(info.macrozona);
         });
+        const zonaDestinoFinal = resolveZonaFromLastParadero(t.stops, t.zone);
 
         return {
           id: t.id,
@@ -381,6 +402,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           consolidatedRuleNote: t.consolidatedRuleNote,
           zonasEspecificas: Array.from(zEspSet),
           macrozonas: Array.from(macroSet),
+          zonaDestinoFinal,
           unidadObj: unitFromMaster,
         };
       });
@@ -443,6 +465,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           row.reqCodes.join(' '),
           (row.zonasEspecificas || []).join(' '),
           (row.macrozonas || []).join(' '),
+          row.zonaDestinoFinal || '',
         ]
           .join(' ')
           .toLowerCase();
@@ -539,12 +562,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         destino: paradas.map((p) => p.paradero).join(', '),
         plan: row.people,
         sayta: row.sayta || '-',
-        paraderoInicial:
-          paradas[0]?.paradero ||
-          inferParaderoInicial(
-            row.zone === 'LÍNEA AZUL' ? 'NORTE' : row.zone,
-            paradas.map((p) => p.paradero)
-          ),
+        paraderoInicial: resolveZonaFromLastParadero(paradas, row.zone),
         porcentajeOcupacion: ocup,
         horaSayta: row.time,
         obsSayta: `${serviceNum}-${row.area || 'PRODUCCIÓN'}`,
@@ -594,7 +612,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         totalCapacidad > 0 ? Math.round((totalPasajeros / totalCapacidad) * 1000) / 10 : 0,
       resumenUnidades,
     };
-  }, [rows, selectedFecha, activeFleetMasters, currentUser]);
+  }, [rows, selectedFecha, activeFleetMasters, currentUser, maestroParaderos, maestroZonas]);
 
   const handleRefresh = () => {
     onRefreshData();
@@ -731,6 +749,17 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         };
       });
 
+    const editedZonasSet = new Set<string>();
+    const editedMacroSet = new Set<string>();
+    parsedStops.forEach((s) => {
+      const info = getParaderoZonaInfo(s.paradero);
+      if (info.zonaEspecifica && info.zonaEspecifica !== 'NORTE' && info.zonaEspecifica !== 'SUR') {
+        editedZonasSet.add(info.zonaEspecifica);
+      }
+      if (info.macrozona) editedMacroSet.add(info.macrozona);
+    });
+    const zonaDestinoFinal = resolveZonaFromLastParadero(parsedStops, formState.zone);
+
     const updatedRow: ScheduleRow = {
       ...editingRow,
       zone: formState.zone,
@@ -752,6 +781,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       area: formState.area.trim() || 'PRODUCCIÓN',
       origen: formState.origen.trim() || 'CAMPO',
       observaciones: formState.observaciones.trim(),
+      zonasEspecificas: Array.from(editedZonasSet),
+      macrozonas: Array.from(editedMacroSet),
+      zonaDestinoFinal,
     };
 
     if (!isNewRow) {
@@ -1186,9 +1218,16 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         >
                           {row.zone}
                         </span>
-                        {row.zonasEspecificas && row.zonasEspecificas.length > 0 && (
-                          <div className="text-[9px] font-semibold text-[#1B3A57]/80 mt-0.5 truncate max-w-[140px]" title={row.zonasEspecificas.join(' · ')}>
-                            {row.zonasEspecificas.join(' · ')}
+                        {(row.zonaDestinoFinal || (row.zonasEspecificas && row.zonasEspecificas.length > 0)) && (
+                          <div
+                            className="text-[9px] font-semibold text-[#1B3A57]/80 mt-0.5 truncate max-w-[140px]"
+                            title={
+                              row.zonasEspecificas && row.zonasEspecificas.length > 1
+                                ? `Última zona: ${row.zonaDestinoFinal} · Recorrido: ${row.zonasEspecificas.join(' → ')}`
+                                : row.zonaDestinoFinal || row.zonasEspecificas?.join(' · ')
+                            }
+                          >
+                            {row.zonaDestinoFinal || row.zonasEspecificas?.join(' · ')}
                           </div>
                         )}
                         <div className="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">

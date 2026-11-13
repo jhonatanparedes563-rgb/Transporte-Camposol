@@ -18,6 +18,7 @@ import {
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
   MAESTRO_UNIDADES_BUS,
+  normalizeParaderoKey,
 } from '../data/masterData';
 import {
   initializeFirestoreSync,
@@ -987,9 +988,11 @@ export function getParaderoZonaInfo(name: string): ParaderoZonaInfo {
     const raw = localStorage.getItem(PARADEROS_STORAGE_KEY);
     const list: MaestroParadero[] = raw ? JSON.parse(raw) : MAESTRO_PARADEROS;
     if (Array.isArray(list) && list.length > 0) {
+      const canonTarget = normalizeParaderoKey(name);
       matchedParadero =
         list.find((p) => p.paradero.trim().toLowerCase() === cleanName) ||
         list.find((p) => normalize(p.paradero) === normalize(cleanName)) ||
+        list.find((p) => normalizeParaderoKey(p.paradero) === canonTarget) ||
         list.find((p) => {
           const pNorm = normalize(p.paradero);
           const cNorm = normalize(cleanName);
