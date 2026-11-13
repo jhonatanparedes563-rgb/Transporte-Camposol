@@ -4,6 +4,7 @@ import {
   RequerimientoDraft,
   MaestroArea,
   MaestroFundo,
+  MaestroZona,
   MaestroParadero,
   MaestroComedor,
   MaestroUnidadBus,
@@ -13,6 +14,7 @@ import {
 import {
   MAESTRO_AREAS,
   MAESTRO_FUNDOS,
+  MAESTRO_ZONAS,
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
   MAESTRO_UNIDADES_BUS,
@@ -30,6 +32,7 @@ const REQ_STORAGE_KEY = 'camposol_transporte_requerimientos_v1';
 const DET_STORAGE_KEY = 'camposol_transporte_detalles_v1';
 const AREAS_STORAGE_KEY = 'camposol_maestro_areas_v1';
 const FUNDOS_STORAGE_KEY = 'camposol_maestro_fundos_v1';
+const ZONAS_STORAGE_KEY = 'camposol_maestro_zonas_v1';
 const PARADEROS_STORAGE_KEY = 'camposol_maestro_paraderos_v1';
 const COMEDORES_STORAGE_KEY = 'camposol_maestro_comedores_v1';
 const UNIDADES_BUS_STORAGE_KEY = 'camposol_maestro_unidades_bus_v1';
@@ -149,6 +152,10 @@ if (typeof window !== 'undefined') {
       localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(payload.fundos));
       changed = true;
     }
+    if (payload.zonas && Array.isArray(payload.zonas)) {
+      localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(payload.zonas));
+      changed = true;
+    }
     if (payload.paraderos && Array.isArray(payload.paraderos)) {
       localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(payload.paraderos));
       changed = true;
@@ -210,6 +217,9 @@ export async function syncWithServerNow(): Promise<boolean> {
     }
     if (data.fundos && Array.isArray(data.fundos)) {
       localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(data.fundos));
+    }
+    if (data.zonas && Array.isArray(data.zonas)) {
+      localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(data.zonas));
     }
     if (data.paraderos && Array.isArray(data.paraderos)) {
       localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(data.paraderos));
@@ -831,6 +841,7 @@ export function getStoredAreas(): MaestroArea[] {
 export async function serverSaveMasterData(data: {
   areas?: MaestroArea[];
   fundos?: MaestroFundo[];
+  zonas?: MaestroZona[];
   paraderos?: MaestroParadero[];
   comedores?: MaestroComedor[];
 }): Promise<void> {
@@ -884,40 +895,145 @@ export function saveStoredFundos(fundos: MaestroFundo[]): void {
   });
 }
 
-export function inferParaderoZona(name: string): 'NORTE' | 'SUR' {
-  const cleanName = (name || '').trim().toLowerCase();
+function normalizeZoneKey(s: string): string {
+  return (s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase();
+}
+
+export function getStoredZonas(): MaestroZona[] {
   try {
-    const raw = localStorage.getItem(PARADEROS_STORAGE_KEY);
-    if (raw) {
-      const list: MaestroParadero[] = JSON.parse(raw);
-      // 1. Coincidencia exacta
-      const found = list.find((p) => p.paradero.trim().toLowerCase() === cleanName);
-      if (found?.zona === 'NORTE' || found?.zona === 'SUR') {
-        return found.zona;
-      }
-
-      // 2. Coincidencia normalizada (sin tildes, signos ni espacios extras)
-      const normalize = (s: string) =>
-        (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-      const cleanNorm = normalize(cleanName);
-      const foundNorm = list.find((p) => normalize(p.paradero) === cleanNorm);
-      if (foundNorm?.zona === 'NORTE' || foundNorm?.zona === 'SUR') {
-        return foundNorm.zona;
-      }
-
-      // 3. Coincidencia parcial o substring en maestro
-      const foundPartial = list.find((p) => {
-        const pNorm = normalize(p.paradero);
-        return (pNorm.length >= 3 && cleanNorm.includes(pNorm)) || (cleanNorm.length >= 3 && pNorm.includes(cleanNorm));
+    const raw = localStorage.getItem(ZONAS_STORAGE_KEY);
+    if (!raw) {
+      // Construir catálogo inicial combinando MAESTRO_ZONAS con cualquier zona específica ya presente en paraderos guardados
+      const initial: MaestroZona[] = [...MAESTRO_ZONAS];
+      const existingParaderos = getStoredParaderos();
+      existingParaderos.forEach((p) => {
+        const zName = (p.zonaEspecifica || '').trim();
+        if (!zName || zName.toUpperCase() === 'NORTE' || zName.toUpperCase() === 'SUR') return;
+        const already = initial.some(
+          (z) => normalizeZoneKey(z.zona) === normalizeZoneKey(zName)
+        );
+        if (!already) {
+          initial.push({
+            id: `ZON-${Date.now()}-${initial.length + 1}`,
+            zona: zName.toUpperCase(),
+            macrozona: p.macrozona || undefined,
+            agrupado: p.agrupador || undefined,
+            zonaOperativa:
+              p.zona ||
+              (zName.toUpperCase().includes('CHAO') ? 'SUR' : 'NORTE'),
+          });
+        }
       });
-      if (foundPartial?.zona === 'NORTE' || foundPartial?.zona === 'SUR') {
-        return foundPartial.zona;
-      }
+      localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(initial));
+      return initial;
+    }
+    const parsed: MaestroZona[] = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return MAESTRO_ZONAS;
+    }
+    return parsed;
+  } catch (err) {
+    console.error('Error loading zonas:', err);
+    return MAESTRO_ZONAS;
+  }
+}
+
+export function saveStoredZonas(zonas: MaestroZona[]): void {
+  localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(zonas));
+  broadcastLocalChange();
+  serverSaveMasterData({ zonas });
+  firestoreSaveMasterData({ zonas }).catch((err) => {
+    console.warn('[Firestore] Error guardando zonas:', err);
+  });
+}
+
+export interface ParaderoZonaInfo {
+  zona: 'NORTE' | 'SUR';
+  zonaId?: string;
+  zonaEspecifica: string;
+  macrozona: string;
+  agrupador?: string;
+  codigo?: string;
+  referencia?: string;
+}
+
+export function getParaderoZonaInfo(name: string): ParaderoZonaInfo {
+  const cleanName = (name || '').trim().toLowerCase();
+  const normalize = (s: string) =>
+    (s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/gi, '')
+      .toLowerCase();
+
+  let matchedParadero: MaestroParadero | undefined;
+  let zonasList: MaestroZona[] = MAESTRO_ZONAS;
+
+  try {
+    const rawZonas = localStorage.getItem(ZONAS_STORAGE_KEY);
+    if (rawZonas) {
+      const parsedZ = JSON.parse(rawZonas);
+      if (Array.isArray(parsedZ) && parsedZ.length > 0) zonasList = parsedZ;
     }
   } catch {
     // fallback
   }
 
+  try {
+    const raw = localStorage.getItem(PARADEROS_STORAGE_KEY);
+    const list: MaestroParadero[] = raw ? JSON.parse(raw) : MAESTRO_PARADEROS;
+    if (Array.isArray(list) && list.length > 0) {
+      matchedParadero =
+        list.find((p) => p.paradero.trim().toLowerCase() === cleanName) ||
+        list.find((p) => normalize(p.paradero) === normalize(cleanName)) ||
+        list.find((p) => {
+          const pNorm = normalize(p.paradero);
+          const cNorm = normalize(cleanName);
+          return (
+            (pNorm.length >= 3 && cNorm.includes(pNorm)) ||
+            (cNorm.length >= 3 && pNorm.includes(cNorm))
+          );
+        });
+    }
+  } catch {
+    // fallback
+  }
+
+  if (matchedParadero) {
+    const matchedZonaObj = zonasList.find(
+      (z) =>
+        (matchedParadero!.zonaId && z.id === matchedParadero!.zonaId) ||
+        (matchedParadero!.zonaEspecifica &&
+          normalizeZoneKey(z.zona) === normalizeZoneKey(matchedParadero!.zonaEspecifica))
+    );
+    const zonaOp: 'NORTE' | 'SUR' =
+      matchedParadero.zona ||
+      matchedZonaObj?.zonaOperativa ||
+      inferFallbackZonaFromKeyword(name);
+    return {
+      zona: zonaOp,
+      zonaId: matchedZonaObj?.id || matchedParadero.zonaId,
+      zonaEspecifica: matchedZonaObj?.zona || matchedParadero.zonaEspecifica || zonaOp,
+      macrozona: matchedParadero.macrozona || matchedZonaObj?.macrozona || '',
+      agrupador: matchedParadero.agrupador || matchedZonaObj?.agrupado,
+      codigo: matchedParadero.codigo,
+      referencia: matchedParadero.referencia,
+    };
+  }
+
+  const fallbackOp = inferFallbackZonaFromKeyword(name);
+  return {
+    zona: fallbackOp,
+    zonaEspecifica: fallbackOp,
+    macrozona: '',
+  };
+}
+
+function inferFallbackZonaFromKeyword(name: string): 'NORTE' | 'SUR' {
   const upper = (name || '').toUpperCase();
   if (
     upper.includes('CHAO') ||
@@ -934,6 +1050,10 @@ export function inferParaderoZona(name: string): 'NORTE' | 'SUR' {
     return 'SUR';
   }
   return 'NORTE';
+}
+
+export function inferParaderoZona(name: string): 'NORTE' | 'SUR' {
+  return getParaderoZonaInfo(name).zona;
 }
 
 export function getStoredParaderos(): MaestroParadero[] {
@@ -1056,12 +1176,14 @@ export function deleteStoredProgramacionViaje(id: string): void {
 export function resetMasterDataToDefault(): {
   areas: MaestroArea[];
   fundos: MaestroFundo[];
+  zonas: MaestroZona[];
   paraderos: MaestroParadero[];
   comedores: MaestroComedor[];
   unidadesBus: MaestroUnidadBus[];
 } {
   localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(MAESTRO_AREAS));
   localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(MAESTRO_FUNDOS));
+  localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(MAESTRO_ZONAS));
   localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(MAESTRO_PARADEROS));
   localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(MAESTRO_COMEDORES));
   localStorage.setItem(UNIDADES_BUS_STORAGE_KEY, JSON.stringify(MAESTRO_UNIDADES_BUS));
@@ -1069,6 +1191,7 @@ export function resetMasterDataToDefault(): {
   return {
     areas: MAESTRO_AREAS,
     fundos: MAESTRO_FUNDOS,
+    zonas: MAESTRO_ZONAS,
     paraderos: MAESTRO_PARADEROS,
     comedores: MAESTRO_COMEDORES,
     unidadesBus: MAESTRO_UNIDADES_BUS,
@@ -1160,6 +1283,7 @@ export function exportFullDatabaseBackup(): void {
       detalles: getStoredDetalles(),
       areas: getStoredAreas(),
       fundos: getStoredFundos(),
+      zonas: getStoredZonas(),
       paraderos: getStoredParaderos(),
       comedores: getStoredComedores(),
     },
@@ -1195,6 +1319,9 @@ export function importFullDatabaseBackup(rawJson: string): { success: boolean; m
     }
     if (Array.isArray(data.fundos)) {
       localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(data.fundos));
+    }
+    if (Array.isArray(data.zonas)) {
+      localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(data.zonas));
     }
     if (Array.isArray(data.paraderos)) {
       localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(data.paraderos));

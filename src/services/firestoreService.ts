@@ -16,6 +16,7 @@ import {
   AppUser,
   MaestroArea,
   MaestroFundo,
+  MaestroZona,
   MaestroParadero,
   MaestroComedor,
   MaestroUnidadBus,
@@ -23,6 +24,7 @@ import {
 import {
   MAESTRO_AREAS,
   MAESTRO_FUNDOS,
+  MAESTRO_ZONAS,
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
 } from '../data/masterData';
@@ -69,6 +71,7 @@ type OnDataUpdate = (data: {
   users?: AppUser[];
   areas?: MaestroArea[];
   fundos?: MaestroFundo[];
+  zonas?: MaestroZona[];
   paraderos?: MaestroParadero[];
   comedores?: MaestroComedor[];
   unidadesBus?: MaestroUnidadBus[];
@@ -82,6 +85,7 @@ let pendingUpdates: {
   users?: AppUser[];
   areas?: MaestroArea[];
   fundos?: MaestroFundo[];
+  zonas?: MaestroZona[];
   paraderos?: MaestroParadero[];
   comedores?: MaestroComedor[];
   unidadesBus?: MaestroUnidadBus[];
@@ -202,6 +206,7 @@ export async function initializeFirestoreSync(): Promise<void> {
           scheduleDebouncedUpdate({
             areas: data.areas,
             fundos: data.fundos,
+            ...(Array.isArray(data.zonas) ? { zonas: data.zonas } : {}),
             paraderos: data.paraderos,
             comedores: data.comedores,
             ...(Array.isArray(data.unidadesBus) && data.unidadesBus.length > 0
@@ -247,6 +252,7 @@ async function seedInitialMasterData() {
     await setDoc(doc(db, 'system_metadata', 'master_data'), {
       areas: MAESTRO_AREAS,
       fundos: MAESTRO_FUNDOS,
+      zonas: MAESTRO_ZONAS,
       paraderos: MAESTRO_PARADEROS,
       comedores: MAESTRO_COMEDORES,
       lastUpdated: new Date().toISOString(),
@@ -397,6 +403,7 @@ export async function firestoreDeleteUser(userId: string): Promise<void> {
 export async function firestoreSaveMasterData(data: {
   areas?: MaestroArea[];
   fundos?: MaestroFundo[];
+  zonas?: MaestroZona[];
   paraderos?: MaestroParadero[];
   comedores?: MaestroComedor[];
   unidadesBus?: MaestroUnidadBus[];

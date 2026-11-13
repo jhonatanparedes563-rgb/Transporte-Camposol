@@ -6,6 +6,7 @@ import {
   INITIAL_DETALLES,
   MAESTRO_AREAS,
   MAESTRO_FUNDOS,
+  MAESTRO_ZONAS,
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
 } from './src/data/masterData';
@@ -15,6 +16,7 @@ import {
   DetalleRequerimiento,
   AppUser,
   RequerimientoDraft,
+  MaestroZona,
   MaestroParadero,
   MaestroArea,
   MaestroFundo,
@@ -30,6 +32,7 @@ interface ServerDb {
   users: AppUser[];
   areas: MaestroArea[];
   fundos: MaestroFundo[];
+  zonas?: MaestroZona[];
   paraderos: MaestroParadero[];
   comedores: MaestroComedor[];
 }
@@ -68,6 +71,7 @@ function initDb(): ServerDb {
     users: INITIAL_USERS,
     areas: MAESTRO_AREAS,
     fundos: MAESTRO_FUNDOS,
+    zonas: MAESTRO_ZONAS,
     paraderos: MAESTRO_PARADEROS,
     comedores: MAESTRO_COMEDORES,
   };
@@ -250,6 +254,15 @@ async function startServer() {
               const cantidad = Number(rawQty) || 0;
               if (cantidad > 0) {
                 totalPersonas += cantidad;
+                const masterMatch = db.paraderos?.find(
+                  (p) => p.paradero.trim().toLowerCase() === paradero.trim().toLowerCase()
+                );
+                const resolvedZona =
+                  masterMatch?.zona ||
+                  (masterMatch?.zonaId
+                    ? db.zonas?.find((z) => z.id === masterMatch.zonaId)?.zonaOperativa
+                    : undefined) ||
+                  'SUR';
                 newDets.push({
                   id: `det-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
                   requerimientoId: reqId,
@@ -257,7 +270,7 @@ async function startServer() {
                   comedor: c.comedor || 'Comedor 1',
                   parcela: c.comedor || 'Comedor 1',
                   paradero: paradero,
-                  zona: 'SUR',
+                  zona: resolvedZona,
                   cultivo: draft.cultivo || 'ARÁNDANO',
                   cantidad: cantidad,
                 });
@@ -606,12 +619,15 @@ async function startServer() {
     }
   });
 
-  // Master catalogs synchronization (Paraderos, Fundos, Áreas, Comedores)
+  // Master catalogs synchronization (Zonas, Paraderos, Fundos, Áreas, Comedores)
   app.post('/api/maestros', (req, res) => {
     try {
-      const { paraderos, fundos, areas, comedores } = req.body;
+      const { zonas, paraderos, fundos, areas, comedores } = req.body;
       const db = getDb();
 
+      if (Array.isArray(zonas)) {
+        db.zonas = zonas;
+      }
       if (Array.isArray(paraderos)) {
         db.paraderos = paraderos;
       }
@@ -626,10 +642,11 @@ async function startServer() {
       }
 
       persistDb(db);
-      console.log(`[Server] Catálogos maestros persistidos en disco. Paraderos: ${db.paraderos?.length || 0}`);
+      console.log(`[Server] Catálogos maestros persistidos en disco. Zonas: ${db.zonas?.length || 0}, Paraderos: ${db.paraderos?.length || 0}`);
       res.json({
         success: true,
         revision: db.revision,
+        zonasCount: db.zonas?.length || 0,
         paraderosCount: db.paraderos.length,
         fundosCount: db.fundos.length,
         areasCount: db.areas.length,
@@ -668,6 +685,7 @@ async function startServer() {
         users: INITIAL_USERS,
         areas: MAESTRO_AREAS,
         fundos: MAESTRO_FUNDOS,
+        zonas: MAESTRO_ZONAS,
         paraderos: MAESTRO_PARADEROS,
         comedores: MAESTRO_COMEDORES,
       };

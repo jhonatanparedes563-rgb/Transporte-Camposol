@@ -86,8 +86,10 @@
         "lastUpdated": { "type": "string" },
         "areas": { "type": "array" },
         "fundos": { "type": "array" },
+        "zonas": { "type": "array" },
         "paraderos": { "type": "array" },
-        "comedores": { "type": "array" }
+        "comedores": { "type": "array" },
+        "unidadesBus": { "type": "array" }
       },
       "required": ["id"]
     }

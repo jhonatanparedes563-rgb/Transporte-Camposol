@@ -43,10 +43,19 @@ export interface MaestroFundo {
 
 export type ZonaParadero = 'NORTE' | 'SUR';
 
+export interface MaestroZona {
+  id: string;
+  zona: string; // Ej. 'SAN JOSE', 'VICTOR RAUL', 'CHAO', 'NUEVO CHAO'
+  macrozona?: string; // Ej. 'Mcrz 25 San Jose'
+  agrupado?: string; // Ej. Agrupador / Corredor
+  zonaOperativa: ZonaParadero; // 'NORTE' | 'SUR'
+}
+
 export interface MaestroParadero {
   id: string;
   paradero: string;
   zona?: ZonaParadero;
+  zonaId?: string;
   codigo?: string;
   macrozona?: string;
   zonaEspecifica?: string;

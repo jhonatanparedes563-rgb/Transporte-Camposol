@@ -1,6 +1,7 @@
 import {
   MaestroArea,
   MaestroFundo,
+  MaestroZona,
   MaestroParadero,
   MaestroComedor,
   MaestroUnidadBus,
@@ -180,6 +181,14 @@ export const MAESTRO_PARADEROS: MaestroParadero[] = [
   { id: 'PAR-22', paradero: 'LA 28', zona: 'SUR' },
   { id: 'PAR-23', paradero: 'LA BOTICA', zona: 'SUR' },
   { id: 'PAR-24', paradero: 'SEGUNDO PARADERO', zona: 'SUR' },
+];
+
+export const MAESTRO_ZONAS: MaestroZona[] = [
+  { id: 'ZON-01', zona: 'VICTOR RAUL', macrozona: 'Mcrz 21 Victor Raul', zonaOperativa: 'NORTE' },
+  { id: 'ZON-02', zona: 'VIRU', macrozona: 'Mcrz 22 Viru', zonaOperativa: 'NORTE' },
+  { id: 'ZON-03', zona: 'SAN JOSE', macrozona: 'Mcrz 25 San Jose', zonaOperativa: 'NORTE' },
+  { id: 'ZON-04', zona: 'NUEVO CHAO', macrozona: 'Mcrz 31 Nuevo Chao', zonaOperativa: 'SUR' },
+  { id: 'ZON-05', zona: 'CHAO', macrozona: 'Mcrz 32 Chao', zonaOperativa: 'SUR' },
 ];
 
 export const MAESTRO_COMEDORES: MaestroComedor[] = [

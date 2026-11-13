@@ -20,11 +20,15 @@ import {
   Upload,
   FileSpreadsheet,
   Bus,
+  ChevronDown,
+  ChevronUp,
+  Link2,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
   MaestroArea,
   MaestroFundo,
+  MaestroZona,
   MaestroParadero,
   MaestroUnidadBus,
 } from '../types';
@@ -33,6 +37,8 @@ import {
   saveStoredAreas,
   getStoredFundos,
   saveStoredFundos,
+  getStoredZonas,
+  saveStoredZonas,
   getStoredParaderos,
   saveStoredParaderos,
   getStoredUnidadesBus,
@@ -40,9 +46,10 @@ import {
   resetMasterDataToDefault,
   exportToCSV,
   inferParaderoZona,
+  subscribeToDataChanges,
 } from '../services/storageService';
 
-type MasterCategory = 'paraderos' | 'fundos' | 'areas' | 'buses';
+type MasterCategory = 'paraderos' | 'zonas' | 'fundos' | 'areas' | 'buses';
 
 interface MasterDataManagementScreenProps {
   onBack: () => void;
@@ -50,6 +57,12 @@ interface MasterDataManagementScreenProps {
 }
 
 interface ParsedMasterImport {
+  zonas: {
+    zona: string;
+    macrozona?: string;
+    agrupado?: string;
+    zonaOperativa: 'NORTE' | 'SUR';
+  }[];
   paraderos: {
     paradero: string;
     zona: 'NORTE' | 'SUR';
@@ -65,6 +78,13 @@ interface ParsedMasterImport {
   areas: { area: string }[];
 }
 
+const normalizeZoneCompare = (s?: string): string =>
+  (s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase();
+
 export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProps> = ({
   onBack,
   onNavigateToNewRequest,
@@ -73,6 +93,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   const [searchQuery, setSearchQuery] = useState('');
 
   // Loaded master states
+  const [zonas, setZonas] = useState<MaestroZona[]>([]);
   const [paraderos, setParaderos] = useState<MaestroParadero[]>([]);
   const [fundos, setFundos] = useState<MaestroFundo[]>([]);
   const [areas, setAreas] = useState<MaestroArea[]>([]);
@@ -88,17 +109,35 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   // Creation state
   const [newItemName, setNewItemName] = useState('');
   const [newParaderoZona, setNewParaderoZona] = useState<'NORTE' | 'SUR'>('NORTE');
+  const [newParaderoZonaId, setNewParaderoZonaId] = useState<string>('');
+  const [newParaderoCodigo, setNewParaderoCodigo] = useState<string>('');
+  const [newParaderoAgrupado, setNewParaderoAgrupado] = useState<string>('');
+  const [newParaderoReferencia, setNewParaderoReferencia] = useState<string>('');
+  const [newZonaMacrozona, setNewZonaMacrozona] = useState<string>('');
+  const [newZonaAgrupado, setNewZonaAgrupado] = useState<string>('');
+  const [newZonaOperativa, setNewZonaOperativa] = useState<'NORTE' | 'SUR'>('NORTE');
   const [newUnidadCapacidad, setNewUnidadCapacidad] = useState<number>(40);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Filter for Paraderos: 'TODOS' | 'NORTE' | 'SUR'
+  // Filters
   const [selectedZonaFilter, setSelectedZonaFilter] = useState<'TODOS' | 'NORTE' | 'SUR'>('TODOS');
+  const [selectedZonaEspecificaFilter, setSelectedZonaEspecificaFilter] = useState<string>('TODAS');
 
   // Inline editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingZona, setEditingZona] = useState<'NORTE' | 'SUR'>('NORTE');
+  const [editingParaderoZonaId, setEditingParaderoZonaId] = useState<string>('');
+  const [editingParaderoCodigo, setEditingParaderoCodigo] = useState<string>('');
+  const [editingZonaMacrozona, setEditingZonaMacrozona] = useState<string>('');
+  const [editingZonaAgrupado, setEditingZonaAgrupado] = useState<string>('');
   const [editingCapacidad, setEditingCapacidad] = useState<number>(40);
+
+  // Zonas card expand / quick-assign paradero state
+  const [expandedZonaId, setExpandedZonaId] = useState<string | null>(null);
+  const [zonaParaderoSearch, setZonaParaderoSearch] = useState<string>('');
+  const [quickNewParaderoName, setQuickNewParaderoName] = useState<string>('');
+  const [quickNewParaderoCode, setQuickNewParaderoCode] = useState<string>('');
 
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -107,12 +146,16 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  // Load all master data on mount
+  // Load all master data on mount and subscribe to live updates
   useEffect(() => {
     loadAllData();
+    return subscribeToDataChanges(() => {
+      loadAllData();
+    });
   }, []);
 
   const loadAllData = () => {
+    setZonas(getStoredZonas());
     setParaderos(getStoredParaderos());
     setFundos(getStoredFundos());
     setAreas(getStoredAreas());
@@ -126,6 +169,25 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     }, 3200);
   };
 
+  // Helper: Find Zona object associated with a paradero
+  const getParaderoMatchedZona = (p: MaestroParadero): MaestroZona | undefined => {
+    return zonas.find(
+      (z) =>
+        (p.zonaId && z.id === p.zonaId) ||
+        (p.zonaEspecifica && normalizeZoneCompare(z.zona) === normalizeZoneCompare(p.zonaEspecifica))
+    );
+  };
+
+  // Helper: Get paraderos assigned to a specific Zona
+  const getParaderosForZona = (z: MaestroZona): MaestroParadero[] => {
+    const zNorm = normalizeZoneCompare(z.zona);
+    return paraderos.filter(
+      (p) =>
+        p.zonaId === z.id ||
+        (p.zonaEspecifica && normalizeZoneCompare(p.zonaEspecifica) === zNorm)
+    );
+  };
+
   // Paradero zone counters
   const countNorte = useMemo(() => {
     return paraderos.filter((p) => (p.zona || inferParaderoZona(p.paradero)) === 'NORTE').length;
@@ -135,22 +197,60 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     return paraderos.filter((p) => (p.zona || inferParaderoZona(p.paradero)) === 'SUR').length;
   }, [paraderos]);
 
+  const countZonasNorte = useMemo(() => {
+    return zonas.filter((z) => z.zonaOperativa === 'NORTE').length;
+  }, [zonas]);
+
+  const countZonasSur = useMemo(() => {
+    return zonas.filter((z) => z.zonaOperativa === 'SUR').length;
+  }, [zonas]);
+
   // Filtered lists based on search & zone
   const filteredParaderos = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return paraderos.filter((p) => {
+      const matchedZ = getParaderoMatchedZona(p);
+      const zonaNombre = matchedZ?.zona || p.zonaEspecifica || '';
+      const macroNombre = p.macrozona || matchedZ?.macrozona || '';
       const matchesQuery =
         !q ||
         p.paradero.toLowerCase().includes(q) ||
         (p.codigo && p.codigo.toLowerCase().includes(q)) ||
-        (p.macrozona && p.macrozona.toLowerCase().includes(q)) ||
-        (p.zonaEspecifica && p.zonaEspecifica.toLowerCase().includes(q));
-      const paraderoZona = p.zona || inferParaderoZona(p.paradero);
+        macroNombre.toLowerCase().includes(q) ||
+        zonaNombre.toLowerCase().includes(q) ||
+        (p.agrupador && p.agrupador.toLowerCase().includes(q));
+      const paraderoZona = p.zona || matchedZ?.zonaOperativa || inferParaderoZona(p.paradero);
       const matchesZona =
         selectedZonaFilter === 'TODOS' || paraderoZona === selectedZonaFilter;
-      return matchesQuery && matchesZona;
+      const matchesZonaEsp =
+        selectedZonaEspecificaFilter === 'TODAS' ||
+        (selectedZonaEspecificaFilter === 'SIN_ZONA'
+          ? !matchedZ && !p.zonaEspecifica
+          : matchedZ?.id === selectedZonaEspecificaFilter ||
+            (p.zonaEspecifica &&
+              normalizeZoneCompare(p.zonaEspecifica) ===
+                normalizeZoneCompare(
+                  zonas.find((z) => z.id === selectedZonaEspecificaFilter)?.zona
+                )));
+      return matchesQuery && matchesZona && matchesZonaEsp;
     });
-  }, [paraderos, searchQuery, selectedZonaFilter]);
+  }, [paraderos, zonas, searchQuery, selectedZonaFilter, selectedZonaEspecificaFilter]);
+
+  const filteredZonas = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return zonas.filter((z) => {
+      const assigned = getParaderosForZona(z);
+      const matchesQuery =
+        !q ||
+        z.zona.toLowerCase().includes(q) ||
+        (z.macrozona && z.macrozona.toLowerCase().includes(q)) ||
+        (z.agrupado && z.agrupado.toLowerCase().includes(q)) ||
+        assigned.some((p) => p.paradero.toLowerCase().includes(q));
+      const matchesOp =
+        selectedZonaFilter === 'TODOS' || z.zonaOperativa === selectedZonaFilter;
+      return matchesQuery && matchesOp;
+    });
+  }, [zonas, paraderos, searchQuery, selectedZonaFilter]);
 
   const filteredFundos = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -174,7 +274,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       : unidades;
   }, [unidades, searchQuery]);
 
-  // Tab configurations (Comedores removed)
+  // Tab configurations
   const tabsConfig = [
     {
       id: 'paraderos' as MasterCategory,
@@ -182,7 +282,15 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       singular: 'Paradero',
       icon: MapPin,
       count: paraderos.length,
-      placeholder: 'Ej. Paradero Nuevo Chao, Virú Km 524...',
+      placeholder: 'Nombre del paradero...',
+    },
+    {
+      id: 'zonas' as MasterCategory,
+      label: 'Zonas',
+      singular: 'Zona',
+      icon: Compass,
+      count: zonas.length,
+      placeholder: 'Nombre de la zona...',
     },
     {
       id: 'fundos' as MasterCategory,
@@ -190,7 +298,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       singular: 'Fundo',
       icon: Building,
       count: fundos.length,
-      placeholder: 'Ej. Fundo El Rocio, Fundo Esperanza...',
+      placeholder: 'Nombre del fundo...',
     },
     {
       id: 'areas' as MasterCategory,
@@ -198,15 +306,15 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       singular: 'Área',
       icon: Briefcase,
       count: areas.length,
-      placeholder: 'Ej. Cosecha Palto, Mantenimiento...',
+      placeholder: 'Nombre del área...',
     },
     {
       id: 'buses' as MasterCategory,
-      label: 'Flota Buses',
-      singular: 'Unidad de Bus',
+      label: 'Flota',
+      singular: 'Unidad',
       icon: Bus,
       count: unidades.length,
-      placeholder: 'Ej. 2 PISOS, BUS LARGE, MINIBUS...',
+      placeholder: 'Nombre de unidad...',
     },
   ];
 
@@ -229,10 +337,51 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         setFormError('Ya existe un paradero con este nombre.');
         return;
       }
-      const updated = [...paraderos, { id: newId, paradero: cleanName, zona: newParaderoZona }];
+      const selectedZoneObj = newParaderoZonaId
+        ? zonas.find((z) => z.id === newParaderoZonaId)
+        : undefined;
+      const resolvedZonaOp = selectedZoneObj?.zonaOperativa || newParaderoZona;
+      const newParadero: MaestroParadero = {
+        id: newId,
+        paradero: cleanName,
+        zona: resolvedZonaOp,
+        ...(selectedZoneObj ? { zonaId: selectedZoneObj.id, zonaEspecifica: selectedZoneObj.zona } : {}),
+        ...(selectedZoneObj?.macrozona ? { macrozona: selectedZoneObj.macrozona } : {}),
+        ...(newParaderoCodigo.trim() ? { codigo: newParaderoCodigo.trim().toUpperCase() } : {}),
+        ...(newParaderoAgrupado.trim() || selectedZoneObj?.agrupado
+          ? { agrupador: newParaderoAgrupado.trim() || selectedZoneObj?.agrupado }
+          : {}),
+        ...(newParaderoReferencia.trim() ? { referencia: newParaderoReferencia.trim() } : {}),
+      };
+      const updated = [...paraderos, newParadero];
       setParaderos(updated);
       saveStoredParaderos(updated);
-      showNotification(`Paradero "${cleanName}" agregado a ZONA ${newParaderoZona}`);
+      setNewParaderoCodigo('');
+      setNewParaderoAgrupado('');
+      setNewParaderoReferencia('');
+      showNotification(
+        `Paradero "${cleanName}" agregado a ${selectedZoneObj ? `${selectedZoneObj.zona} (${resolvedZonaOp})` : `ZONA ${resolvedZonaOp}`}`
+      );
+    } else if (activeTab === 'zonas') {
+      const upperZona = cleanName.toUpperCase();
+      if (zonas.some((z) => normalizeZoneCompare(z.zona) === normalizeZoneCompare(upperZona))) {
+        setFormError('Ya existe una zona con este nombre.');
+        return;
+      }
+      const newZonaObj: MaestroZona = {
+        id: `ZON-${Date.now()}`,
+        zona: upperZona,
+        macrozona: newZonaMacrozona.trim() || undefined,
+        agrupado: newZonaAgrupado.trim() || undefined,
+        zonaOperativa: newZonaOperativa,
+      };
+      const updated = [...zonas, newZonaObj];
+      setZonas(updated);
+      saveStoredZonas(updated);
+      setExpandedZonaId(newZonaObj.id);
+      setNewZonaMacrozona('');
+      setNewZonaAgrupado('');
+      showNotification(`Zona "${upperZona}" (${newZonaOperativa}) agregada con éxito`);
     } else if (activeTab === 'fundos') {
       if (fundos.some((f) => f.fundo.toLowerCase() === cleanName.toLowerCase())) {
         setFormError('Ya existe un fundo con este nombre.');
@@ -276,6 +425,93 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     setNewItemName('');
   };
 
+  // Assign or unassign a paradero to/from a Zona
+  const handleAssignParaderoToZona = (paraderoId: string, targetZona: MaestroZona | null) => {
+    const targetP = paraderos.find((p) => p.id === paraderoId);
+    if (!targetP) return;
+    const updated = paraderos.map((p) => {
+      if (p.id !== paraderoId) return p;
+      if (!targetZona) {
+        const rest = { ...p };
+        delete rest.zonaId;
+        delete rest.zonaEspecifica;
+        return rest;
+      }
+      return {
+        ...p,
+        zonaId: targetZona.id,
+        zonaEspecifica: targetZona.zona,
+        macrozona: targetZona.macrozona || p.macrozona,
+        agrupador: targetZona.agrupado || p.agrupador,
+        zona: targetZona.zonaOperativa,
+      };
+    });
+    setParaderos(updated);
+    saveStoredParaderos(updated);
+    showNotification(
+      targetZona
+        ? `"${targetP.paradero}" asignado a zona "${targetZona.zona}"`
+        : `"${targetP.paradero}" desvinculado de su zona`
+    );
+  };
+
+  // Create new paradero directly inside an expanded Zona
+  const handleQuickAddParaderoInZona = (targetZona: MaestroZona) => {
+    const clean = quickNewParaderoName.trim();
+    if (!clean) return;
+    const existing = paraderos.find((p) => p.paradero.toLowerCase() === clean.toLowerCase());
+    if (existing) {
+      handleAssignParaderoToZona(existing.id, targetZona);
+      setQuickNewParaderoName('');
+      setQuickNewParaderoCode('');
+      return;
+    }
+    const newPar: MaestroParadero = {
+      id: `PAR-${Date.now()}`,
+      paradero: clean,
+      zona: targetZona.zonaOperativa,
+      zonaId: targetZona.id,
+      zonaEspecifica: targetZona.zona,
+      ...(targetZona.macrozona ? { macrozona: targetZona.macrozona } : {}),
+      ...(targetZona.agrupado ? { agrupador: targetZona.agrupado } : {}),
+      ...(quickNewParaderoCode.trim() ? { codigo: quickNewParaderoCode.trim().toUpperCase() } : {}),
+    };
+    const updated = [...paraderos, newPar];
+    setParaderos(updated);
+    saveStoredParaderos(updated);
+    setQuickNewParaderoName('');
+    setQuickNewParaderoCode('');
+    showNotification(`Paradero "${clean}" creado y asignado a "${targetZona.zona}"`);
+  };
+
+  // Toggle Zona operativa (Norte / Sur) and cascade to its assigned paraderos
+  const handleToggleZonaOperativa = (zonaId: string) => {
+    const target = zonas.find((z) => z.id === zonaId);
+    if (!target) return;
+    const newOp: 'NORTE' | 'SUR' = target.zonaOperativa === 'SUR' ? 'NORTE' : 'SUR';
+    const updatedZonas = zonas.map((z) =>
+      z.id === zonaId ? { ...z, zonaOperativa: newOp } : z
+    );
+    setZonas(updatedZonas);
+    saveStoredZonas(updatedZonas);
+
+    // Sincronizar ruta operativa en los paraderos que pertenecen a esta zona
+    const zNorm = normalizeZoneCompare(target.zona);
+    let touchedParaderos = false;
+    const updatedParaderos = paraderos.map((p) => {
+      if (p.zonaId === target.id || (p.zonaEspecifica && normalizeZoneCompare(p.zonaEspecifica) === zNorm)) {
+        touchedParaderos = true;
+        return { ...p, zona: newOp, zonaId: target.id, zonaEspecifica: target.zona };
+      }
+      return p;
+    });
+    if (touchedParaderos) {
+      setParaderos(updatedParaderos);
+      saveStoredParaderos(updatedParaderos);
+    }
+    showNotification(`Zona "${target.zona}" cambiada a ruta ${newOp}`);
+  };
+
   // Toggle paradero zone directly from the card
   const handleToggleParaderoZona = (id: string) => {
     const target = paraderos.find((p) => p.id === id);
@@ -296,7 +532,15 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     setEditingName(name);
     if (activeTab === 'paraderos') {
       const p = paraderos.find((item) => item.id === id);
-      setEditingZona((p?.zona || inferParaderoZona(name)) as 'NORTE' | 'SUR');
+      const matchedZ = p ? getParaderoMatchedZona(p) : undefined;
+      setEditingZona((p?.zona || matchedZ?.zonaOperativa || inferParaderoZona(name)) as 'NORTE' | 'SUR');
+      setEditingParaderoZonaId(matchedZ?.id || p?.zonaId || '');
+      setEditingParaderoCodigo(p?.codigo || '');
+    } else if (activeTab === 'zonas') {
+      const z = zonas.find((item) => item.id === id);
+      setEditingZonaMacrozona(z?.macrozona || '');
+      setEditingZonaAgrupado(z?.agrupado || '');
+      setEditingZona((z?.zonaOperativa || 'NORTE') as 'NORTE' | 'SUR');
     }
   };
 
@@ -311,11 +555,73 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     if (!cleanName) return;
 
     if (activeTab === 'paraderos') {
-      const updated = paraderos.map((p) =>
-        p.id === id ? { ...p, paradero: cleanName, zona: editingZona } : p
-      );
+      const selectedZoneObj = editingParaderoZonaId
+        ? zonas.find((z) => z.id === editingParaderoZonaId)
+        : undefined;
+      const updated = paraderos.map((p) => {
+        if (p.id !== id) return p;
+        const next: MaestroParadero = {
+          ...p,
+          paradero: cleanName,
+          zona: editingZona,
+          codigo: editingParaderoCodigo.trim() ? editingParaderoCodigo.trim().toUpperCase() : p.codigo,
+        };
+        if (selectedZoneObj) {
+          next.zonaId = selectedZoneObj.id;
+          next.zonaEspecifica = selectedZoneObj.zona;
+          next.macrozona = selectedZoneObj.macrozona || p.macrozona;
+          next.agrupador = selectedZoneObj.agrupado || p.agrupador;
+        } else {
+          delete next.zonaId;
+          delete next.zonaEspecifica;
+        }
+        return next;
+      });
       setParaderos(updated);
       saveStoredParaderos(updated);
+    } else if (activeTab === 'zonas') {
+      const oldZone = zonas.find((z) => z.id === id);
+      const upperZona = cleanName.toUpperCase();
+      const updatedZonas = zonas.map((z) =>
+        z.id === id
+          ? {
+              ...z,
+              zona: upperZona,
+              macrozona: editingZonaMacrozona.trim() || undefined,
+              agrupado: editingZonaAgrupado.trim() || undefined,
+              zonaOperativa: editingZona,
+            }
+          : z
+      );
+      setZonas(updatedZonas);
+      saveStoredZonas(updatedZonas);
+
+      // Propagar actualización de nombre/macrozona/ruta operativa a los paraderos pertenecientes
+      if (oldZone) {
+        const oldNorm = normalizeZoneCompare(oldZone.zona);
+        let touched = false;
+        const updatedParaderos = paraderos.map((p) => {
+          if (
+            p.zonaId === id ||
+            (p.zonaEspecifica && normalizeZoneCompare(p.zonaEspecifica) === oldNorm)
+          ) {
+            touched = true;
+            return {
+              ...p,
+              zonaId: id,
+              zonaEspecifica: upperZona,
+              macrozona: editingZonaMacrozona.trim() || p.macrozona,
+              agrupador: editingZonaAgrupado.trim() || p.agrupador,
+              zona: editingZona,
+            };
+          }
+          return p;
+        });
+        if (touched) {
+          setParaderos(updatedParaderos);
+          saveStoredParaderos(updatedParaderos);
+        }
+      }
     } else if (activeTab === 'fundos') {
       const updated = fundos.map((f) => (f.id === id ? { ...f, fundo: cleanName } : f));
       setFundos(updated);
@@ -354,6 +660,32 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       const updated = paraderos.filter((p) => p.id !== id);
       setParaderos(updated);
       saveStoredParaderos(updated);
+    } else if (activeTab === 'zonas') {
+      const targetZ = zonas.find((z) => z.id === id);
+      const updatedZonas = zonas.filter((z) => z.id !== id);
+      setZonas(updatedZonas);
+      saveStoredZonas(updatedZonas);
+      if (targetZ) {
+        const zNorm = normalizeZoneCompare(targetZ.zona);
+        let touched = false;
+        const updatedParaderos = paraderos.map((p) => {
+          if (
+            p.zonaId === id ||
+            (p.zonaEspecifica && normalizeZoneCompare(p.zonaEspecifica) === zNorm)
+          ) {
+            touched = true;
+            const copy = { ...p };
+            delete copy.zonaId;
+            delete copy.zonaEspecifica;
+            return copy;
+          }
+          return p;
+        });
+        if (touched) {
+          setParaderos(updatedParaderos);
+          saveStoredParaderos(updatedParaderos);
+        }
+      }
     } else if (activeTab === 'fundos') {
       const updated = fundos.filter((f) => f.id !== id);
       setFundos(updated);
@@ -375,6 +707,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   // Reset to original defaults
   const handleResetDefaults = () => {
     const res = resetMasterDataToDefault();
+    setZonas(res.zonas);
     setParaderos(res.paraderos);
     setFundos(res.fundos);
     setAreas(res.areas);
@@ -388,16 +721,35 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     if (activeTab === 'paraderos') {
       exportToCSV(
         `Camposol_Maestro_Paraderos_${new Date().toISOString().slice(0, 10)}.csv`,
-        paraderos.map((p) => ({
-          MACROZONA: p.macrozona || '',
-          ZONA: p.zonaEspecifica || p.zona || inferParaderoZona(p.paradero),
-          AGRUPADOR: p.agrupador || '',
-          'CÓDIGO': p.codigo || p.id,
-          NOMBRE: p.paradero,
-          REFERENCIA: p.referencia || '',
-          LATITUD: p.latitud !== undefined ? p.latitud : '',
-          LONGITUD: p.longitud !== undefined ? p.longitud : '',
-        }))
+        paraderos.map((p) => {
+          const matchedZ = getParaderoMatchedZona(p);
+          return {
+            MACROZONA: p.macrozona || matchedZ?.macrozona || '',
+            ZONA: matchedZ?.zona || p.zonaEspecifica || p.zona || inferParaderoZona(p.paradero),
+            AGRUPADO: p.agrupador || matchedZ?.agrupado || '',
+            'CÓDIGO': p.codigo || p.id,
+            NOMBRE: p.paradero,
+            REFERENCIA: p.referencia || '',
+            LATITUD: p.latitud !== undefined ? p.latitud : '',
+            LONGITUD: p.longitud !== undefined ? p.longitud : '',
+          };
+        })
+      );
+    } else if (activeTab === 'zonas') {
+      exportToCSV(
+        `Camposol_Maestro_Zonas_${new Date().toISOString().slice(0, 10)}.csv`,
+        zonas.map((z) => {
+          const assigned = getParaderosForZona(z);
+          return {
+            ID: z.id,
+            MACROZONA: z.macrozona || '',
+            ZONA: z.zona,
+            AGRUPADO: z.agrupado || '',
+            RUTA_OPERATIVA: z.zonaOperativa,
+            CANTIDAD_PARADEROS: assigned.length,
+            PARADEROS_ASIGNADOS: assigned.map((p) => p.paradero).join(' | '),
+          };
+        })
       );
     } else if (activeTab === 'fundos') {
       exportToCSV(
@@ -412,16 +764,16 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
     }
   };
 
-  // Download official Excel template with Paraderos (CAMPOSOL format), Fundos and Áreas
+  // Download official Excel template with Paraderos (CAMPOSOL format), Zonas, Fundos and Áreas
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
 
-    // Sheet: Paraderos with the exact CAMPOSOL format: MACROZONA, ZONA, AGRUPADOR, CÓDIGO, NOMBRE, REFERENCIA, LATITUD, LONGITUD
+    // Sheet: Paraderos with exact CAMPOSOL columns: MACROZONA, ZONA, AGRUPADO, CÓDIGO, NOMBRE, REFERENCIA, LATITUD, LONGITUD
     const paraderosSample = [
       {
         MACROZONA: 'Mcrz 25 San Jose',
         ZONA: 'SAN JOSE',
-        AGRUPADOR: '',
+        AGRUPADO: '',
         'CÓDIGO': 'E27',
         NOMBRE: 'SEMAFORO AGROMAS',
         REFERENCIA: '',
@@ -431,7 +783,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       {
         MACROZONA: 'Mcrz 25 San Jose',
         ZONA: 'SAN JOSE',
-        AGRUPADOR: '',
+        AGRUPADO: '',
         'CÓDIGO': 'G-FR',
         NOMBRE: 'GAR FRUSOL 1',
         REFERENCIA: '-',
@@ -439,48 +791,48 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         LONGITUD: -78.71849354,
       },
       {
-        MACROZONA: 'Mcrz 9 La Rinconada',
-        ZONA: 'RINCONADA',
-        AGRUPADOR: '',
-        'CÓDIGO': 'P206',
-        NOMBRE: 'EL CHACARERO (METRO)',
+        MACROZONA: 'Mcrz 21 Victor Raul',
+        ZONA: 'VICTOR RAUL',
+        AGRUPADO: '',
+        'CÓDIGO': 'P580',
+        NOMBRE: 'CALIFORNIA',
         REFERENCIA: '',
-        LATITUD: -8.11974,
-        LONGITUD: -79.0411,
+        LATITUD: -8.411556,
+        LONGITUD: -78.803083,
       },
       {
-        MACROZONA: 'Mcrz 9 La Rinconada',
-        ZONA: 'RINCONADA',
-        AGRUPADOR: '',
-        'CÓDIGO': 'P184',
-        NOMBRE: 'ASILO DE ANCIANOS "SAN JOSE"',
-        REFERENCIA: '.',
-        LATITUD: -8.103361727,
-        LONGITUD: -79.00225642,
-      },
-      {
-        MACROZONA: 'Mcrz 9 La Rinconada',
-        ZONA: 'RINCONADA',
-        AGRUPADOR: '',
-        'CÓDIGO': 'P183',
-        NOMBRE: 'AV.AMERICA Y VALLEJO (COMISARIA NORIA)',
-        REFERENCIA: '.',
-        LATITUD: -8.103445226,
-        LONGITUD: -79.01093636,
-      },
-      {
-        MACROZONA: 'Mcrz 9 La Rinconada',
-        ZONA: 'RINCONADA',
-        AGRUPADOR: '',
-        'CÓDIGO': 'P182',
-        NOMBRE: 'HOSPITAL LAZARTE (AV.AMERICA Y AV.UNION)',
+        MACROZONA: 'Mcrz 32 Chao',
+        ZONA: 'CHAO',
+        AGRUPADO: '',
+        'CÓDIGO': 'P436',
+        NOMBRE: 'VIVIENDAS MAR VERDE',
         REFERENCIA: '',
-        LATITUD: -8.09957,
-        LONGITUD: -79.0121,
+        LATITUD: -8.573217,
+        LONGITUD: -78.668278,
+      },
+      {
+        MACROZONA: 'Mcrz 31 Nuevo Chao',
+        ZONA: 'NUEVO CHAO',
+        AGRUPADO: '',
+        'CÓDIGO': 'P431',
+        NOMBRE: 'LA BOTICA',
+        REFERENCIA: '.',
+        LATITUD: -8.511456964,
+        LONGITUD: -78.67994715,
       },
     ];
     const wsParaderos = XLSX.utils.json_to_sheet(paraderosSample);
     XLSX.utils.book_append_sheet(wb, wsParaderos, 'Paraderos');
+
+    // Sheet: Zonas
+    const zonasSample = [
+      { MACROZONA: 'Mcrz 25 San Jose', ZONA: 'SAN JOSE', AGRUPADO: '', RUTA_OPERATIVA: 'NORTE' },
+      { MACROZONA: 'Mcrz 21 Victor Raul', ZONA: 'VICTOR RAUL', AGRUPADO: '', RUTA_OPERATIVA: 'NORTE' },
+      { MACROZONA: 'Mcrz 32 Chao', ZONA: 'CHAO', AGRUPADO: '', RUTA_OPERATIVA: 'SUR' },
+      { MACROZONA: 'Mcrz 31 Nuevo Chao', ZONA: 'NUEVO CHAO', AGRUPADO: '', RUTA_OPERATIVA: 'SUR' },
+    ];
+    const wsZonas = XLSX.utils.json_to_sheet(zonasSample);
+    XLSX.utils.book_append_sheet(wb, wsZonas, 'Zonas');
 
     // Sheet: Fundos
     const fundosSample = [
@@ -514,6 +866,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       const workbook = XLSX.read(data, { type: 'array' });
 
       const result: ParsedMasterImport = {
+        zonas: [],
         paraderos: [],
         fundos: [],
         areas: [],
@@ -536,11 +889,11 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         const sampleHeaders = Object.keys(firstRow).map((k) => normalizeHeader(k));
 
         const hasCamposolParaderoFormat =
-          sampleHeaders.includes('macrozona') ||
-          (sampleHeaders.includes('nombre') &&
-            (sampleHeaders.includes('codigo') ||
-              sampleHeaders.includes('latitud') ||
-              sampleHeaders.includes('zona')));
+          sampleHeaders.includes('nombre') &&
+          (sampleHeaders.includes('codigo') ||
+            sampleHeaders.includes('latitud') ||
+            sampleHeaders.includes('macrozona') ||
+            sampleHeaders.includes('zona'));
 
         const hasParaderoHeader = sampleHeaders.some((h) =>
           h.includes('paradero') ||
@@ -550,12 +903,16 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         );
         const hasFundoHeader = sampleHeaders.some((h) => h.includes('fundo'));
         const hasAreaHeader = sampleHeaders.some((h) => h.includes('area') || h.includes('área'));
+        const isZonaOnlySheet =
+          (sNorm.includes('zona') && !sampleHeaders.includes('nombre') && !hasParaderoHeader) ||
+          (activeTab === 'zonas' && sampleHeaders.includes('zona') && !sampleHeaders.includes('nombre') && !hasParaderoHeader);
 
         const isParaderoSheet =
-          sNorm.includes('paradero') ||
-          hasCamposolParaderoFormat ||
-          hasParaderoHeader ||
-          (activeTab === 'paraderos' && !hasFundoHeader && !hasAreaHeader && !sNorm.includes('fundo') && !sNorm.includes('area'));
+          !isZonaOnlySheet &&
+          (sNorm.includes('paradero') ||
+            hasCamposolParaderoFormat ||
+            hasParaderoHeader ||
+            (activeTab === 'paraderos' && !hasFundoHeader && !hasAreaHeader && !sNorm.includes('fundo') && !sNorm.includes('area')));
         const isFundoSheet =
           (sNorm.includes('fundo') || hasFundoHeader || (activeTab === 'fundos' && !hasParaderoHeader && !hasAreaHeader)) &&
           !hasCamposolParaderoFormat;
@@ -583,9 +940,33 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             return realKey !== undefined ? row[realKey] : undefined;
           };
 
+          const macrozonaVal = getVal('macrozona');
+          const zonaVal = getVal('zona');
+          const agrupadorVal = getVal('agrupado') || getVal('agrupador');
+          const rutaOpRaw = (getVal('ruta_operativa') || getVal('ruta operativa') || getVal('ruta')).toUpperCase();
+
+          if (isZonaOnlySheet) {
+            if (zonaVal && !['zona', 'id', 'nombre'].includes(zonaVal.toLowerCase())) {
+              const combinedZ = `${zonaVal} ${macrozonaVal} ${rutaOpRaw}`.toUpperCase();
+              const op: 'NORTE' | 'SUR' = rutaOpRaw.includes('SUR')
+                ? 'SUR'
+                : rutaOpRaw.includes('NORTE')
+                ? 'NORTE'
+                : combinedZ.includes('CHAO') || combinedZ.includes('VALLE DE DIOS')
+                ? 'SUR'
+                : 'NORTE';
+              result.zonas.push({
+                zona: zonaVal.toUpperCase(),
+                macrozona: macrozonaVal || undefined,
+                agrupado: agrupadorVal || undefined,
+                zonaOperativa: op,
+              });
+            }
+            return;
+          }
+
           // Paradero detection:
-          // CAMPOSOL format: MACROZONA, ZONA, AGRUPADOR, CÓDIGO, NOMBRE, REFERENCIA, LATITUD, LONGITUD
-          // O formato simple de lista: PARADERO, NOMBRE, PUNTO DE EMBARQUE
+          // Formato CAMPOSOL: MACROZONA, ZONA, AGRUPADO(R), CÓDIGO, NOMBRE, REFERENCIA, LATITUD, LONGITUD
           const matchedParaderoKey = keys.find((k) => {
             const kn = normalizeHeader(k);
             return (
@@ -607,10 +988,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             getVal('ruta') ||
             (matchedParaderoKey ? normalizeStr(row[matchedParaderoKey]) : '') ||
             (isParaderoSheet && !isFundoSheet && !isAreaSheet ? normalizeStr(row[keys[0]]) : '');
-          const macrozonaVal = getVal('macrozona');
-          const zonaVal = getVal('zona');
           const codigoVal = getVal('codigo') || getVal('cod');
-          const agrupadorVal = getVal('agrupador');
           const referenciaVal = getVal('referencia');
           const latRaw = getRaw('latitud');
           const lngRaw = getRaw('longitud');
@@ -642,10 +1020,23 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               ) {
                 zonaOperativa = 'SUR';
               } else if (latVal !== undefined && latVal <= -8.50) {
-                // Latitude <= -8.50 corresponds to Chao / Valle de Dios valley (SUR)
                 zonaOperativa = 'SUR';
               } else {
                 zonaOperativa = inferParaderoZona(nombreVal);
+              }
+
+              // Registrar automáticamente la ZONA específica si viene en la columna ZONA
+              if (
+                zonaVal &&
+                zonaVal.toUpperCase() !== 'NORTE' &&
+                zonaVal.toUpperCase() !== 'SUR'
+              ) {
+                result.zonas.push({
+                  zona: zonaVal.toUpperCase(),
+                  macrozona: macrozonaVal || undefined,
+                  agrupado: agrupadorVal || undefined,
+                  zonaOperativa,
+                });
               }
 
               result.paraderos.push({
@@ -653,7 +1044,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                 zona: zonaOperativa,
                 codigo: codigoVal || undefined,
                 macrozona: macrozonaVal || undefined,
-                zonaEspecifica: zonaVal || undefined,
+                zonaEspecifica: zonaVal ? zonaVal.toUpperCase() : undefined,
                 agrupador: agrupadorVal || undefined,
                 referencia: referenciaVal || undefined,
                 latitud: latVal,
@@ -682,6 +1073,11 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   ? 'NORTE'
                   : inferParaderoZona(firstVal);
                 result.paraderos.push({ paradero: firstVal, zona: zonaOperativa });
+              } else if (activeTab === 'zonas') {
+                result.zonas.push({
+                  zona: firstVal.toUpperCase(),
+                  zonaOperativa: firstVal.toUpperCase().includes('CHAO') ? 'SUR' : 'NORTE',
+                });
               } else if (activeTab === 'fundos') {
                 result.fundos.push({ fundo: firstVal });
               } else if (activeTab === 'areas') {
@@ -693,6 +1089,10 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       });
 
       // Filter duplicates in import
+      result.zonas = result.zonas.filter(
+        (item, idx, self) =>
+          idx === self.findIndex((t) => normalizeZoneCompare(t.zona) === normalizeZoneCompare(item.zona))
+      );
       result.paraderos = result.paraderos.filter(
         (item, idx, self) =>
           idx ===
@@ -711,7 +1111,8 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           idx === self.findIndex((t) => t.area.toLowerCase() === item.area.toLowerCase())
       );
 
-      const totalItems = result.paraderos.length + result.fundos.length + result.areas.length;
+      const totalItems =
+        result.zonas.length + result.paraderos.length + result.fundos.length + result.areas.length;
       if (totalItems === 0) {
         showNotification('No se encontraron datos válidos en el archivo Excel.');
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -733,9 +1134,49 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   const handleExecuteImport = () => {
     if (!importData) return;
 
+    let newZonas = [...zonas];
     let newParaderos = [...paraderos];
     let newFundos = [...fundos];
     let newAreas = [...areas];
+
+    if (importMode === 'replace') {
+      if (importData.zonas.length > 0) {
+        newZonas = importData.zonas.map((z, idx) => ({
+          id: `ZON-${Date.now()}-${idx}`,
+          zona: z.zona,
+          macrozona: z.macrozona,
+          agrupado: z.agrupado,
+          zonaOperativa: z.zonaOperativa,
+        }));
+      }
+    } else if (importData.zonas.length > 0) {
+      importData.zonas.forEach((z, idx) => {
+        const existingIdx = newZonas.findIndex(
+          (item) => normalizeZoneCompare(item.zona) === normalizeZoneCompare(z.zona)
+        );
+        if (existingIdx === -1) {
+          newZonas.push({
+            id: `ZON-${Date.now()}-${idx}`,
+            zona: z.zona,
+            macrozona: z.macrozona,
+            agrupado: z.agrupado,
+            zonaOperativa: z.zonaOperativa,
+          });
+        } else {
+          newZonas[existingIdx] = {
+            ...newZonas[existingIdx],
+            macrozona: z.macrozona || newZonas[existingIdx].macrozona,
+            agrupado: z.agrupado || newZonas[existingIdx].agrupado,
+            zonaOperativa: z.zonaOperativa || newZonas[existingIdx].zonaOperativa,
+          };
+        }
+      });
+    }
+
+    const resolveZoneIdForParadero = (zonaEsp?: string): string | undefined => {
+      if (!zonaEsp) return undefined;
+      return newZonas.find((z) => normalizeZoneCompare(z.zona) === normalizeZoneCompare(zonaEsp))?.id;
+    };
 
     if (importMode === 'replace') {
       if (importData.paraderos.length > 0) {
@@ -743,6 +1184,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           id: p.codigo ? `PAR-${p.codigo}` : `PAR-${Date.now()}-${idx}`,
           paradero: p.paradero,
           zona: p.zona,
+          zonaId: resolveZoneIdForParadero(p.zonaEspecifica),
           codigo: p.codigo,
           macrozona: p.macrozona,
           zonaEspecifica: p.zonaEspecifica,
@@ -765,8 +1207,9 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         }));
       }
     } else {
-      // Merge mode without duplicates (also enriches existing items with code/coords/macrozona)
+      // Merge mode without duplicates (also enriches existing items with code/coords/macrozona/zonaId)
       importData.paraderos.forEach((p, idx) => {
+        const linkedZId = resolveZoneIdForParadero(p.zonaEspecifica);
         const existingIdx = newParaderos.findIndex(
           (item) =>
             item.paradero.toLowerCase() === p.paradero.toLowerCase() ||
@@ -777,6 +1220,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             id: p.codigo ? `PAR-${p.codigo}` : `PAR-${Date.now()}-${idx}`,
             paradero: p.paradero,
             zona: p.zona,
+            zonaId: linkedZId,
             codigo: p.codigo,
             macrozona: p.macrozona,
             zonaEspecifica: p.zonaEspecifica,
@@ -792,6 +1236,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             codigo: p.codigo || newParaderos[existingIdx].codigo,
             macrozona: p.macrozona || newParaderos[existingIdx].macrozona,
             zonaEspecifica: p.zonaEspecifica || newParaderos[existingIdx].zonaEspecifica,
+            zonaId: linkedZId || newParaderos[existingIdx].zonaId,
             agrupador: p.agrupador || newParaderos[existingIdx].agrupador,
             referencia: p.referencia || newParaderos[existingIdx].referencia,
             latitud: p.latitud !== undefined ? p.latitud : newParaderos[existingIdx].latitud,
@@ -822,6 +1267,10 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       });
     }
 
+    if (importData.zonas.length > 0) {
+      setZonas(newZonas);
+      saveStoredZonas(newZonas);
+    }
     if (importData.paraderos.length > 0) {
       setParaderos(newParaderos);
       saveStoredParaderos(newParaderos);
@@ -837,42 +1286,47 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
     setShowImportModal(false);
     setImportData(null);
-    showNotification('¡Paraderos guardados y sincronizados con la publicación y la nube con éxito!');
+    showNotification('¡Zonas y paraderos guardados y sincronizados en tiempo real!');
   };
 
+  const currentListCount =
+    activeTab === 'paraderos'
+      ? filteredParaderos.length
+      : activeTab === 'zonas'
+      ? filteredZonas.length
+      : activeTab === 'fundos'
+      ? filteredFundos.length
+      : activeTab === 'areas'
+      ? filteredAreas.length
+      : filteredBuses.length;
+
   return (
-    <div className="flex flex-col flex-1 w-full max-w-7xl mx-auto space-y-4 pb-16 text-[#1B3A57]">
+    <div className="flex flex-col flex-1 w-full max-w-7xl mx-auto space-y-3.5 pb-14 text-[#1B3A57]">
       {/* Toast feedback */}
       {toastMessage && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#1B3A57] text-white px-4 py-2.5 rounded-full shadow-lg text-xs font-semibold flex items-center gap-2 border border-[#55A529]/50 animate-in fade-in slide-in-from-top-3">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#1B3A57] text-white px-4 py-2 rounded-full shadow-lg text-xs font-semibold flex items-center gap-2 border border-[#55A529]/50 animate-in fade-in slide-in-from-top-3">
           <CheckCircle2 className="w-4 h-4 text-[#7BD44B]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Top Toolbar Card matching corporate reference */}
-      <div className="bg-white rounded-2xl px-5 py-3.5 border border-[#E5ECF2] shadow-xs flex flex-wrap items-center justify-between gap-3">
+      {/* Compact Top Toolbar */}
+      <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             id="btn-back-to-home"
             onClick={onBack}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[#2F7D18] bg-[#EAF7E4] hover:bg-[#d8f1cc] border border-[#C6E9B4] px-3.5 py-2 rounded-full transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#2F7D18] bg-[#EAF7E4] hover:bg-[#d8f1cc] border border-[#C6E9B4] px-3 py-1.5 rounded-full transition-colors cursor-pointer whitespace-nowrap"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Volver</span>
           </button>
-          <div>
-            <h2 className="text-sm font-bold text-[#1B3A57] leading-tight">
-              Datos maestros del sistema
-            </h2>
-            <p className="text-[11px] text-slate-500">
-              Administra paraderos, fundos, áreas y flota de buses en tiempo real
-            </p>
-          </div>
+          <h2 className="text-sm font-bold text-[#1B3A57] whitespace-nowrap">
+            Catálogos Maestros
+          </h2>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Hidden file input for Excel upload */}
+        <div className="flex flex-wrap items-center gap-1.5">
           <input
             ref={fileInputRef}
             type="file"
@@ -884,365 +1338,397 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           <button
             id="btn-upload-master-excel"
             onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
-            title="Subir archivo Excel (.xlsx, .xls, .csv) con paraderos, fundos y áreas"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2F7D18] hover:bg-[#F3F8F0] rounded-full transition-colors cursor-pointer whitespace-nowrap"
+            title="Importar Excel (.xlsx, .xls, .csv)"
           >
-            <Upload className="w-4 h-4" />
-            <span className="text-[10px] font-medium">Subir Excel</span>
+            <Upload className="w-3.5 h-3.5" />
+            <span>Excel</span>
           </button>
 
           <button
             id="btn-download-master-template"
             onClick={handleDownloadTemplate}
-            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
-            title="Descargar plantilla Excel con formato oficial para Paraderos, Fundos y Áreas"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2F7D18] hover:bg-[#F3F8F0] rounded-full transition-colors cursor-pointer whitespace-nowrap"
+            title="Descargar plantilla Excel"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span className="text-[10px] font-medium">Plantilla</span>
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Plantilla</span>
           </button>
 
           <button
             id="btn-export-master-csv"
             onClick={handleExportCurrentMaster}
-            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
-            title="Exportar a CSV"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2F7D18] hover:bg-[#F3F8F0] rounded-full transition-colors cursor-pointer whitespace-nowrap"
+            title="Exportar lista actual a CSV"
           >
-            <Download className="w-4 h-4" />
-            <span className="text-[10px] font-medium">Descarga CSV</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>CSV</span>
           </button>
 
           <button
             id="btn-reset-masters"
             onClick={() => setShowResetConfirm(true)}
-            className="px-4 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Restablecer a valores iniciales"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-xs font-medium text-slate-600 transition-colors cursor-pointer whitespace-nowrap"
+            title="Restablecer valores por defecto"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Restablecer</span>
           </button>
+
+          {onNavigateToNewRequest && (
+            <button
+              onClick={onNavigateToNewRequest}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#22A846] hover:bg-[#1C8E3A] text-white text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nuevo req.</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Responsive Grid: 2 columns on desktop, 1 on mobile */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left Column (Desktop: 5 cols): Category & Add Item */}
-        <div className="lg:col-span-5 space-y-4">
-          {/* Hero card explaining the section */}
-          <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-[#EAF7E4] border border-[#C6E9B4] flex items-center justify-center text-[#2F7D18] shrink-0">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-[10px] font-semibold tracking-wider text-[#55A529] uppercase">
-                  Administración operativa
-                </span>
-                <h1 className="text-lg font-bold text-[#1B3A57] leading-tight">
-                  Maestros y Paraderos
-                </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Personaliza paraderos, fundos, áreas y flota de servicio.
-                </p>
-              </div>
-            </div>
-
-            {/* Quick KPI Count Summary - 4 items */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t border-slate-100">
-              {tabsConfig.map((t) => {
-                const Icon = t.icon;
-                const isCurrent = activeTab === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    id={`kpi-tab-${t.id}`}
-                    onClick={() => {
-                      setActiveTab(t.id);
-                      setSearchQuery('');
-                      setFormError(null);
-                      cancelEditing();
-                    }}
-                    className={`p-2.5 rounded-xl text-center transition-all cursor-pointer border ${
-                      isCurrent
-                        ? 'bg-[#55A529] text-white border-[#55A529] shadow-xs font-semibold'
-                        : 'bg-[#F8FAFC] hover:bg-[#F3F8F0] text-[#1B3A57] border-[#E5ECF2]'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 mx-auto mb-1 ${isCurrent ? 'text-white' : 'text-[#55A529]'}`} />
-                    <div className="text-sm font-bold leading-none tabular-nums">{t.count}</div>
-                    <div className={`text-[10px] font-medium leading-tight mt-1 truncate ${isCurrent ? 'text-white/90' : 'text-slate-500'}`}>
-                      {t.label}
-                    </div>
-                    {t.id === 'paraderos' && (
-                      <div className={`text-[9px] font-semibold mt-1 tracking-tight ${isCurrent ? 'text-white/90' : 'text-slate-400'}`}>
-                        {countNorte}N • {countSur}S
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Add New Item Card */}
-          <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs space-y-3.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] flex items-center justify-center text-[#2F7D18]">
-                  <Plus className="w-4 h-4" />
-                </div>
-                <h2 className="text-sm font-bold text-[#1B3A57]">
-                  Agregar nuevo {currentTabInfo.singular.toLowerCase()}
-                </h2>
-              </div>
-              <span className="text-[10px] font-semibold text-[#2F7D18] bg-[#EAF7E4] border border-[#C6E9B4] px-2.5 py-0.5 rounded-full">
-                Tiempo real
+      {/* Single Unified Navigation Tabs */}
+      <div className="bg-white p-1.5 rounded-2xl border border-[#E5ECF2] shadow-2xs flex items-center gap-1 overflow-x-auto">
+        {tabsConfig.map((t) => {
+          const Icon = t.icon;
+          const isCurrent = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              id={`tab-btn-${t.id}`}
+              onClick={() => {
+                setActiveTab(t.id);
+                setSearchQuery('');
+                setFormError(null);
+                cancelEditing();
+              }}
+              className={`flex-1 min-w-[105px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                isCurrent
+                  ? 'bg-[#55A529] text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-[#2F7D18] hover:bg-[#F3F8F0]'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span>{t.label}</span>
+              <span
+                className={`text-[11px] tabular-nums ${
+                  isCurrent ? 'text-white/90' : 'text-slate-400'
+                }`}
+              >
+                {t.count}
               </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main Workspace Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Left Column (4 cols): Clean Add Form */}
+        <div className="lg:col-span-4">
+          <div className="bg-white rounded-2xl p-4 border border-[#E5ECF2] shadow-xs space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#EAF7E4] flex items-center justify-center text-[#2F7D18] shrink-0">
+                <Plus className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-[#1B3A57]">
+                {activeTab === 'zonas'
+                  ? 'Nueva zona'
+                  : activeTab === 'areas'
+                  ? 'Nueva área'
+                  : activeTab === 'buses'
+                  ? 'Nueva unidad'
+                  : `Nuevo ${currentTabInfo.singular.toLowerCase()}`}
+              </h3>
             </div>
 
             <form onSubmit={handleAddItem} className="space-y-2.5">
-              <div className="flex gap-2">
-                <input
-                  id={`input-new-${activeTab}`}
-                  type="text"
-                  value={newItemName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setNewItemName(val);
-                    if (activeTab === 'paraderos' && val.trim().length >= 3) {
-                      setNewParaderoZona(inferParaderoZona(val));
+              <input
+                id={`input-new-${activeTab}`}
+                type="text"
+                value={newItemName}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewItemName(val);
+                  if (activeTab === 'paraderos' && !newParaderoZonaId && val.trim().length >= 3) {
+                    setNewParaderoZona(inferParaderoZona(val));
+                  }
+                  if (activeTab === 'zonas' && val.trim().length >= 3) {
+                    const u = val.toUpperCase();
+                    if (u.includes('CHAO') || u.includes('VALLE DE DIOS')) {
+                      setNewZonaOperativa('SUR');
                     }
-                    if (formError) setFormError(null);
-                  }}
-                  placeholder={currentTabInfo.placeholder}
-                  className="flex-1 h-10 px-4 rounded-full border border-[#D8E2EA] text-xs text-slate-700 focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
-                />
-                <button
-                  type="submit"
-                  id="btn-submit-add-item"
-                  className="bg-[#22A846] hover:bg-[#1C8E3A] text-white px-4 h-10 rounded-full font-semibold text-xs flex items-center gap-1.5 shadow-2xs transition-all shrink-0 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Agregar</span>
-                </button>
-              </div>
+                  }
+                  if (formError) setFormError(null);
+                }}
+                placeholder={currentTabInfo.placeholder}
+                className="w-full h-9 px-3.5 rounded-xl border border-[#D8E2EA] text-xs text-slate-700 focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
+              />
+
+              {/* Fields when adding a new Zona */}
+              {activeTab === 'zonas' && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={newZonaMacrozona}
+                      onChange={(e) => setNewZonaMacrozona(e.target.value)}
+                      placeholder="Macrozona"
+                      className="h-9 px-3 rounded-xl border border-[#D8E2EA] bg-[#F8FAFC] text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
+                    />
+                    <input
+                      type="text"
+                      value={newZonaAgrupado}
+                      onChange={(e) => setNewZonaAgrupado(e.target.value)}
+                      placeholder="Agrupado"
+                      className="h-9 px-3 rounded-xl border border-[#D8E2EA] bg-[#F8FAFC] text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between bg-[#F8FAFC] px-3 py-1.5 rounded-xl border border-[#E5ECF2]">
+                    <span className="text-xs font-semibold text-slate-600">Ruta</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setNewZonaOperativa('NORTE')}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                          newZonaOperativa === 'NORTE'
+                            ? 'bg-[#0082B3] text-white'
+                            : 'bg-white text-slate-600 border border-[#D8E2EA] hover:bg-slate-50'
+                        }`}
+                      >
+                        Norte
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewZonaOperativa('SUR')}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                          newZonaOperativa === 'SUR'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-white text-slate-600 border border-[#D8E2EA] hover:bg-slate-50'
+                        }`}
+                      >
+                        Sur
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Capacidad selector when adding a new Bus */}
               {activeTab === 'buses' && (
-                <div className="flex items-center justify-between bg-[#F8FAFC] px-3.5 py-2 rounded-xl border border-[#E5ECF2]">
-                  <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    <Bus className="w-3.5 h-3.5 text-[#55A529]" />
-                    <span>Capacidad (Pasajeros):</span>
-                  </span>
+                <div className="flex items-center justify-between bg-[#F8FAFC] px-3 py-1.5 rounded-xl border border-[#E5ECF2]">
+                  <span className="text-xs font-semibold text-slate-600">Capacidad (pax)</span>
                   <input
                     type="number"
                     min="1"
                     max="100"
                     value={newUnidadCapacidad}
                     onChange={(e) => setNewUnidadCapacidad(Number(e.target.value) || 0)}
-                    className="w-24 p-1.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] text-right focus:outline-none focus:border-[#55A529]"
+                    className="w-20 h-8 px-2.5 bg-white border border-[#D8E2EA] rounded-lg text-xs font-semibold text-[#1B3A57] text-right tabular-nums focus:outline-none focus:border-[#55A529]"
                   />
                 </div>
               )}
 
-              {/* Zona selector when adding a new Paradero */}
+              {/* Zona + metadata selectors when adding a new Paradero */}
               {activeTab === 'paraderos' && (
-                <div className="flex items-center justify-between bg-[#F8FAFC] px-3.5 py-2 rounded-xl border border-[#E5ECF2]">
-                  <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-[#55A529]" />
-                    <span>Zona asignada:</span>
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      id="btn-select-new-norte"
-                      onClick={() => setNewParaderoZona('NORTE')}
-                      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer border ${
-                        newParaderoZona === 'NORTE'
-                          ? 'bg-[#0082B3] text-white border-[#0082B3]'
-                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${newParaderoZona === 'NORTE' ? 'bg-white' : 'bg-[#0082B3]'}`} />
-                      <span>Norte</span>
-                    </button>
-                    <button
-                      type="button"
-                      id="btn-select-new-sur"
-                      onClick={() => setNewParaderoZona('SUR')}
-                      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer border ${
-                        newParaderoZona === 'SUR'
-                          ? 'bg-amber-600 text-white border-amber-600'
-                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${newParaderoZona === 'SUR' ? 'bg-white' : 'bg-amber-500'}`} />
-                      <span>Sur</span>
-                    </button>
+                <div className="space-y-2">
+                  <select
+                    id="select-new-paradero-zona"
+                    value={newParaderoZonaId}
+                    onChange={(e) => {
+                      const zId = e.target.value;
+                      setNewParaderoZonaId(zId);
+                      const found = zonas.find((z) => z.id === zId);
+                      if (found) {
+                        setNewParaderoZona(found.zonaOperativa);
+                        if (found.agrupado && !newParaderoAgrupado) {
+                          setNewParaderoAgrupado(found.agrupado);
+                        }
+                      }
+                    }}
+                    className="w-full h-9 px-3 bg-[#F8FAFC] border border-[#D8E2EA] rounded-xl text-xs font-medium text-[#1B3A57] focus:bg-white focus:outline-none focus:border-[#55A529] cursor-pointer"
+                  >
+                    <option value="">Zona: Sin asignar</option>
+                    {zonas.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.zona} · {z.zonaOperativa}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <input
+                      type="text"
+                      value={newParaderoCodigo}
+                      onChange={(e) => setNewParaderoCodigo(e.target.value)}
+                      placeholder="Código"
+                      className="h-8 px-2.5 rounded-xl border border-[#D8E2EA] bg-[#F8FAFC] text-[11px] text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400 uppercase"
+                    />
+                    <input
+                      type="text"
+                      value={newParaderoAgrupado}
+                      onChange={(e) => setNewParaderoAgrupado(e.target.value)}
+                      placeholder="Agrupado"
+                      className="h-8 px-2.5 rounded-xl border border-[#D8E2EA] bg-[#F8FAFC] text-[11px] text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
+                    />
+                    <input
+                      type="text"
+                      value={newParaderoReferencia}
+                      onChange={(e) => setNewParaderoReferencia(e.target.value)}
+                      placeholder="Referencia"
+                      className="h-8 px-2.5 rounded-xl border border-[#D8E2EA] bg-[#F8FAFC] text-[11px] text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between bg-[#F8FAFC] px-3 py-1.5 rounded-xl border border-[#E5ECF2]">
+                    <span className="text-xs font-semibold text-slate-600">Ruta</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        id="btn-select-new-norte"
+                        onClick={() => setNewParaderoZona('NORTE')}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                          newParaderoZona === 'NORTE'
+                            ? 'bg-[#0082B3] text-white'
+                            : 'bg-white text-slate-600 border border-[#D8E2EA] hover:bg-slate-50'
+                        }`}
+                      >
+                        Norte
+                      </button>
+                      <button
+                        type="button"
+                        id="btn-select-new-sur"
+                        onClick={() => setNewParaderoZona('SUR')}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                          newParaderoZona === 'SUR'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-white text-slate-600 border border-[#D8E2EA] hover:bg-slate-50'
+                        }`}
+                      >
+                        Sur
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
 
               {formError && (
                 <p className="text-xs text-[#DC2626] font-medium flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  {formError}
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{formError}</span>
                 </p>
               )}
+
+              <button
+                type="submit"
+                id="btn-submit-add-item"
+                className="w-full h-9 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar</span>
+              </button>
             </form>
           </div>
-
-          {/* Quick link to create a new requirement with the updated master */}
-          {onNavigateToNewRequest && (
-            <div className="pt-1">
-              <button
-                onClick={onNavigateToNewRequest}
-                className="w-full py-3 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full font-semibold text-xs shadow-2xs active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Crear requerimiento con estos datos</span>
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* Right Column (Desktop: 7 cols): Tabs, Search & List */}
-        <div className="lg:col-span-7 space-y-4">
-          {/* Main Tabs Navigation */}
-          <div className="flex bg-white p-1.5 rounded-full border border-[#E5ECF2] shadow-2xs gap-1 overflow-x-auto">
-            {tabsConfig.map((t) => {
-              const isCurrent = activeTab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  id={`tab-btn-${t.id}`}
-                  onClick={() => {
-                    setActiveTab(t.id);
-                    setSearchQuery('');
-                    setFormError(null);
-                    cancelEditing();
-                  }}
-                  className={`flex-1 min-w-[70px] py-2 px-3 text-xs font-semibold rounded-full transition-all whitespace-nowrap cursor-pointer ${
-                    isCurrent
-                      ? 'bg-[#55A529] text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-[#2F7D18] hover:bg-[#F3F8F0]'
-                  }`}
-                >
-                  {t.label} ({t.count})
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick Zone Distribution & Filter when on Paraderos */}
-          {activeTab === 'paraderos' && (
-            <div className="bg-white rounded-2xl p-3.5 border border-[#E5ECF2] shadow-xs flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold shrink-0">
-                  <Compass className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-[#1B3A57]">
-                    Distribución por zona
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    Total: <strong className="text-[#1B3A57]">{paraderos.length}</strong> • Norte:{' '}
-                    <strong className="text-[#0082B3] font-semibold">{countNorte}</strong> • Sur:{' '}
-                    <strong className="text-[#B45309] font-semibold">{countSur}</strong>
-                  </div>
-                </div>
+        {/* Right Column (8 cols): Compact Filter Bar + Clean List */}
+        <div className="lg:col-span-8 space-y-3">
+          {/* Unified Search + Filter Bar */}
+          <div className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs space-y-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[200px]">
+                <input
+                  id="input-search-master-items"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={`Buscar ${currentTabInfo.label.toLowerCase()}...`}
+                  className="w-full h-9 pl-3.5 pr-9 rounded-xl bg-[#F8FAFC] border border-[#D8E2EA] text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
+                />
+                {searchQuery ? (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                )}
               </div>
 
-              {/* Quick Filter Buttons */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  id="filter-zona-todos"
-                  onClick={() => setSelectedZonaFilter('TODOS')}
-                  className={`px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors cursor-pointer border ${
-                    selectedZonaFilter === 'TODOS'
-                      ? 'bg-[#22A846] text-white border-[#22A846]'
-                      : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
-                  }`}
-                >
-                  Todos ({paraderos.length})
-                </button>
-                <button
-                  type="button"
-                  id="filter-zona-norte"
-                  onClick={() => setSelectedZonaFilter('NORTE')}
-                  className={`px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors flex items-center gap-1 cursor-pointer border ${
-                    selectedZonaFilter === 'NORTE'
-                      ? 'bg-[#0082B3] text-white border-[#0082B3]'
-                      : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7] hover:bg-[#d5ecfa]'
-                  }`}
-                >
-                  <span>Norte ({countNorte})</span>
-                </button>
-                <button
-                  type="button"
-                  id="filter-zona-sur"
-                  onClick={() => setSelectedZonaFilter('SUR')}
-                  className={`px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors flex items-center gap-1 cursor-pointer border ${
-                    selectedZonaFilter === 'SUR'
-                      ? 'bg-amber-600 text-white border-amber-600'
-                      : 'bg-[#FFF6E0] text-[#B45309] border-[#FDE68A] hover:bg-[#fef0cc]'
-                  }`}
-                >
-                  <span>Sur ({countSur})</span>
-                </button>
-              </div>
-            </div>
-          )}
+              {(activeTab === 'paraderos' || activeTab === 'zonas') && (
+                <div className="flex items-center gap-1 bg-[#F8FAFC] p-1 rounded-xl border border-[#E5ECF2]">
+                  <button
+                    type="button"
+                    id="filter-zona-todos"
+                    onClick={() => setSelectedZonaFilter('TODOS')}
+                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap tabular-nums ${
+                      selectedZonaFilter === 'TODOS'
+                        ? 'bg-[#22A846] text-white'
+                        : 'text-slate-600 hover:text-[#1B3A57]'
+                    }`}
+                  >
+                    Todos ({activeTab === 'zonas' ? zonas.length : paraderos.length})
+                  </button>
+                  <button
+                    type="button"
+                    id="filter-zona-norte"
+                    onClick={() => setSelectedZonaFilter('NORTE')}
+                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap tabular-nums ${
+                      selectedZonaFilter === 'NORTE'
+                        ? 'bg-[#0082B3] text-white'
+                        : 'text-[#0082B3] hover:bg-[#E6F3FB]'
+                    }`}
+                  >
+                    Norte ({activeTab === 'zonas' ? countZonasNorte : countNorte})
+                  </button>
+                  <button
+                    type="button"
+                    id="filter-zona-sur"
+                    onClick={() => setSelectedZonaFilter('SUR')}
+                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap tabular-nums ${
+                      selectedZonaFilter === 'SUR'
+                        ? 'bg-amber-600 text-white'
+                        : 'text-[#B45309] hover:bg-[#FFF6E0]'
+                    }`}
+                  >
+                    Sur ({activeTab === 'zonas' ? countZonasSur : countSur})
+                  </button>
+                </div>
+              )}
 
-          {/* Search and List Header */}
-          <div className="space-y-2">
-            <div className="relative">
-              <input
-                id="input-search-master-items"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Buscar ${currentTabInfo.label.toLowerCase()}...`}
-                className="w-full h-10 pl-4 pr-10 rounded-full bg-white border border-[#D8E2EA] text-xs text-slate-700 focus:outline-none focus:border-[#55A529] placeholder:text-slate-400 shadow-2xs"
-              />
-              {searchQuery ? (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              {activeTab === 'paraderos' && zonas.length > 0 && (
+                <select
+                  value={selectedZonaEspecificaFilter}
+                  onChange={(e) => setSelectedZonaEspecificaFilter(e.target.value)}
+                  className="h-9 px-3 rounded-xl border border-[#D8E2EA] bg-[#F8FAFC] text-xs font-medium text-[#1B3A57] focus:bg-white focus:outline-none focus:border-[#55A529] cursor-pointer max-w-[220px]"
                 >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <Search className="w-4 h-4 text-[#55A529] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <option value="TODAS">Todas las zonas</option>
+                  {zonas.map((z) => (
+                    <option key={z.id} value={z.id}>
+                      {z.zona} ({getParaderosForZona(z).length})
+                    </option>
+                  ))}
+                  <option value="SIN_ZONA">
+                    Sin zona ({paraderos.filter((p) => !getParaderoMatchedZona(p) && !p.zonaEspecifica).length})
+                  </option>
+                </select>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 px-1 gap-1">
+            <div className="flex items-center justify-between text-[11px] text-slate-500 px-0.5 tabular-nums">
               <span>
-                Mostrando <strong className="text-[#1B3A57]">
-                  {activeTab === 'paraderos'
-                    ? filteredParaderos.length
-                    : activeTab === 'fundos'
-                    ? filteredFundos.length
-                    : activeTab === 'areas'
-                    ? filteredAreas.length
-                    : filteredBuses.length}
-                </strong> {currentTabInfo.label.toLowerCase()}
-                {activeTab === 'paraderos' && (
-                  <span className="ml-1 text-[11px] text-slate-500">
-                    (<strong className="text-[#0082B3]">{countNorte} Norte</strong>,{' '}
-                    <strong className="text-[#B45309]">{countSur} Sur</strong>)
-                  </span>
-                )}
+                <strong className="text-[#1B3A57]">{currentListCount}</strong>{' '}
+                {currentTabInfo.label.toLowerCase()}
               </span>
               {searchQuery && (
-                <span className="text-[#2F7D18] font-semibold">
-                  Filtro: "{searchQuery}"
-                </span>
+                <span className="text-[#2F7D18] font-semibold">"{searchQuery}"</span>
               )}
             </div>
           </div>
 
-          {/* Master Items List: 2-column on wider screens, 1 on mobile */}
+          {/* Master Items List */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {/* PARADEROS LIST */}
             {activeTab === 'paraderos' &&
@@ -1250,13 +1736,18 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                 <div className="sm:col-span-2">
                   <EmptyMasterState
                     searchQuery={searchQuery}
-                    onClearSearch={() => setSearchQuery('')}
+                    onClearSearch={() => {
+                      setSearchQuery('');
+                      setSelectedZonaFilter('TODOS');
+                      setSelectedZonaEspecificaFilter('TODAS');
+                    }}
                     singular={currentTabInfo.singular}
                   />
                 </div>
               ) : (
                 filteredParaderos.map((item, index) => {
-                  const itemZona = item.zona || inferParaderoZona(item.paradero);
+                  const matchedZ = getParaderoMatchedZona(item);
+                  const itemZona = item.zona || matchedZ?.zonaOperativa || inferParaderoZona(item.paradero);
                   return (
                     <MasterListItem
                       key={item.id}
@@ -1265,8 +1756,9 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                       name={item.paradero}
                       zona={itemZona}
                       codigo={item.codigo}
-                      macrozona={item.macrozona}
-                      zonaEspecifica={item.zonaEspecifica}
+                      macrozona={item.macrozona || matchedZ?.macrozona}
+                      zonaEspecifica={matchedZ?.zona || item.zonaEspecifica}
+                      agrupador={item.agrupador || matchedZ?.agrupado}
                       referencia={item.referencia}
                       latitud={item.latitud}
                       longitud={item.longitud}
@@ -1275,12 +1767,299 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                       editingValue={editingName}
                       editingZona={editingZona}
                       onChangeEditingZona={setEditingZona}
+                      zonasOptions={zonas}
+                      editingParaderoZonaId={editingParaderoZonaId}
+                      onChangeEditingParaderoZonaId={(zId) => {
+                        setEditingParaderoZonaId(zId);
+                        const found = zonas.find((z) => z.id === zId);
+                        if (found) setEditingZona(found.zonaOperativa);
+                      }}
+                      editingCodigo={editingParaderoCodigo}
+                      onChangeEditingCodigo={setEditingParaderoCodigo}
                       onStartEdit={() => startEditing(item.id, item.paradero)}
                       onChangeEdit={(val) => setEditingName(val)}
                       onSaveEdit={() => saveEditing(item.id)}
                       onCancelEdit={cancelEditing}
                       onDelete={() => setItemToDelete({ id: item.id, name: item.paradero })}
                     />
+                  );
+                })
+              ))}
+
+            {/* ZONAS LIST */}
+            {activeTab === 'zonas' &&
+              (filteredZonas.length === 0 ? (
+                <div className="sm:col-span-2">
+                  <EmptyMasterState
+                    searchQuery={searchQuery}
+                    onClearSearch={() => setSearchQuery('')}
+                    singular={currentTabInfo.singular}
+                  />
+                </div>
+              ) : (
+                filteredZonas.map((z, index) => {
+                  const assignedParaderos = getParaderosForZona(z);
+                  const isEditing = editingId === z.id;
+                  const isExpanded = expandedZonaId === z.id;
+                  const unassignedOrOther = paraderos.filter(
+                    (p) => !assignedParaderos.some((ap) => ap.id === p.id)
+                  );
+                  const qP = zonaParaderoSearch.trim().toLowerCase();
+                  const filteredAssignPool = unassignedOrOther
+                    .filter(
+                      (p) =>
+                        !qP ||
+                        p.paradero.toLowerCase().includes(qP) ||
+                        (p.codigo && p.codigo.toLowerCase().includes(qP))
+                    )
+                    .sort((a, b) => {
+                      const aFree = !a.zonaId && !a.zonaEspecifica ? 0 : 1;
+                      const bFree = !b.zonaId && !b.zonaEspecifica ? 0 : 1;
+                      return aFree - bFree;
+                    });
+
+                  return (
+                    <div
+                      key={z.id}
+                      id={`zona-card-${z.id}`}
+                      className="sm:col-span-2 bg-white rounded-2xl p-3.5 border border-[#E5ECF2] shadow-2xs hover:border-[#55A529]/50 transition-colors space-y-2.5"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <span className="w-7 h-7 rounded-lg bg-[#EAF7E4] text-[#2F7D18] text-xs font-bold flex items-center justify-center shrink-0 tabular-nums">
+                            {index + 1}
+                          </span>
+
+                          {isEditing ? (
+                            <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                              <input
+                                type="text"
+                                value={editingName}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                autoFocus
+                                placeholder="Zona"
+                                className="flex-1 min-w-[120px] px-3 py-1.5 rounded-xl border border-[#55A529] text-xs font-semibold focus:outline-none uppercase"
+                              />
+                              <input
+                                type="text"
+                                value={editingZonaMacrozona}
+                                onChange={(e) => setEditingZonaMacrozona(e.target.value)}
+                                placeholder="Macrozona"
+                                className="w-36 px-3 py-1.5 rounded-xl border border-[#D8E2EA] text-xs focus:outline-none focus:border-[#55A529]"
+                              />
+                              <input
+                                type="text"
+                                value={editingZonaAgrupado}
+                                onChange={(e) => setEditingZonaAgrupado(e.target.value)}
+                                placeholder="Agrupado"
+                                className="w-28 px-3 py-1.5 rounded-xl border border-[#D8E2EA] text-xs focus:outline-none focus:border-[#55A529]"
+                              />
+                              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-[#D8E2EA]">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingZona('NORTE')}
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold cursor-pointer ${
+                                    editingZona === 'NORTE' ? 'bg-[#0082B3] text-white' : 'text-slate-500'
+                                  }`}
+                                >
+                                  Norte
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingZona('SUR')}
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold cursor-pointer ${
+                                    editingZona === 'SUR' ? 'bg-amber-600 text-white' : 'text-slate-500'
+                                  }`}
+                                >
+                                  Sur
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => saveEditing(z.id)}
+                                className="p-1.5 bg-[#22A846] text-white rounded-full hover:bg-[#1C8E3A] cursor-pointer"
+                                title="Guardar"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditing}
+                                className="p-1.5 bg-[#F1F5F9] text-slate-600 rounded-full hover:bg-slate-200 cursor-pointer"
+                                title="Cancelar"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-bold text-[#1B3A57] truncate">
+                                {z.zona}
+                              </div>
+                              <div className="text-[11px] text-slate-500 truncate mt-0.5 tabular-nums">
+                                {[
+                                  z.macrozona,
+                                  z.agrupado ? `Agrup: ${z.agrupado}` : '',
+                                  `${assignedParaderos.length} paraderos`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {!isEditing && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExpandedZonaId(isExpanded ? null : z.id);
+                                setZonaParaderoSearch('');
+                                setQuickNewParaderoName('');
+                                setQuickNewParaderoCode('');
+                              }}
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 border transition-colors cursor-pointer tabular-nums whitespace-nowrap ${
+                                isExpanded
+                                  ? 'bg-[#22A846] text-white border-[#22A846]'
+                                  : 'bg-[#EAF7E4] text-[#2F7D18] border-[#C6E9B4] hover:bg-[#d8f1cc]'
+                              }`}
+                            >
+                              <span>Paraderos ({assignedParaderos.length})</span>
+                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleZonaOperativa(z.id)}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1 border transition-colors cursor-pointer whitespace-nowrap ${
+                                z.zonaOperativa === 'SUR'
+                                  ? 'bg-[#FFF6E0] text-[#B45309] border-[#FDE68A]'
+                                  : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7]'
+                              }`}
+                              title="Cambiar ruta Norte / Sur"
+                            >
+                              <span>{z.zonaOperativa}</span>
+                              <ArrowLeftRight className="w-2.5 h-2.5 opacity-60" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => startEditing(z.id, z.zona)}
+                              className="p-1.5 text-[#3D8B1C] hover:bg-[#EAF7E4] rounded-full transition-colors cursor-pointer"
+                              title="Editar"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setItemToDelete({ id: z.id, name: z.zona })}
+                              className="p-1.5 text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] rounded-full transition-colors cursor-pointer"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Drawer: Paraderos pertenecientes a esta Zona + Asignar */}
+                      {isExpanded && (
+                        <div className="pt-2.5 border-t border-slate-100 space-y-2.5">
+                          {assignedParaderos.length === 0 ? (
+                            <p className="text-[11px] text-slate-400">
+                              Sin paraderos asignados.
+                            </p>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {assignedParaderos.map((ap) => (
+                                <span
+                                  key={ap.id}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F8FAFC] border border-[#D8E2EA] text-[11px] font-medium text-[#1B3A57]"
+                                >
+                                  {ap.codigo && (
+                                    <span className="text-[10px] font-mono font-bold text-[#2F7D18]">
+                                      {ap.codigo}
+                                    </span>
+                                  )}
+                                  <span>{ap.paradero}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAssignParaderoToZona(ap.id, null)}
+                                    className="text-slate-400 hover:text-[#DC2626] cursor-pointer"
+                                    title="Quitar"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Asignar paraderos existentes o crear nuevo */}
+                          <div className="bg-[#F8FAFC] rounded-xl p-2.5 border border-[#E5ECF2] space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-[11px] font-bold text-[#1B3A57]">
+                                Agregar paradero
+                              </span>
+                              <input
+                                type="text"
+                                value={zonaParaderoSearch}
+                                onChange={(e) => setZonaParaderoSearch(e.target.value)}
+                                placeholder="Buscar..."
+                                className="h-7 px-3 rounded-lg border border-[#D8E2EA] bg-white text-[11px] text-slate-700 focus:outline-none focus:border-[#55A529] w-48"
+                              />
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                              {filteredAssignPool.length === 0 ? (
+                                <span className="text-[11px] text-slate-400">
+                                  Sin coincidencias.
+                                </span>
+                              ) : (
+                                filteredAssignPool.map((p) => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => handleAssignParaderoToZona(p.id, z)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white hover:bg-[#EAF7E4] border border-[#D8E2EA] hover:border-[#55A529] text-[10px] font-medium text-[#1B3A57] transition-colors cursor-pointer"
+                                  >
+                                    <Plus className="w-3 h-3 text-[#22A846]" />
+                                    {p.codigo && <span className="font-mono text-[#2F7D18]">{p.codigo}</span>}
+                                    <span>{p.paradero}</span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-[#E5ECF2] flex flex-wrap items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={quickNewParaderoCode}
+                                onChange={(e) => setQuickNewParaderoCode(e.target.value)}
+                                placeholder="Cód."
+                                className="w-16 h-8 px-2.5 rounded-lg border border-[#D8E2EA] bg-white text-[11px] uppercase focus:outline-none focus:border-[#55A529]"
+                              />
+                              <input
+                                type="text"
+                                value={quickNewParaderoName}
+                                onChange={(e) => setQuickNewParaderoName(e.target.value)}
+                                placeholder="Nuevo paradero..."
+                                className="flex-1 min-w-[140px] h-8 px-3 rounded-lg border border-[#D8E2EA] bg-white text-[11px] focus:outline-none focus:border-[#55A529]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleQuickAddParaderoInZona(z)}
+                                disabled={!quickNewParaderoName.trim()}
+                                className="h-8 px-3 rounded-lg bg-[#22A846] hover:bg-[#1C8E3A] disabled:opacity-40 text-white text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Crear</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })
               ))}
@@ -1357,76 +2136,65 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   return (
                     <div
                       key={item.id}
-                      className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between gap-3 hover:border-[#55A529]/50 transition-colors"
+                      className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between gap-2.5 hover:border-[#55A529]/50 transition-colors"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="w-7 h-7 rounded-lg bg-[#EAF7E4] text-[#2F7D18] text-xs font-bold flex items-center justify-center shrink-0 border border-[#C6E9B4]">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <span className="w-7 h-7 rounded-lg bg-[#EAF7E4] text-[#2F7D18] text-xs font-bold flex items-center justify-center shrink-0 tabular-nums">
                           {index + 1}
                         </span>
 
                         {isEditing ? (
-                          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
                             <input
                               type="text"
                               value={editingName}
                               onChange={(e) => setEditingName(e.target.value)}
                               autoFocus
-                              placeholder="Nombre de unidad..."
-                              className="flex-1 min-w-[120px] px-3 py-1.5 rounded-full border border-[#55A529] text-xs font-semibold focus:outline-none"
+                              placeholder="Unidad"
+                              className="flex-1 min-w-[110px] px-3 py-1.5 rounded-xl border border-[#55A529] text-xs font-semibold focus:outline-none"
                             />
-                            <div className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-full border border-[#D8E2EA]">
-                              <span className="text-[10px] text-slate-500 font-semibold">Cap:</span>
-                              <input
-                                type="number"
-                                min="1"
-                                max="100"
-                                value={editingCapacidad}
-                                onChange={(e) => setEditingCapacidad(Number(e.target.value) || 0)}
-                                className="w-12 text-xs font-semibold text-right bg-white border border-[#D8E2EA] rounded px-1"
-                              />
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                onClick={() => saveEditing(item.id)}
-                                className="p-1.5 bg-[#22A846] text-white rounded-full hover:bg-[#1C8E3A] transition-colors cursor-pointer"
-                                title="Guardar cambios"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={cancelEditing}
-                                className="p-1.5 bg-[#F1F5F9] text-slate-600 rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
-                                title="Cancelar"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={editingCapacidad}
+                              onChange={(e) => setEditingCapacidad(Number(e.target.value) || 0)}
+                              className="w-16 px-2 py-1.5 text-xs font-semibold text-right bg-white border border-[#D8E2EA] rounded-xl tabular-nums"
+                            />
+                            <button
+                              onClick={() => saveEditing(item.id)}
+                              className="p-1.5 bg-[#22A846] text-white rounded-full hover:bg-[#1C8E3A] cursor-pointer"
+                              title="Guardar"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="p-1.5 bg-[#F1F5F9] text-slate-600 rounded-full hover:bg-slate-200 cursor-pointer"
+                              title="Cancelar"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         ) : (
-                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2 pr-1">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs font-bold text-[#1B3A57]">
-                                  {item.nombre}
-                                </span>
-                                <span className="px-2 py-0.5 rounded-full bg-[#EAF7E4] border border-[#C6E9B4] text-[10px] font-semibold text-[#2F7D18]">
-                                  {item.capacidad} PAX
-                                </span>
+                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-[#1B3A57] truncate">
+                                {item.nombre}
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5 truncate">
-                                {item.descripcion || `Capacidad ${item.capacidad} pasajeros`}
+                              <div className="text-[11px] text-slate-500 tabular-nums">
+                                {item.capacidad} pax
                               </div>
                             </div>
 
                             <button
                               type="button"
                               onClick={() => handleToggleUnidadActivo(item.id)}
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer border ${
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors cursor-pointer border ${
                                 item.activo
                                   ? 'bg-[#EAF7E4] text-[#2F7D18] border-[#C6E9B4]'
                                   : 'bg-[#F1F5F9] text-slate-500 border-slate-200'
                               }`}
-                              title={item.activo ? 'Unidad activa para optimización' : 'Unidad inactiva'}
                             >
                               {item.activo ? 'Activo' : 'Inactivo'}
                             </button>
@@ -1435,21 +2203,21 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                       </div>
 
                       {!isEditing && (
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-0.5 shrink-0">
                           <button
                             onClick={() => {
                               startEditing(item.id, item.nombre);
                               setEditingCapacidad(item.capacidad);
                             }}
                             className="p-1.5 text-[#3D8B1C] hover:bg-[#EAF7E4] rounded-full transition-colors cursor-pointer"
-                            title="Editar nombre y capacidad"
+                            title="Editar"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setItemToDelete({ id: item.id, name: item.nombre })}
                             className="p-1.5 text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] rounded-full transition-colors cursor-pointer"
-                            title="Eliminar unidad"
+                            title="Eliminar"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1467,32 +2235,30 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       {itemToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-[#E5ECF2] animate-in fade-in zoom-in duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-[#FDECEC] text-[#DC2626] border border-[#FECACA] flex items-center justify-center mx-auto mb-3">
-              <Trash2 className="w-6 h-6" />
+            <div className="w-11 h-11 rounded-2xl bg-[#FDECEC] text-[#DC2626] border border-[#FECACA] flex items-center justify-center mx-auto mb-3">
+              <Trash2 className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-center text-[#1B3A57] uppercase">
-              ¿Eliminar {currentTabInfo.singular}?
+            <h3 className="text-sm font-bold text-center text-[#1B3A57]">
+              Eliminar {currentTabInfo.singular.toLowerCase()}
             </h3>
             <p className="text-xs text-slate-500 text-center mt-1">
-              Estás a punto de quitar{' '}
-              <strong className="text-slate-800">"{itemToDelete.name}"</strong> del maestro. Esta
-              acción no afectará requerimientos ya guardados históricamente.
+              ¿Quitar <strong className="text-slate-800">{itemToDelete.name}</strong> del catálogo?
             </p>
 
-            <div className="flex gap-2.5 mt-5">
+            <div className="flex gap-2.5 mt-4">
               <button
                 type="button"
                 onClick={() => setItemToDelete(null)}
-                className="flex-1 py-2.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
+                className="flex-1 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={confirmDelete}
-                className="flex-1 py-2.5 rounded-full bg-[#DC2626] hover:bg-red-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
+                className="flex-1 py-2 rounded-full bg-[#DC2626] hover:bg-red-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
               >
-                Sí, Eliminar
+                Eliminar
               </button>
             </div>
           </div>
@@ -1503,31 +2269,30 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-[#E5ECF2] animate-in fade-in zoom-in duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-[#FFF6E0] text-[#B45309] border border-[#FDE68A] flex items-center justify-center mx-auto mb-3">
-              <AlertTriangle className="w-6 h-6" />
+            <div className="w-11 h-11 rounded-2xl bg-[#FFF6E0] text-[#B45309] border border-[#FDE68A] flex items-center justify-center mx-auto mb-3">
+              <AlertTriangle className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-center text-[#1B3A57] uppercase">
-              ¿Restablecer Maestros?
+            <h3 className="text-sm font-bold text-center text-[#1B3A57]">
+              Restablecer catálogos
             </h3>
             <p className="text-xs text-slate-500 text-center mt-1">
-              Se restablecerán todos los paraderos, fundos y áreas a la lista oficial
-              inicial de CAMPOSOL.
+              Volverán a los valores iniciales del sistema.
             </p>
 
-            <div className="flex gap-2.5 mt-5">
+            <div className="flex gap-2.5 mt-4">
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(false)}
-                className="flex-1 py-2.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
+                className="flex-1 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleResetDefaults}
-                className="flex-1 py-2.5 rounded-full bg-amber-600 hover:bg-amber-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
+                className="flex-1 py-2 rounded-full bg-amber-600 hover:bg-amber-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
               >
-                Sí, Restablecer
+                Restablecer
               </button>
             </div>
           </div>
@@ -1537,125 +2302,78 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       {/* Excel Import Modal */}
       {showImportModal && importData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-[#E5ECF2] animate-in fade-in zoom-in duration-150 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl border border-[#E5ECF2] animate-in fade-in zoom-in duration-150 max-h-[90vh] flex flex-col">
             <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] flex items-center justify-center shrink-0">
-                <FileSpreadsheet className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-[#1B3A57] uppercase leading-tight truncate">
-                  Importar Datos desde Excel
+                <h3 className="text-sm font-bold text-[#1B3A57] truncate">
+                  Importar Excel
                 </h3>
-                <p className="text-xs text-slate-500 truncate">
-                  Archivo: <span className="font-semibold text-slate-700">{importFileName}</span>
-                </p>
+                <p className="text-xs text-slate-500 truncate">{importFileName}</p>
               </div>
             </div>
 
-            {/* Content summary */}
-            <div className="py-4 space-y-4 overflow-y-auto flex-1">
-              <div className="grid grid-cols-3 gap-2.5">
-                <div className="bg-[#EAF7E4] p-3 rounded-xl text-center border border-[#C6E9B4]">
-                  <div className="text-xl font-bold text-[#2F7D18]">{importData.paraderos.length}</div>
-                  <div className="text-[11px] font-semibold text-[#1B3A57] mt-0.5">Paraderos</div>
-                  <div className="text-[9px] text-slate-500 mt-0.5">
-                    {importData.paraderos.filter(p => p.zona === 'NORTE').length} Norte • {importData.paraderos.filter(p => p.zona === 'SUR').length} Sur
+            <div className="py-3.5 space-y-3.5 overflow-y-auto flex-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="bg-[#EAF7E4] p-2.5 rounded-xl text-center border border-[#C6E9B4]">
+                  <div className="text-lg font-bold text-[#2F7D18] tabular-nums">{importData.paraderos.length}</div>
+                  <div className="text-[11px] font-semibold text-[#1B3A57]">Paraderos</div>
+                </div>
+                <div className="bg-[#F3F8F0] p-2.5 rounded-xl text-center border border-[#C6E9B4]">
+                  <div className="text-lg font-bold text-[#3D8B1C] tabular-nums">{importData.zonas.length}</div>
+                  <div className="text-[11px] font-semibold text-[#1B3A57]">Zonas</div>
+                </div>
+                <div className="bg-[#E6F3FB] p-2.5 rounded-xl text-center border border-[#D4E9F7]">
+                  <div className="text-lg font-bold text-[#0082B3] tabular-nums">{importData.fundos.length}</div>
+                  <div className="text-[11px] font-semibold text-[#1B3A57]">Fundos</div>
+                </div>
+                <div className="bg-[#FFF6E0] p-2.5 rounded-xl text-center border border-[#FDE68A]">
+                  <div className="text-lg font-bold text-[#B45309] tabular-nums">{importData.areas.length}</div>
+                  <div className="text-[11px] font-semibold text-[#1B3A57]">Áreas</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImportMode('merge')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    importMode === 'merge'
+                      ? 'border-[#55A529] bg-[#F3F8F0] ring-1 ring-[#55A529]'
+                      : 'border-[#E5ECF2] hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="text-xs font-bold text-[#1B3A57] flex items-center justify-between">
+                    <span>Combinar</span>
+                    {importMode === 'merge' && <Check className="w-3.5 h-3.5 text-[#55A529]" />}
                   </div>
-                </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    Agrega sin borrar existentes
+                  </div>
+                </button>
 
-                <div className="bg-[#E6F3FB] p-3 rounded-xl text-center border border-[#D4E9F7]">
-                  <div className="text-xl font-bold text-[#0082B3]">{importData.fundos.length}</div>
-                  <div className="text-[11px] font-semibold text-[#1B3A57] mt-0.5">Fundos</div>
-                </div>
-
-                <div className="bg-[#FFF6E0] p-3 rounded-xl text-center border border-[#FDE68A]">
-                  <div className="text-xl font-bold text-[#B45309]">{importData.areas.length}</div>
-                  <div className="text-[11px] font-semibold text-[#1B3A57] mt-0.5">Áreas</div>
-                </div>
-              </div>
-
-              {/* Mode Selection */}
-              <div className="space-y-2 pt-1">
-                <label className="text-xs font-bold text-[#1B3A57] uppercase tracking-wide">
-                  Modo de Importación:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setImportMode('merge')}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                      importMode === 'merge'
-                        ? 'border-[#55A529] bg-[#F3F8F0] ring-1 ring-[#55A529]'
-                        : 'border-[#E5ECF2] hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="text-xs font-bold text-[#1B3A57] flex items-center justify-between">
-                      <span>Combinar / Agregar</span>
-                      {importMode === 'merge' && <Check className="w-4 h-4 text-[#55A529]" />}
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-1 leading-snug">
-                      Agrega nuevos registros sin tocar los ya existentes y evitando duplicados. (Recomendado)
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setImportMode('replace')}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                      importMode === 'replace'
-                        ? 'border-amber-500 bg-[#FFF6E0] ring-1 ring-amber-500'
-                        : 'border-[#E5ECF2] hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="text-xs font-bold text-[#1B3A57] flex items-center justify-between">
-                      <span>Reemplazar Lista</span>
-                      {importMode === 'replace' && <Check className="w-4 h-4 text-[#B45309]" />}
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-1 leading-snug">
-                      Sustituye completamente la lista de las categorías presentes en el Excel.
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Preview samples */}
-              <div className="space-y-1.5 pt-1">
-                <div className="text-[11px] font-semibold text-slate-600 uppercase">
-                  Vista previa de datos detectados:
-                </div>
-                <div className="max-h-36 overflow-y-auto bg-[#EEF3F7] rounded-xl p-2.5 border border-[#E5ECF2] text-xs space-y-1">
-                  {importData.paraderos.length > 0 && (
-                    <div className="text-[11px]">
-                      <strong className="text-[#2F7D18]">Paraderos ({importData.paraderos.length}):</strong>{' '}
-                      <span className="text-slate-600">
-                        {importData.paraderos.slice(0, 5).map(p => `${p.codigo ? `[${p.codigo}] ` : ''}${p.paradero} (${p.zona}${p.macrozona ? ` - ${p.macrozona}` : ''})`).join(', ')}
-                        {importData.paraderos.length > 5 ? ` y ${importData.paraderos.length - 5} más...` : ''}
-                      </span>
-                    </div>
-                  )}
-                  {importData.fundos.length > 0 && (
-                    <div className="text-[11px]">
-                      <strong className="text-[#0082B3]">Fundos ({importData.fundos.length}):</strong>{' '}
-                      <span className="text-slate-600">
-                        {importData.fundos.slice(0, 5).map(f => f.fundo).join(', ')}
-                        {importData.fundos.length > 5 ? ` y ${importData.fundos.length - 5} más...` : ''}
-                      </span>
-                    </div>
-                  )}
-                  {importData.areas.length > 0 && (
-                    <div className="text-[11px]">
-                      <strong className="text-[#B45309]">Áreas ({importData.areas.length}):</strong>{' '}
-                      <span className="text-slate-600">
-                        {importData.areas.slice(0, 5).map(a => a.area).join(', ')}
-                        {importData.areas.length > 5 ? ` y ${importData.areas.length - 5} más...` : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setImportMode('replace')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    importMode === 'replace'
+                      ? 'border-amber-500 bg-[#FFF6E0] ring-1 ring-amber-500'
+                      : 'border-[#E5ECF2] hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="text-xs font-bold text-[#1B3A57] flex items-center justify-between">
+                    <span>Reemplazar</span>
+                    {importMode === 'replace' && <Check className="w-3.5 h-3.5 text-[#B45309]" />}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    Sustituye listas del archivo
+                  </div>
+                </button>
               </div>
             </div>
 
-            {/* Modal Actions */}
             <div className="flex gap-2.5 pt-3 border-t border-slate-100">
               <button
                 type="button"
@@ -1663,17 +2381,17 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   setShowImportModal(false);
                   setImportData(null);
                 }}
-                className="flex-1 py-2.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 transition-colors cursor-pointer"
+                className="flex-1 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleExecuteImport}
-                className="flex-1 py-2.5 rounded-full bg-[#22A846] hover:bg-[#1C8E3A] font-semibold text-xs text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="flex-1 py-2 rounded-full bg-[#22A846] hover:bg-[#1C8E3A] font-semibold text-xs text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 <Check className="w-4 h-4" />
-                <span>Confirmar e Importar</span>
+                <span>Guardar</span>
               </button>
             </div>
           </div>
@@ -1695,14 +2413,19 @@ interface MasterListItemProps {
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onDelete: () => void;
-  // Paradero metadata & zone support
   zona?: 'NORTE' | 'SUR';
   onToggleZona?: () => void;
   editingZona?: 'NORTE' | 'SUR';
   onChangeEditingZona?: (z: 'NORTE' | 'SUR') => void;
+  zonasOptions?: MaestroZona[];
+  editingParaderoZonaId?: string;
+  onChangeEditingParaderoZonaId?: (zId: string) => void;
+  editingCodigo?: string;
+  onChangeEditingCodigo?: (cod: string) => void;
   codigo?: string;
   macrozona?: string;
   zonaEspecifica?: string;
+  agrupador?: string;
   referencia?: string;
   latitud?: number;
   longitud?: number;
@@ -1723,39 +2446,75 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
   onToggleZona,
   editingZona,
   onChangeEditingZona,
+  zonasOptions,
+  editingParaderoZonaId,
+  onChangeEditingParaderoZonaId,
+  editingCodigo,
+  onChangeEditingCodigo,
   codigo,
   macrozona,
   zonaEspecifica,
+  agrupador,
   referencia,
 }) => {
+  const metaText = [
+    zonaEspecifica && zonaEspecifica !== zona ? zonaEspecifica : '',
+    macrozona || '',
+    agrupador ? `Agrup: ${agrupador}` : '',
+    referencia && referencia !== '.' && referencia !== '-' ? referencia : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <div
       id={`item-card-${id}`}
-      className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between gap-3 hover:border-[#55A529]/50 transition-colors"
+      className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between gap-2.5 hover:border-[#55A529]/50 transition-colors"
     >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <span className="w-7 h-7 rounded-lg bg-[#EAF7E4] text-[#2F7D18] text-xs font-bold flex items-center justify-center shrink-0 border border-[#C6E9B4]">
+      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        <span className="w-7 h-7 rounded-lg bg-[#EAF7E4] text-[#2F7D18] text-xs font-bold flex items-center justify-center shrink-0 tabular-nums">
           {index}
         </span>
 
         {isEditing ? (
           <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+            {onChangeEditingCodigo && (
+              <input
+                type="text"
+                value={editingCodigo || ''}
+                onChange={(e) => onChangeEditingCodigo(e.target.value)}
+                placeholder="Cód."
+                className="w-16 px-2 py-1 rounded-lg border border-[#D8E2EA] text-[11px] font-mono uppercase focus:outline-none focus:border-[#55A529]"
+              />
+            )}
             <input
               type="text"
               value={editingValue}
               onChange={(e) => onChangeEdit(e.target.value)}
               autoFocus
-              className="flex-1 min-w-[120px] px-3 py-1.5 rounded-full border border-[#55A529] text-xs font-semibold focus:outline-none"
+              className="flex-1 min-w-[110px] px-2.5 py-1 rounded-lg border border-[#55A529] text-xs font-semibold focus:outline-none"
             />
+            {zonasOptions && onChangeEditingParaderoZonaId && (
+              <select
+                value={editingParaderoZonaId || ''}
+                onChange={(e) => onChangeEditingParaderoZonaId(e.target.value)}
+                className="max-w-[150px] px-2 py-1 rounded-lg border border-[#D8E2EA] bg-white text-[10px] font-medium text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
+              >
+                <option value="">Sin zona</option>
+                {zonasOptions.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.zona}
+                  </option>
+                ))}
+              </select>
+            )}
             {editingZona && onChangeEditingZona && (
-              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-full border border-[#D8E2EA] shrink-0">
+              <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-[#D8E2EA] shrink-0">
                 <button
                   type="button"
                   onClick={() => onChangeEditingZona('NORTE')}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase transition-colors cursor-pointer ${
-                    editingZona === 'NORTE'
-                      ? 'bg-[#0082B3] text-white'
-                      : 'text-slate-500 hover:text-slate-800'
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold cursor-pointer ${
+                    editingZona === 'NORTE' ? 'bg-[#0082B3] text-white' : 'text-slate-500'
                   }`}
                 >
                   Norte
@@ -1763,51 +2522,45 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
                 <button
                   type="button"
                   onClick={() => onChangeEditingZona('SUR')}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase transition-colors cursor-pointer ${
-                    editingZona === 'SUR'
-                      ? 'bg-amber-600 text-white'
-                      : 'text-slate-500 hover:text-slate-800'
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold cursor-pointer ${
+                    editingZona === 'SUR' ? 'bg-amber-600 text-white' : 'text-slate-500'
                   }`}
                 >
                   Sur
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={onSaveEdit}
-                className="p-1.5 bg-[#22A846] text-white rounded-full hover:bg-[#1C8E3A] transition-colors cursor-pointer"
-                title="Guardar cambios"
-              >
-                <Check className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={onCancelEdit}
-                className="p-1.5 bg-[#F1F5F9] text-slate-600 rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
-                title="Cancelar"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <button
+              onClick={onSaveEdit}
+              className="p-1.5 bg-[#22A846] text-white rounded-full hover:bg-[#1C8E3A] cursor-pointer"
+              title="Guardar"
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={onCancelEdit}
+              className="p-1.5 bg-[#F1F5F9] text-slate-600 rounded-full hover:bg-slate-200 cursor-pointer"
+              title="Cancelar"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         ) : (
-          <div className="flex-1 min-w-0 flex items-center justify-between gap-2 pr-1">
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5 min-w-0">
                 {codigo && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#EAF7E4] border border-[#C6E9B4] text-[10px] font-mono font-semibold text-[#2F7D18]">
+                  <span className="text-[10px] font-mono font-bold text-[#2F7D18] shrink-0">
                     {codigo}
                   </span>
                 )}
-                <span className="text-xs font-bold text-[#1B3A57] break-words leading-snug" title={name}>
+                <span className="text-xs font-bold text-[#1B3A57] truncate" title={name}>
                   {name}
                 </span>
               </div>
-              {(macrozona || (zonaEspecifica && zonaEspecifica !== zona) || (referencia && referencia !== '.' && referencia !== '-')) && (
-                <div className="text-[10px] text-slate-500 flex items-center gap-1.5 flex-wrap mt-0.5">
-                  {macrozona && <span className="font-semibold text-slate-700">{macrozona}</span>}
-                  {zonaEspecifica && zonaEspecifica !== zona && <span>• {zonaEspecifica}</span>}
-                  {referencia && referencia !== '.' && referencia !== '-' && <span>• Ref: {referencia}</span>}
+              {metaText && (
+                <div className="text-[11px] text-slate-500 truncate mt-0.5" title={metaText}>
+                  {metaText}
                 </div>
               )}
             </div>
@@ -1819,16 +2572,15 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
                   e.stopPropagation();
                   onToggleZona?.();
                 }}
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1 shrink-0 transition-all border hover:scale-105 active:scale-95 cursor-pointer ${
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1 shrink-0 transition-colors border cursor-pointer ${
                   zona === 'SUR'
                     ? 'bg-[#FFF6E0] text-[#B45309] border-[#FDE68A]'
                     : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7]'
                 }`}
-                title={`Zona: ${zona}. Haz clic para cambiar a ${zona === 'SUR' ? 'NORTE' : 'SUR'}`}
+                title="Cambiar ruta Norte / Sur"
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${zona === 'SUR' ? 'bg-amber-500' : 'bg-[#0082B3]'}`} />
                 <span>{zona}</span>
-                <ArrowLeftRight className="w-2.5 h-2.5 opacity-60 ml-0.5" />
+                <ArrowLeftRight className="w-2.5 h-2.5 opacity-60" />
               </button>
             )}
           </div>
@@ -1836,12 +2588,12 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
       </div>
 
       {!isEditing && (
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
           <button
             id={`btn-edit-${id}`}
             onClick={onStartEdit}
             className="p-1.5 text-[#3D8B1C] hover:bg-[#EAF7E4] rounded-full transition-colors cursor-pointer"
-            title="Editar nombre"
+            title="Editar"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
@@ -1867,23 +2619,18 @@ const EmptyMasterState: React.FC<{
 }> = ({ searchQuery, onClearSearch, singular }) => {
   return (
     <div className="bg-white rounded-2xl p-8 border border-[#E5ECF2] text-center space-y-2">
-      <div className="w-12 h-12 rounded-2xl bg-[#EEF3F7] text-slate-400 flex items-center justify-center mx-auto">
-        <Search className="w-6 h-6" />
+      <div className="w-10 h-10 rounded-xl bg-[#EEF3F7] text-slate-400 flex items-center justify-center mx-auto">
+        <Search className="w-5 h-5" />
       </div>
-      <div className="text-sm font-bold text-[#1B3A57]">
-        {searchQuery ? `Sin resultados para "${searchQuery}"` : `No hay ${singular.toLowerCase()}s registrados`}
+      <div className="text-xs font-bold text-[#1B3A57]">
+        {searchQuery ? `Sin resultados para "${searchQuery}"` : `Sin ${singular.toLowerCase()}s`}
       </div>
-      <p className="text-xs text-slate-400 max-w-xs mx-auto">
-        {searchQuery
-          ? 'Intenta con otro término o limpia el buscador.'
-          : `Utiliza el formulario superior para registrar el primer ${singular.toLowerCase()}.`}
-      </p>
       {searchQuery && (
         <button
           onClick={onClearSearch}
-          className="text-xs font-semibold text-[#2F7D18] hover:underline pt-1 cursor-pointer"
+          className="text-xs font-semibold text-[#2F7D18] hover:underline cursor-pointer"
         >
-          Limpiar búsqueda
+          Limpiar filtro
         </button>
       )}
     </div>

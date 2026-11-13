@@ -22,6 +22,7 @@ import {
   DetalleRequerimiento,
   MaestroUnidadBus,
   MaestroFundo,
+  MaestroZona,
   MaestroParadero,
   ViajeProgramado,
   ProgramacionViajesDia,
@@ -33,7 +34,9 @@ import {
   getStoredDetalles,
   getStoredUnidadesBus,
   getStoredFundos,
+  getStoredZonas,
   getStoredParaderos,
+  getParaderoZonaInfo,
   saveStoredProgramacionViaje,
   subscribeToDataChanges,
 } from '../services/storageService';
@@ -90,6 +93,8 @@ interface ScheduleRow {
   fecha: string;
   observaciones?: string;
   consolidatedRuleNote?: string;
+  zonasEspecificas?: string[];
+  macrozonas?: string[];
   unidadObj: MaestroUnidadBus;
 }
 
@@ -197,6 +202,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
     getStoredUnidadesBus()
   );
   const [maestroFundos, setMaestroFundos] = useState<MaestroFundo[]>(() => getStoredFundos());
+  const [maestroZonas, setMaestroZonas] = useState<MaestroZona[]>(() => getStoredZonas());
   const [maestroParaderos, setMaestroParaderos] = useState<MaestroParadero[]>(() =>
     getStoredParaderos()
   );
@@ -212,6 +218,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       setLiveDetalles(getStoredDetalles());
       setMaestroUnidades(getStoredUnidadesBus());
       setMaestroFundos(getStoredFundos());
+      setMaestroZonas(getStoredZonas());
       setMaestroParaderos(getStoredParaderos());
     };
     return subscribeToDataChanges(reloadMastersAndData);
@@ -334,6 +341,16 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           (overlay?.unidadId && activeFleetMasters.find((u) => u.id === overlay.unidadId)) ||
           t.unidad;
 
+        const zEspSet = new Set<string>();
+        const macroSet = new Set<string>();
+        t.stops.forEach((s) => {
+          const info = getParaderoZonaInfo(s.paradero);
+          if (info.zonaEspecifica && info.zonaEspecifica !== 'NORTE' && info.zonaEspecifica !== 'SUR') {
+            zEspSet.add(info.zonaEspecifica);
+          }
+          if (info.macrozona) macroSet.add(info.macrozona);
+        });
+
         return {
           id: t.id,
           matchKey: t.matchKey,
@@ -362,6 +379,8 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           fecha: t.fecha,
           observaciones: overlay?.observaciones || t.consolidatedRuleNote || '',
           consolidatedRuleNote: t.consolidatedRuleNote,
+          zonasEspecificas: Array.from(zEspSet),
+          macrozonas: Array.from(macroSet),
           unidadObj: unitFromMaster,
         };
       });
@@ -370,7 +389,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
       setRows(generatedRows);
     },
-    [eligibleReqs, liveDetalles, activeFleetMasters, maestroParaderos]
+    [eligibleReqs, liveDetalles, activeFleetMasters, maestroParaderos, maestroZonas]
   );
 
   useEffect(() => {
@@ -422,6 +441,8 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           row.type,
           row.area,
           row.reqCodes.join(' '),
+          (row.zonasEspecificas || []).join(' '),
+          (row.macrozonas || []).join(' '),
         ]
           .join(' ')
           .toLowerCase();
@@ -581,6 +602,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
     setLiveDetalles(getStoredDetalles());
     setMaestroUnidades(getStoredUnidadesBus());
     setMaestroFundos(getStoredFundos());
+    setMaestroZonas(getStoredZonas());
     setMaestroParaderos(getStoredParaderos());
     buildScheduleFromRealData(selectedFecha, consolidarLineaAzul);
     showToast('Programación recalculada con los requerimientos y flota reales.');
@@ -1164,6 +1186,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         >
                           {row.zone}
                         </span>
+                        {row.zonasEspecificas && row.zonasEspecificas.length > 0 && (
+                          <div className="text-[9px] font-semibold text-[#1B3A57]/80 mt-0.5 truncate max-w-[140px]" title={row.zonasEspecificas.join(' · ')}>
+                            {row.zonasEspecificas.join(' · ')}
+                          </div>
+                        )}
                         <div className="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">
                           {row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
                         </div>
@@ -1403,6 +1430,44 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     <option value="LÍNEA AZUL">LÍNEA AZUL</option>
                   </select>
                 </div>
+
+                {maestroZonas.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Jalar paraderos desde Zona (Maestros)
+                    </label>
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        const zId = e.target.value;
+                        const zObj = maestroZonas.find((z) => z.id === zId);
+                        if (!zObj) return;
+                        const zNorm = zObj.zona.trim().toLowerCase();
+                        const zStops = maestroParaderos
+                          .filter(
+                            (p) =>
+                              p.zonaId === zObj.id ||
+                              (p.zonaEspecifica && p.zonaEspecifica.trim().toLowerCase() === zNorm)
+                          )
+                          .map((p) => p.paradero);
+                        setFormState((s) => ({
+                          ...s,
+                          zone: zObj.zonaOperativa,
+                          stops: zStops.length > 0 ? zStops.join(' · ') : s.stops,
+                        }));
+                      }}
+                      className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-700 bg-slate-50 outline-none focus:border-[#009A44]"
+                    >
+                      <option value="">-- Selecciona una zona para cargar sus paraderos --</option>
+                      {maestroZonas.map((z) => (
+                        <option key={z.id} value={z.id}>
+                          {z.zona}
+                          {z.macrozona ? ` (${z.macrozona})` : ''} • {z.zonaOperativa}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 mb-1">
