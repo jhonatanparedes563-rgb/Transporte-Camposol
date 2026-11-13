@@ -13,6 +13,7 @@ import {
   Trash2,
   ArrowRight,
   Clock,
+  Route,
 } from 'lucide-react';
 import {
   Requerimiento,
@@ -35,12 +36,12 @@ import {
   subscribeToDataChanges,
 } from '../services/storageService';
 import {
-  optimizarViajes,
   exportarPlanViajesExcel,
   formatDateDDMMYYYY,
   getWeekNumber,
   inferParaderoInicial,
 } from '../services/tripOptimizationService';
+import { generateCorridorSchedule } from '../services/blueLineOptimizer';
 
 interface ScheduleGeneratorScreenProps {
   requerimientos: Requerimiento[];
@@ -49,16 +50,23 @@ interface ScheduleGeneratorScreenProps {
 }
 
 type TurnoLabel = 'MAÑANA' | 'TARDE' | 'NOCHE';
-type ZoneFilter = 'TODOS' | 'NORTE' | 'SUR';
+type ZoneFilter = 'TODOS' | 'NORTE' | 'SUR' | 'LÍNEA AZUL';
 type StatusFilter = 'TODOS' | 'pendiente' | 'ok' | 'exceso';
 type ProcesoEstadoFilter = 'ACTIVOS' | 'PENDIENTE_APROBADO' | 'PENDIENTE' | 'APROBADO' | 'ATENDIDO';
+
+interface StopBadge {
+  paradero: string;
+  cantidad: number;
+  zona: ZonaParadero;
+}
 
 interface ScheduleRow {
   id: string;
   matchKey: string;
-  zone: ZonaParadero;
+  zone: ZonaParadero | 'LÍNEA AZUL';
   fundo: string;
-  stops: string;
+  stopsText: string;
+  stopDetails: StopBadge[];
   time: string;
   turno: TurnoLabel;
   type: string;
@@ -79,7 +87,8 @@ interface ScheduleRow {
   movimiento: Requerimiento['movimiento'];
   fecha: string;
   observaciones?: string;
-  sourceViaje?: ViajeProgramado;
+  consolidatedRuleNote?: string;
+  unidadObj: MaestroUnidadBus;
 }
 
 interface SavedAssignmentOverlay {
@@ -121,18 +130,6 @@ const getTodayStr = (): string => {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
-};
-
-const formatHoraByZona = (rawTime: string, zone: ZonaParadero, req?: Requerimiento): string => {
-  if (zone === 'NORTE' && req?.horaRecojoNorte) return req.horaRecojoNorte;
-  if (zone === 'SUR' && req?.horaRecojoSur) return req.horaRecojoSur;
-  const text = (rawTime || '13:00').trim();
-  const match = text.match(/(\d{1,2}:\d{2})/);
-  if (match && match[1]) {
-    const [hh, mm] = match[1].split(':');
-    return `${hh.padStart(2, '0')}:${mm}`;
-  }
-  return '13:00';
 };
 
 const inferTurnoFromTime = (timeStr: string): TurnoLabel => {
@@ -207,6 +204,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
   const [procesoEstadoFilter, setProcesoEstadoFilter] =
     useState<ProcesoEstadoFilter>('ACTIVOS');
+  const [consolidarLineaAzul, setConsolidarLineaAzul] = useState<boolean>(true);
 
   const eligibleReqs = useMemo(() => {
     return liveReqs.filter((r) => {
@@ -247,7 +245,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   const [editingRow, setEditingRow] = useState<ScheduleRow | null>(null);
   const [isNewRow, setIsNewRow] = useState<boolean>(false);
   const [formState, setFormState] = useState({
-    zone: 'NORTE' as ZonaParadero,
+    zone: 'NORTE' as ZonaParadero | 'LÍNEA AZUL',
     fundo: '',
     stops: '',
     time: '07:00',
@@ -284,138 +282,62 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   }, [availableDates, selectedFecha]);
 
   const buildScheduleFromRealData = useCallback(
-    (fechaTarget: string) => {
+    (fechaTarget: string, enableBlueLine: boolean) => {
       if (activeFleetMasters.length === 0) {
         setRows([]);
         return;
       }
 
-      const reqById = new Map<string, Requerimiento>(eligibleReqs.map((r) => [r.id, r]));
+      const trips = generateCorridorSchedule({
+        requerimientos: eligibleReqs,
+        detalles: liveDetalles,
+        unidadesDisponibles: activeFleetMasters,
+        paraderosMaestros: maestroParaderos,
+        fechaFiltro: fechaTarget,
+        consolidarLineaAzul: enableBlueLine,
+      });
+
       const savedAssignments = loadSavedAssignments();
 
-      const masterOrderMap = new Map<string, number>();
-      maestroParaderos.forEach((p, idx) => {
-        masterOrderMap.set(p.paradero.trim().toUpperCase(), idx);
-      });
-
-      const prog = optimizarViajes(eligibleReqs, liveDetalles, {
-        fecha: fechaTarget,
-        movimiento: 'TODOS',
-        turno: 'TODOS',
-        permitirJuntarFundos: false,
-        unidadesDisponibles: activeFleetMasters,
-      });
-
-      const groupUnitCounter: Record<string, number> = {};
-
-      const rawRows: ScheduleRow[] = prog.viajes.map((v, idx) => {
-        const firstReq = v.requerimientosIds.length > 0 ? reqById.get(v.requerimientosIds[0]) : undefined;
-        const zone: ZonaParadero = v.zona === 'SUR' ? 'SUR' : 'NORTE';
-        const cleanTime = formatHoraByZona(v.hora || v.turno || '13:00', zone, firstReq);
-
-        const orderedParadas = [...v.recorridoParaderos].sort((a, b) => {
-          const idxA = masterOrderMap.get(a.paradero.trim().toUpperCase()) ?? a.orden ?? 999;
-          const idxB = masterOrderMap.get(b.paradero.trim().toUpperCase()) ?? b.orden ?? 999;
-          return idxA - idxB;
-        });
-
-        const stopsJoined =
-          orderedParadas.map((p) => p.paradero).join(' · ') ||
-          (zone === 'SUR' ? 'RUTA CHAO' : 'RUTA VIRÚ');
-
-        const reqCodes = Array.from(
-          new Set<string>(
-            v.requerimientosIds
-              .map((id) => reqById.get(id)?.numeroRequerimiento)
-              .filter((c): c is string => Boolean(c))
-          )
-        );
-        const reqEstados: string[] = Array.from(
-          new Set<string>(
-            v.requerimientosIds
-              .map((id) => reqById.get(id)?.estado || '')
-              .filter(Boolean)
-          )
-        );
-
-        const baseGroupKey = `${v.fecha}__${zone}__${v.fundo}__${cleanTime}__${v.movimiento}`;
-        const unitSeq = (groupUnitCounter[baseGroupKey] || 0) + 1;
-        groupUnitCounter[baseGroupKey] = unitSeq;
-        const matchKey = `${baseGroupKey}__${unitSeq}`;
-
-        const overlay = savedAssignments[matchKey];
+      const generatedRows: ScheduleRow[] = trips.map((t) => {
+        const overlay = savedAssignments[t.matchKey];
         const unitFromMaster =
           (overlay?.unidadId && activeFleetMasters.find((u) => u.id === overlay.unidadId)) ||
-          v.unidad;
+          t.unidad;
 
         return {
-          id: `${matchKey}__${idx}`,
-          matchKey,
-          zone,
-          fundo: v.fundo || firstReq?.fundo || 'FUNDO',
-          stops: stopsJoined,
-          time: cleanTime,
-          turno: inferTurnoFromTime(cleanTime),
+          id: t.id,
+          matchKey: t.matchKey,
+          zone: t.zone,
+          fundo: t.fundos.join(' + '),
+          stopsText: t.stops.map((s) => `${s.paradero} (${s.cantidad})`).join(' · '),
+          stopDetails: t.stops,
+          time: t.time,
+          turno: inferTurnoFromTime(t.time),
           type: overlay?.type || unitFromMaster.nombre,
           unidadId: unitFromMaster.id,
-          people: v.plan ?? v.totalPasajeros,
+          people: t.people,
           cap: overlay?.cap ?? unitFromMaster.capacidad,
           provider: overlay?.provider || 'Por asignar',
           plate: overlay?.plate || 'Por asignar',
           dni: overlay?.dni || '-',
           driver: overlay?.driver || 'Por asignar',
           sayta: overlay?.sayta || '-',
-          reqOwner: v.encargado || firstReq?.usuario || 'Supervisor',
-          reqCodes,
-          reqIds: v.requerimientosIds,
-          reqEstados,
-          area: v.area || firstReq?.area || 'PRODUCCIÓN',
-          origen: v.origen || 'CAMPO',
-          movimiento: v.movimiento || 'INGRESO',
-          fecha: v.fecha || (fechaTarget !== 'TODOS' ? fechaTarget : getTodayStr()),
-          observaciones: overlay?.observaciones || '',
-          sourceViaje: v,
+          reqOwner: t.owners.join(' / ') || 'Supervisor',
+          reqCodes: t.reqCodes,
+          reqIds: t.reqIds,
+          reqEstados: t.reqEstados,
+          area: t.areas.join(', ') || 'PRODUCCIÓN',
+          origen: t.origenes.join(', ') || 'CAMPO',
+          movimiento: t.movimiento,
+          fecha: t.fecha,
+          observaciones: overlay?.observaciones || t.consolidatedRuleNote || '',
+          consolidatedRuleNote: t.consolidatedRuleNote,
+          unidadObj: unitFromMaster,
         };
       });
 
-      const consolidatedRows: ScheduleRow[] = [];
-      const mergedNorteIds = new Set<string>();
-
-      rawRows.forEach((row) => {
-        if (
-          row.zone === 'NORTE' &&
-          row.fundo.toUpperCase().includes('AGROMA') &&
-          row.stops.toUpperCase().includes('PLAZUELA SAN JOSE') &&
-          !row.stops.includes('·')
-        ) {
-          const compatibleSur = rawRows.find(
-            (s) =>
-              s.zone === 'SUR' &&
-              s.fundo.toUpperCase().includes('AGROMA') &&
-              s.fecha === row.fecha &&
-              s.time === row.time &&
-              s.people + row.people <= s.cap
-          );
-          if (compatibleSur) {
-            compatibleSur.people += row.people;
-            compatibleSur.stops = `${compatibleSur.stops} · LA PLAZUELA SAN JOSE`;
-            compatibleSur.reqCodes = Array.from(new Set([...compatibleSur.reqCodes, ...row.reqCodes]));
-            compatibleSur.reqIds = Array.from(new Set([...compatibleSur.reqIds, ...row.reqIds]));
-            compatibleSur.reqEstados = Array.from(
-              new Set([...compatibleSur.reqEstados, ...row.reqEstados])
-            );
-            mergedNorteIds.add(row.id);
-          }
-        }
-      });
-
-      rawRows.forEach((r) => {
-        if (!mergedNorteIds.has(r.id)) {
-          consolidatedRows.push(r);
-        }
-      });
-
-      consolidatedRows.sort((a, b) => {
+      generatedRows.sort((a, b) => {
         const cmpFecha = b.fecha.localeCompare(a.fecha);
         if (cmpFecha !== 0) return cmpFecha;
         const cmpTime = a.time.localeCompare(b.time);
@@ -423,19 +345,24 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         return a.zone.localeCompare(b.zone);
       });
 
-      setRows(consolidatedRows);
+      setRows(generatedRows);
     },
     [eligibleReqs, liveDetalles, activeFleetMasters, maestroParaderos]
   );
 
   useEffect(() => {
-    buildScheduleFromRealData(selectedFecha);
-  }, [selectedFecha, buildScheduleFromRealData]);
+    buildScheduleFromRealData(selectedFecha, consolidarLineaAzul);
+  }, [selectedFecha, consolidarLineaAzul, buildScheduleFromRealData]);
 
   const consideredReqsCount = useMemo(() => {
     if (selectedFecha === 'TODOS') return eligibleReqs.length;
     return eligibleReqs.filter((r) => r.fecha === selectedFecha).length;
   }, [eligibleReqs, selectedFecha]);
+
+  const hasMixedBlueLineRows = useMemo(
+    () => rows.some((r) => r.zone === 'LÍNEA AZUL'),
+    [rows]
+  );
 
   const hasActiveTableFilters =
     zoneTab !== 'TODOS' ||
@@ -446,7 +373,14 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   const filteredRows = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return rows.filter((row) => {
-      if (zoneTab !== 'TODOS' && row.zone !== zoneTab) return false;
+      if (zoneTab === 'NORTE') {
+        if (row.zone !== 'NORTE' && !row.stopDetails.some((s) => s.zona === 'NORTE')) return false;
+      } else if (zoneTab === 'SUR') {
+        if (row.zone !== 'SUR' && !row.stopDetails.some((s) => s.zona === 'SUR')) return false;
+      } else if (zoneTab === 'LÍNEA AZUL') {
+        if (row.zone !== 'LÍNEA AZUL') return false;
+      }
+
       if (turnoFilter !== 'TODOS' && row.turno !== turnoFilter) return false;
 
       const overCap = row.people > row.cap;
@@ -457,7 +391,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       if (q) {
         const searchable = [
           row.fundo,
-          row.stops,
+          row.stopsText,
           row.reqOwner,
           row.provider,
           row.plate,
@@ -490,8 +424,10 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   const zoneSummary = useMemo(() => {
     const norteRows = rows.filter((r) => r.zone === 'NORTE');
     const surRows = rows.filter((r) => r.zone === 'SUR');
+    const blueRows = rows.filter((r) => r.zone === 'LÍNEA AZUL');
     const nortePax = norteRows.reduce((s, r) => s + r.people, 0);
     const surPax = surRows.reduce((s, r) => s + r.people, 0);
+    const bluePax = blueRows.reduce((s, r) => s + r.people, 0);
     const totalPax = totalDistributedPeople || 1;
     return {
       norteCount: norteRows.length,
@@ -500,6 +436,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       surCount: surRows.length,
       surPax,
       surShare: Math.round((surPax / totalPax) * 100),
+      blueCount: blueRows.length,
+      bluePax,
+      blueShare: Math.round((bluePax / totalPax) * 100),
       totalCount: rows.length,
       totalPax: totalDistributedPeople,
       ocupacionGlobal:
@@ -514,27 +453,31 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
     const realSupervisor = currentUser?.usuario || currentUser?.nombre || 'ADMINISTRADOR';
 
     const viajes: ViajeProgramado[] = rows.map((row, index) => {
-      const paradas = row.stops
-        .split('·')
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const paradas =
+        row.stopDetails.length > 0
+          ? row.stopDetails
+          : row.stopsText
+              .split('·')
+              .map((s) => s.replace(/\(\d+\)/g, '').trim())
+              .filter(Boolean)
+              .map((p) => ({
+                paradero: p,
+                cantidad: 0,
+                zona: (row.zone === 'SUR' ? 'SUR' : 'NORTE') as ZonaParadero,
+              }));
+
       const ocup = row.cap > 0 ? Math.min(100, Math.round((row.people / row.cap) * 100)) : 0;
       const matchedMaster =
         activeFleetMasters.find((u) => u.id === row.unidadId || u.nombre === row.type) ||
-        row.sourceViaje?.unidad || {
-          id: row.unidadId || `BUS-MAESTRO-${index + 1}`,
-          nombre: row.type,
-          capacidad: row.cap,
-          activo: true,
-        };
+        row.unidadObj;
       const serviceNum = index + 1;
       const fechaRow = row.fecha || targetDate;
+      const excelZone: ZonaParadero | 'MIXTA' =
+        row.zone === 'LÍNEA AZUL' ? 'MIXTA' : row.zone;
 
       return {
         id: row.id,
-        codigoViaje:
-          row.sourceViaje?.codigoViaje ||
-          `VJ-${row.zone === 'SUR' ? 'SUR' : 'NOR'}-${String(serviceNum).padStart(3, '0')}`,
+        codigoViaje: `VJ-${row.zone === 'SUR' ? 'SUR' : row.zone === 'NORTE' ? 'NOR' : 'AZL'}-${String(serviceNum).padStart(3, '0')}`,
         fecha: fechaRow,
         semana: getWeekNumber(fechaRow),
         servicioNumero: serviceNum,
@@ -549,10 +492,15 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         hora: row.time,
         area: row.area || 'PRODUCCIÓN',
         origen: row.origen || 'CAMPO',
-        destino: paradas.join(', '),
+        destino: paradas.map((p) => p.paradero).join(', '),
         plan: row.people,
         sayta: row.sayta || '-',
-        paraderoInicial: inferParaderoInicial(row.zone, paradas),
+        paraderoInicial:
+          paradas[0]?.paradero ||
+          inferParaderoInicial(
+            row.zone === 'LÍNEA AZUL' ? 'NORTE' : row.zone,
+            paradas.map((p) => p.paradero)
+          ),
         porcentajeOcupacion: ocup,
         horaSayta: row.time,
         obsSayta: `${serviceNum}-${row.area || 'PRODUCCIÓN'}`,
@@ -562,16 +510,16 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         turnoText: row.turno,
         turno: row.time,
         movimiento: row.movimiento || 'INGRESO',
-        zona: row.zone,
+        zona: excelZone,
         unidad: matchedMaster,
         totalPasajeros: row.people,
         capacidadUnidad: row.cap,
         asientosDisponibles: Math.max(0, row.cap - row.people),
         fundos: [{ fundo: row.fundo, cantidadPasajeros: row.people }],
         recorridoParaderos: paradas.map((p, idx) => ({
-          paradero: p,
-          zona: row.zone,
-          cantidadPasajeros: idx === 0 ? row.people : 0,
+          paradero: p.paradero,
+          zona: p.zona,
+          cantidadPasajeros: p.cantidad,
           orden: idx + 1,
         })),
         requerimientosIds: row.reqIds,
@@ -611,8 +559,8 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
     setMaestroUnidades(getStoredUnidadesBus());
     setMaestroFundos(getStoredFundos());
     setMaestroParaderos(getStoredParaderos());
-    buildScheduleFromRealData(selectedFecha);
-    showToast('Programación actualizada con datos reales.');
+    buildScheduleFromRealData(selectedFecha, consolidarLineaAzul);
+    showToast('Programación recalculada con los requerimientos y flota reales.');
   };
 
   const openEditModal = (row: ScheduleRow) => {
@@ -624,7 +572,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
     setFormState({
       zone: row.zone,
       fundo: row.fundo,
-      stops: row.stops,
+      stops: row.stopsText,
       time: row.time,
       type: row.type,
       unidadId: matchedUnit?.id || row.unidadId || '',
@@ -666,7 +614,8 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       matchKey: `manual-${Date.now()}`,
       zone: 'NORTE',
       fundo: defaultFundo,
-      stops: defaultStops,
+      stopsText: defaultStops,
+      stopDetails: [],
       time: '07:00',
       turno: 'MAÑANA',
       type: defaultUnit.nombre,
@@ -686,6 +635,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       origen: 'CAMPO',
       movimiento: 'INGRESO',
       fecha: selectedFecha !== 'TODOS' ? selectedFecha : getTodayStr(),
+      unidadObj: defaultUnit,
     });
     setFormState({
       zone: 'NORTE',
@@ -723,11 +673,26 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       return;
     }
 
+    const cleanStopsText = formState.stops.trim() || 'Por definir';
+    const parsedStops: StopBadge[] = cleanStopsText
+      .split('·')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((raw) => {
+        const m = raw.match(/^(.*?)\s*\((\d+)\)$/);
+        return {
+          paradero: m ? m[1].trim() : raw,
+          cantidad: m ? Number(m[2]) : 0,
+          zona: (formState.zone === 'SUR' ? 'SUR' : 'NORTE') as ZonaParadero,
+        };
+      });
+
     const updatedRow: ScheduleRow = {
       ...editingRow,
       zone: formState.zone,
       fundo: formState.fundo.trim() || 'Por definir',
-      stops: formState.stops.trim() || 'Por definir',
+      stopsText: cleanStopsText,
+      stopDetails: parsedStops,
       time: formState.time || '07:00',
       turno: inferTurnoFromTime(formState.time || '07:00'),
       type: formState.type,
@@ -807,14 +772,14 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
       )}
 
-      {/* Encabezado Ejecutivo — Limpio y directo */}
+      {/* Encabezado Ejecutivo */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4 pb-1">
         <div className="space-y-1">
           <h2 className="text-[24px] font-bold tracking-tight text-slate-900 leading-tight">
             Generador de programación
           </h2>
           <p className="text-[13px] text-slate-500">
-            Consolidación de requerimientos por zona y paraderos con la flota activa de Datos Maestros.
+            Consolida Agricultor 1-2-3 y Sincromax (Sur) sobre la línea azul (La Brasil ↔ Viviendas Mar Verde) y mantiene recorridos por zona para fundos centrales.
           </p>
         </div>
 
@@ -851,6 +816,20 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
             <option value="APROBADO">Solo Aprobados</option>
             <option value="ATENDIDO">Solo Atendidos</option>
           </select>
+
+          <button
+            type="button"
+            onClick={() => setConsolidarLineaAzul((prev) => !prev)}
+            className={`h-9 px-3 border rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              consolidarLineaAzul
+                ? 'bg-sky-50 border-sky-200 text-sky-800'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+            title="Consolidar remanentes sobre la línea recta (Viviendas ↔ La Brasil) y corredor Agricultor 1-2-3 / Sincromax"
+          >
+            <Route className="w-3.5 h-3.5" />
+            <span>{consolidarLineaAzul ? 'Línea Azul: 100%' : 'Por zona estricta'}</span>
+          </button>
 
           <button
             type="button"
@@ -893,7 +872,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
       )}
 
-      {/* Franja KPI Ejecutiva — 4 métricas esenciales con números tabulares */}
+      {/* Franja KPI Ejecutiva */}
       <div className="grid grid-cols-2 lg:grid-cols-4 bg-white border border-slate-200/90 rounded-xl divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80 overflow-hidden">
         <div className="px-5 py-4">
           <div className="text-[11px] font-medium text-slate-500">Solicitudes consideradas</div>
@@ -908,8 +887,8 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           <div className="text-[28px] font-bold tracking-tight text-slate-900 tabular-nums leading-tight mt-1">
             {rows.length}
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">
-            Ocupación global {zoneSummary.ocupacionGlobal}%
+          <div className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
+            Ocupación promedio {zoneSummary.ocupacionGlobal}%
           </div>
         </div>
 
@@ -918,7 +897,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           <div className="text-[28px] font-bold tracking-tight text-slate-900 tabular-nums leading-tight mt-1">
             {totalDistributedPeople}
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">
+          <div className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
             De {totalCapacityPeople} asientos totales
           </div>
         </div>
@@ -940,7 +919,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
       </div>
 
-      {/* Tabla Principal — Foco del espacio de trabajo */}
+      {/* Tabla Principal */}
       <div className="bg-white border border-slate-200/90 rounded-xl overflow-hidden">
         {/* Cabecera de Tabla + Selector de Zona */}
         <div className="px-5 py-3.5 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
@@ -958,7 +937,10 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                 { id: 'TODOS', label: 'Todos' },
                 { id: 'NORTE', label: 'Norte' },
                 { id: 'SUR', label: 'Sur' },
-              ] as const
+                ...(hasMixedBlueLineRows
+                  ? [{ id: 'LÍNEA AZUL' as const, label: 'Línea Azul' }]
+                  : []),
+              ] as Array<{ id: ZoneFilter; label: string }>
             ).map((tab) => (
               <button
                 key={tab.id}
@@ -1027,21 +1009,21 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           )}
         </div>
 
-        {/* Tabla Limpia de Alta Legibilidad */}
+        {/* Tabla Limpia */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[1040px] text-xs">
+          <table className="w-full border-collapse min-w-[1060px] text-xs">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500">
                 <th className="py-2.5 pl-5 pr-2 text-left w-10">#</th>
-                <th className="py-2.5 px-3 text-left w-20">Zona</th>
+                <th className="py-2.5 px-3 text-left w-24">Zona</th>
                 <th className="py-2.5 px-3 text-left">Fundo y solicitud</th>
                 <th className="py-2.5 px-3 text-left">Paraderos del recorrido</th>
                 <th className="py-2.5 px-3 text-left w-28">Hora</th>
                 <th className="py-2.5 px-3 text-left w-32">Unidad</th>
                 <th className="py-2.5 px-3 text-left w-32">Ocupación</th>
-                <th className="py-2.5 px-3 text-left w-52">Proveedor y móvil</th>
-                <th className="py-2.5 px-3 text-left w-32">Estado</th>
-                <th className="py-2.5 pl-2 pr-5 text-right w-16">Editar</th>
+                <th className="py-2.5 px-3 text-left w-48">Proveedor y móvil</th>
+                <th className="py-2.5 px-3 text-left w-28">Estado</th>
+                <th className="py-2.5 pl-2 pr-5 text-right w-14">Editar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -1068,8 +1050,10 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                   const barColor = overCap
                     ? 'bg-rose-500'
                     : pct >= 90
-                    ? 'bg-amber-500'
-                    : 'bg-[#0F6B43]';
+                    ? 'bg-[#0F6B43]'
+                    : pct >= 70
+                    ? 'bg-emerald-500'
+                    : 'bg-amber-500';
 
                   return (
                     <tr
@@ -1083,7 +1067,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       <td className="py-3 px-3 align-middle whitespace-nowrap">
                         <span
                           className={`inline-block text-[10px] font-bold tracking-wide px-2 py-0.5 rounded ${
-                            row.zone === 'SUR'
+                            row.zone === 'LÍNEA AZUL'
+                              ? 'bg-blue-50 text-blue-700'
+                              : row.zone === 'SUR'
                               ? 'bg-emerald-50 text-[#0F6B43]'
                               : 'bg-sky-50 text-sky-800'
                           }`}
@@ -1099,9 +1085,21 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         </div>
                       </td>
 
-                      <td className="py-3 px-3 align-middle max-w-[300px]">
+                      <td className="py-3 px-3 align-middle max-w-[340px]">
                         <div className="text-slate-700 leading-snug">
-                          {row.stops.split(' · ').join(' → ')}
+                          {row.stopDetails.length > 0 ? (
+                            row.stopDetails.map((s, sIdx) => (
+                              <React.Fragment key={`${s.paradero}-${sIdx}`}>
+                                {sIdx > 0 && <span className="text-slate-300 mx-1">→</span>}
+                                <span className="font-medium text-slate-800">{s.paradero}</span>
+                                <span className="text-slate-400 tabular-nums ml-0.5">
+                                  ({s.cantidad})
+                                </span>
+                              </React.Fragment>
+                            ))
+                          ) : (
+                            <span>{row.stopsText}</span>
+                          )}
                         </div>
                       </td>
 
@@ -1125,8 +1123,12 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                             {row.people} <span className="text-slate-400 font-normal">/ {row.cap}</span>
                           </span>
                           <span
-                            className={`text-[11px] font-semibold ${
-                              overCap ? 'text-rose-600' : 'text-slate-500'
+                            className={`text-[11px] font-bold ${
+                              overCap
+                                ? 'text-rose-600'
+                                : pct === 100
+                                ? 'text-[#0F6B43]'
+                                : 'text-slate-500'
                             }`}
                           >
                             {pct}%
@@ -1155,7 +1157,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                             <div className="font-semibold text-slate-900">
                               {row.provider} · {row.plate}
                             </div>
-                            <div className="text-[11px] text-slate-500 mt-0.5 truncate max-w-[190px]">
+                            <div className="text-[11px] text-slate-500 mt-0.5 truncate max-w-[180px]">
                               {row.driver}
                             </div>
                           </div>
@@ -1204,11 +1206,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           <div className="flex flex-wrap items-center gap-5">
             <span className="inline-flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#0F6B43]" />
-              Normal
+              Óptimo (&ge;90%)
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
-              Capacidad alta (&ge;90%)
+              Ocupación baja (&lt;70%)
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-rose-500" />
@@ -1228,12 +1230,12 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
       </div>
 
-      {/* Grilla Inferior: Balance Zonal + Criterio de Flota */}
+      {/* Grilla Inferior: Balance Zonal + Reglas del Corredor */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className="lg:col-span-7 bg-white border border-slate-200/90 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Balance por zona
+              Balance por zona y corredor
             </h3>
             <span className="text-xs font-semibold text-slate-700 tabular-nums">
               {zoneSummary.totalCount} recorridos · {zoneSummary.totalPax} personas
@@ -1259,20 +1261,31 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                 </span>
               </div>
             </div>
+            {zoneSummary.blueCount > 0 && (
+              <div className="py-2.5 flex items-center justify-between gap-4">
+                <span className="font-medium text-blue-700">Corredor Línea Azul (Viviendas ↔ La Brasil)</span>
+                <div className="flex items-center gap-4 tabular-nums">
+                  <span className="text-blue-400">{zoneSummary.blueShare}%</span>
+                  <span className="font-semibold text-slate-900">
+                    {zoneSummary.blueCount} unidades · {zoneSummary.bluePax} personas
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-xl p-5 flex flex-col justify-between gap-3">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-              Flota Maestra y reglas activas
+              Reglas activas de optimización
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Norte y Sur se consolidan por separado respetando el encargado de Procesos. En Agromas, la unidad Sur admite La Plazuela San José si coincide horario y capacidad.
+              <b>Agricultor 1, 2 y Sincromax</b> (Sur) consolidan la línea azul desde Segundo Paradero y Norte al <b>100%</b>. <b>Yakuy Minka</b> puede cubrir Norte + Sur desde La Brasil sin <b>Viviendas Mar Verde</b> (en ingreso Sur sale desde Viviendas). Los fundos del centro (<b>Glorias, Mar Verde, Oro Azul, Frusol 1-2, San José, Agromas, Napo</b>) operan por zona.
             </p>
           </div>
           <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100 tabular-nums">
-            <span className="font-semibold text-slate-700">Flota activa: </span>
+            <span className="font-semibold text-slate-700">Flota Maestra: </span>
             {activeFleetMasters.map((u) => `${u.nombre} (${u.capacidad}p)`).join(' · ')}
           </div>
         </div>
@@ -1316,23 +1329,27 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Zona
+                    Zona / Corredor
                   </label>
                   <select
                     value={formState.zone}
                     onChange={(e) =>
-                      setFormState((s) => ({ ...s, zone: e.target.value as ZonaParadero }))
+                      setFormState((s) => ({
+                        ...s,
+                        zone: e.target.value as ZonaParadero | 'LÍNEA AZUL',
+                      }))
                     }
                     className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
                   >
                     <option value="NORTE">NORTE</option>
                     <option value="SUR">SUR</option>
+                    <option value="LÍNEA AZUL">LÍNEA AZUL</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Fundo
+                    Fundo(s)
                   </label>
                   <input
                     type="text"
@@ -1357,7 +1374,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     type="text"
                     value={formState.stops}
                     onChange={(e) => setFormState((s) => ({ ...s, stops: e.target.value }))}
-                    placeholder="Ej: CHAO · LA 28 · SEGUNDO PARADERO"
+                    placeholder="Ej: LA BRASIL (2) · VIVIENDAS MAR VERDE (13)"
                     className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
                     required
                   />
