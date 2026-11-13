@@ -304,7 +304,8 @@ function compareStopsByCorridorDirection(
   b: Pick<StopDemandItem, 'paradero' | 'zona' | 'fundo'>,
   movimiento: Requerimiento['movimiento'],
   masterParaderos: MaestroParadero[],
-  hasNorteOnTrip: boolean
+  hasNorteOnTrip: boolean,
+  tripZone?: ZonaParadero | 'LÍNEA AZUL'
 ): number {
   const geoA = getGeoNorthToSouthIndex(a.paradero, masterParaderos);
   const geoB = getGeoNorthToSouthIndex(b.paradero, masterParaderos);
@@ -322,6 +323,13 @@ function compareStopsByCorridorDirection(
 
   if (isSouthFundo || (isYakuy && hasNorteOnTrip)) {
     const diff = !isSalida ? geoA - geoB : geoB - geoA;
+    return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
+  }
+
+  // Si el recorrido tiene una zona operativa definida (ej. ruta SUR que absorbe San José), ordenar todo el tramo en su sentido vial
+  if (tripZone === 'NORTE' || tripZone === 'SUR') {
+    const ascending = tripZone === 'NORTE' ? !isSalida : isSalida;
+    const diff = ascending ? geoA - geoB : geoB - geoA;
     return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
   }
 
@@ -347,14 +355,15 @@ function packStopsIntoUnits(
   time: string,
   movimiento: Requerimiento['movimiento'],
   groupCounter: Record<string, number>,
-  ruleNote?: string
+  ruleNote?: string,
+  preserveZoneLabel?: boolean
 ): OptimizedCorridorTrip[] {
   if (items.length === 0 || units.length === 0) return [];
 
   const hasNorteOnTrip = items.some((i) => i.zona === 'NORTE');
   // Ordenar paraderos geográficamente según ubicación real del fundo y sentido de la línea
   const sortedItems = [...items].sort((a, b) =>
-    compareStopsByCorridorDirection(a, b, movimiento, masterParaderos, hasNorteOnTrip)
+    compareStopsByCorridorDirection(a, b, movimiento, masterParaderos, hasNorteOnTrip, zoneLabel)
   );
 
   // Cola mutable de cantidades por ítem
@@ -409,8 +418,11 @@ function packStopsIntoUnits(
 
     if (totalLoaded <= 0) continue;
 
-    const effectiveZone: ZonaParadero | 'LÍNEA AZUL' =
-      zonesSeen.size > 1 ? 'LÍNEA AZUL' : Array.from(zonesSeen)[0] || zoneLabel;
+    const effectiveZone: ZonaParadero | 'LÍNEA AZUL' = preserveZoneLabel
+      ? zoneLabel
+      : zonesSeen.size > 1
+      ? 'LÍNEA AZUL'
+      : Array.from(zonesSeen)[0] || zoneLabel;
 
     const fundosList = Array.from(fundosSet);
     const baseKey = `${fecha}__${effectiveZone}__${fundosList.join('+')}__${time}__${movimiento}`;
@@ -558,15 +570,16 @@ export function generateCorridorSchedule(params: {
 
   for (const item of sortedItems) {
     const mins = parseMinutesFromTime(item.horaDisplay);
-    const canShareBlueLine =
-      consolidarLineaAzul &&
-      (isAgricultorCorridorFundo(item.fundo) || isYakuyMinkaFundo(item.fundo));
-    const corridorKey = canShareBlueLine
+    const isBlueLineCorridorFundo =
+      isAgricultorCorridorFundo(item.fundo) || isYakuyMinkaFundo(item.fundo);
+    const corridorKey = !consolidarLineaAzul
+      ? `${item.fundo.trim().toUpperCase()}__${item.zona}`
+      : isBlueLineCorridorFundo
       ? getCorridorGroupKey(item.fundo)
-      : `${item.fundo.trim().toUpperCase()}__${item.zona}`;
+      : `CENTRAL__${item.fundo.trim().toUpperCase()}`;
 
     // Ventana de 20 min cuando consolidarLineaAzul está activo para Agricultor/Sincromax o Yakuy Minka
-    const maxGap = canShareBlueLine ? 20 : 0;
+    const maxGap = consolidarLineaAzul && isBlueLineCorridorFundo ? 20 : 0;
     const existing = buckets.find(
       (b) =>
         b.fecha === item.fecha &&
@@ -631,6 +644,131 @@ export function generateCorridorSchedule(params: {
           )
         );
       }
+      continue;
+    }
+
+    // Para fundos centrales (Gloria, Agromas, Frusol, Mar Verde, Oro Azul, San José, Napo):
+    // Evaluar reequilibrio fronterizo en sector San José (La 21, La Plazuela San José, Santa Cecilia, Mendocilla -> Sur)
+    // o Segundo Paradero/La Botica -> Norte cuando reduce flota o mejora la ocupabilidad global.
+    const isCentralBucket = !bucket.corridorKey.startsWith('CORREDOR_');
+    if (isCentralBucket) {
+      const sepUnitsN = solveOptimalFleetDP(totalN, activeFleet);
+      const sepUnitsS = solveOptimalFleetDP(totalS, activeFleet);
+      let bestStats = getAllocationStats(totalN + totalS, [...sepUnitsN, ...sepUnitsS]);
+      let bestNItems = norteItems;
+      let bestSItems = surItems;
+      let bestUnitsN = sepUnitsN;
+      let bestUnitsS = sepUnitsS;
+      let bestNoteN: string | undefined;
+      let bestNoteS: string | undefined;
+
+      const isBetterAllocation = (
+        candidate: ReturnType<typeof getAllocationStats>,
+        current: ReturnType<typeof getAllocationStats>
+      ) =>
+        candidate.count < current.count ||
+        (candidate.count === current.count && candidate.wasted < current.wasted);
+
+      // 1) SUR absorbe paraderos fronterizos contiguos de San José (Sur -> Norte: Santa Cecilia -> Plazuela San José -> La 21)
+      const sanJoseStopGroups = new Map<number, StopDemandItem[]>();
+      for (const it of norteItems) {
+        if (!it.isBlueLine) continue;
+        const gIdx = getGeoNorthToSouthIndex(it.paradero, paraderosMaestros);
+        if (gIdx >= 16 && gIdx <= 18) {
+          const arr = sanJoseStopGroups.get(gIdx) || [];
+          arr.push(it);
+          sanJoseStopGroups.set(gIdx, arr);
+        }
+      }
+      const orderedSanJoseIdxs = Array.from(sanJoseStopGroups.keys()).sort((a, b) => b - a);
+      const movedToSurSet = new Set<StopDemandItem>();
+      for (const gIdx of orderedSanJoseIdxs) {
+        const group = sanJoseStopGroups.get(gIdx) || [];
+        group.forEach((it) => movedToSurSet.add(it));
+        const candN = norteItems.filter((it) => !movedToSurSet.has(it));
+        const candS = [...surItems, ...Array.from(movedToSurSet)];
+        const paxN = candN.reduce((s, i) => s + i.cantidad, 0);
+        const paxS = candS.reduce((s, i) => s + i.cantidad, 0);
+        const candUnitsN = paxN > 0 ? solveOptimalFleetDP(paxN, activeFleet) : [];
+        const candUnitsS = paxS > 0 ? solveOptimalFleetDP(paxS, activeFleet) : [];
+        const candStats = getAllocationStats(totalN + totalS, [...candUnitsN, ...candUnitsS]);
+        if (isBetterAllocation(candStats, bestStats)) {
+          bestStats = candStats;
+          bestNItems = candN;
+          bestSItems = candS;
+          bestUnitsN = candUnitsN;
+          bestUnitsS = candUnitsS;
+          const movedStopsNames = Array.from(
+            new Set(Array.from(movedToSurSet).map((x) => x.paradero))
+          ).join(', ');
+          bestNoteN = `Parada límite (${movedStopsNames}) asignada a ruta Sur para optimizar ocupabilidad`;
+          bestNoteS = `Incluye sector San José (${movedStopsNames}) para optimizar ocupabilidad`;
+        }
+      }
+
+      // 2) Simétrico: NORTE absorbe Segundo Paradero (límite norte de Chao) solo si mejora estrictamente frente al resultado anterior
+      const chaoNorthGroups = new Map<number, StopDemandItem[]>();
+      for (const it of surItems) {
+        if (!it.isBlueLine) continue;
+        const gIdx = getGeoNorthToSouthIndex(it.paradero, paraderosMaestros);
+        if (gIdx === 19) {
+          const arr = chaoNorthGroups.get(gIdx) || [];
+          arr.push(it);
+          chaoNorthGroups.set(gIdx, arr);
+        }
+      }
+      const orderedChaoNorthIdxs = Array.from(chaoNorthGroups.keys()).sort((a, b) => a - b);
+      const movedToNorteSet = new Set<StopDemandItem>();
+      for (const gIdx of orderedChaoNorthIdxs) {
+        const group = chaoNorthGroups.get(gIdx) || [];
+        group.forEach((it) => movedToNorteSet.add(it));
+        const candS = surItems.filter((it) => !movedToNorteSet.has(it));
+        const candN = [...norteItems, ...Array.from(movedToNorteSet)];
+        const paxN = candN.reduce((s, i) => s + i.cantidad, 0);
+        const paxS = candS.reduce((s, i) => s + i.cantidad, 0);
+        const candUnitsN = paxN > 0 ? solveOptimalFleetDP(paxN, activeFleet) : [];
+        const candUnitsS = paxS > 0 ? solveOptimalFleetDP(paxS, activeFleet) : [];
+        const candStats = getAllocationStats(totalN + totalS, [...candUnitsN, ...candUnitsS]);
+        if (isBetterAllocation(candStats, bestStats)) {
+          bestStats = candStats;
+          bestNItems = candN;
+          bestSItems = candS;
+          bestUnitsN = candUnitsN;
+          bestUnitsS = candUnitsS;
+          const movedStopsNames = Array.from(
+            new Set(Array.from(movedToNorteSet).map((x) => x.paradero))
+          ).join(', ');
+          bestNoteN = `Incluye paradero límite (${movedStopsNames}) para optimizar ocupabilidad`;
+          bestNoteS = `Parada límite (${movedStopsNames}) asignada a ruta Norte para optimizar ocupabilidad`;
+        }
+      }
+
+      finalTrips.push(
+        ...packStopsIntoUnits(
+          bestNItems,
+          bestUnitsN,
+          'NORTE',
+          paraderosMaestros,
+          bucket.fecha,
+          bucket.anchorTime,
+          bucket.movimiento,
+          groupCounter,
+          bestNoteN,
+          true
+        ),
+        ...packStopsIntoUnits(
+          bestSItems,
+          bestUnitsS,
+          'SUR',
+          paraderosMaestros,
+          bucket.fecha,
+          bucket.anchorTime,
+          bucket.movimiento,
+          groupCounter,
+          bestNoteS,
+          true
+        )
+      );
       continue;
     }
 
