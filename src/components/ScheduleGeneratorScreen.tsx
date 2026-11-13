@@ -891,7 +891,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               {consolidarLineaAzul && (
                 <span
                   className="px-2 py-0.5 text-[10px] font-semibold bg-sky-50 text-sky-700 rounded-full border border-sky-200/70"
-                  title="Agricultor 1-2 y Sincromax consolidan línea azul completa; Yakuy Minka consolida Norte + Sur sin Viviendas Mar Verde; fundos centrales operan por zona."
+                  title="Cada requerimiento y fundo opera de forma independiente por usuario; consolida sus paraderos sobre Línea Azul (Agricultor/Sincromax/Yakuy) o en borde San José (fundos centrales)."
                 >
                   LÍNEA AZUL 100%
                 </span>

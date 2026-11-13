@@ -115,12 +115,6 @@ export function isYakuyMinkaFundo(fundo: string): boolean {
 }
 
 function getCorridorGroupKey(fundo: string): string {
-  if (isAgricultorCorridorFundo(fundo)) {
-    return 'CORREDOR_AGRICULTOR_SINCROMAX';
-  }
-  if (isYakuyMinkaFundo(fundo)) {
-    return 'CORREDOR_YAKUY_MINKA';
-  }
   return (fundo || 'SIN_FUNDO').trim().toUpperCase();
 }
 
@@ -572,13 +566,15 @@ export function generateCorridorSchedule(params: {
     const mins = parseMinutesFromTime(item.horaDisplay);
     const isBlueLineCorridorFundo =
       isAgricultorCorridorFundo(item.fundo) || isYakuyMinkaFundo(item.fundo);
+    const fundoKey = getCorridorGroupKey(item.fundo);
+    // Cada requerimiento (por usuario y fundo) opera de forma independiente; solo consolida sus propios paraderos
     const corridorKey = !consolidarLineaAzul
-      ? `${item.fundo.trim().toUpperCase()}__${item.zona}`
+      ? `${item.reqId}__${fundoKey}__${item.zona}`
       : isBlueLineCorridorFundo
-      ? getCorridorGroupKey(item.fundo)
-      : `CENTRAL__${item.fundo.trim().toUpperCase()}`;
+      ? `CORREDOR__${item.reqId}__${fundoKey}`
+      : `CENTRAL__${item.reqId}__${fundoKey}`;
 
-    // Ventana de 20 min cuando consolidarLineaAzul está activo para Agricultor/Sincromax o Yakuy Minka
+    // Ventana de 20 min dentro del mismo requerimiento cuando consolida paraderos Norte + Sur
     const maxGap = consolidarLineaAzul && isBlueLineCorridorFundo ? 20 : 0;
     const existing = buckets.find(
       (b) =>
@@ -650,7 +646,7 @@ export function generateCorridorSchedule(params: {
     // Para fundos centrales (Gloria, Agromas, Frusol, Mar Verde, Oro Azul, San José, Napo):
     // Evaluar reequilibrio fronterizo en sector San José (La 21, La Plazuela San José, Santa Cecilia, Mendocilla -> Sur)
     // o Segundo Paradero/La Botica -> Norte cuando reduce flota o mejora la ocupabilidad global.
-    const isCentralBucket = !bucket.corridorKey.startsWith('CORREDOR_');
+    const isCentralBucket = bucket.corridorKey.startsWith('CENTRAL__');
     if (isCentralBucket) {
       const sepUnitsN = solveOptimalFleetDP(totalN, activeFleet);
       const sepUnitsS = solveOptimalFleetDP(totalS, activeFleet);
@@ -773,7 +769,7 @@ export function generateCorridorSchedule(params: {
     }
 
     // Separar paraderos en línea azul vs fuera de eje
-    const isYakuyBucket = bucket.corridorKey === 'CORREDOR_YAKUY_MINKA';
+    const isYakuyBucket = isYakuyMinkaFundo(bucket.items[0]?.fundo || '');
     const norteBlue = norteItems.filter((i) => i.isBlueLine);
     const norteOff = norteItems.filter((i) => !i.isBlueLine);
 
