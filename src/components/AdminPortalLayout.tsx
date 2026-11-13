@@ -45,6 +45,7 @@ import {
   RotateCcw,
   Sparkles,
   Globe,
+  CalendarCheck2,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, UserRole, AppUser } from '../types';
 import {
@@ -64,6 +65,7 @@ import { getHorarioDisplay } from '../data/masterData';
 import { MasterDataManagementScreen } from './MasterDataManagementScreen';
 import { PowerBIAnalyticsView } from './PowerBIAnalyticsView';
 import { TripOptimizationScreen } from './TripOptimizationScreen';
+import { ScheduleGeneratorScreen } from './ScheduleGeneratorScreen';
 import { NewRequirementWizard } from './NewRequirementWizard';
 import { UserManagementScreen } from './UserManagementScreen';
 import { SupervisorParaderosModal } from './SupervisorParaderosModal';
@@ -85,7 +87,7 @@ interface AdminPortalLayoutProps {
   onOpenRoleSwitcher?: () => void;
 }
 
-type AdminSection = 'procesos' | 'historial' | 'optimizacion' | 'maestros' | 'reportes' | 'base-datos' | 'nuevo' | 'usuarios';
+type AdminSection = 'procesos' | 'historial' | 'generador' | 'optimizacion' | 'maestros' | 'reportes' | 'base-datos' | 'nuevo' | 'usuarios';
 
 // Helper date functions for daily operational filtering (YYYY-MM-DD)
 const getTodayStr = (): string => {
@@ -766,7 +768,29 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               )}
             </button>
 
-            {/* 1.2 Optimización de Flota y Viajes */}
+            {/* 1.2 Generador de Programación */}
+            <button
+              id="menu-generador-programacion"
+              onClick={() => setCurrentSection('generador')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                currentSection === 'generador'
+                  ? 'bg-[#E8F5EF] text-[#00843D] font-black'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+              }`}
+              title="Generador de programación por paraderos y zonas"
+            >
+              <div className="flex items-center gap-3">
+                <CalendarCheck2 className="w-5 h-5 shrink-0 text-[#176b45]" />
+                {!sidebarCollapsed && <span>Generar programación</span>}
+              </div>
+              {!sidebarCollapsed && (
+                <span className="px-2 py-0.5 text-[9px] font-black bg-[#eaf5ee] text-[#176b45] rounded-full uppercase">
+                  TDP
+                </span>
+              )}
+            </button>
+
+            {/* 1.3 Optimización de Flota y Viajes */}
             <button
               id="menu-optimizacion-flota"
               onClick={() => setCurrentSection('optimizacion')}
@@ -890,6 +914,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             <h1 className="text-xl font-black text-[#173B56] tracking-tight">
               {currentSection === 'procesos' && 'Procesos / Recepción de Requerimientos'}
               {currentSection === 'historial' && 'Historial & Trazabilidad / Auditoría de Requerimientos'}
+              {currentSection === 'generador' && 'Operaciones / Generador de Programación'}
               {currentSection === 'optimizacion' && 'Optimización de Flota y Programación de Viajes'}
               {currentSection === 'maestros' && 'Datos Maestros / Catálogos Operativos'}
               {currentSection === 'reportes' && 'Reportes & Exportaciones Power BI'}
@@ -1342,6 +1367,17 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 requerimientos={requerimientos}
                 onBack={() => setCurrentSection('procesos')}
                 onRefreshParent={onRefreshData}
+              />
+            </div>
+          )}
+
+          {/* Sub-view: Generador de Programación */}
+          {currentSection === 'generador' && (
+            <div>
+              <ScheduleGeneratorScreen
+                requerimientos={requerimientos}
+                onRefreshData={onRefreshData}
+                currentUser={currentUser}
               />
             </div>
           )}
