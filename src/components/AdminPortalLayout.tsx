@@ -1813,8 +1813,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     </th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Código Req.</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Fecha & Turno</th>
-                    <th className="py-2.5 px-3 whitespace-nowrap">Área / Fundo</th>
-                    <th className="py-2.5 px-3 whitespace-nowrap">Movimiento & Horas</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Área</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Fundo</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Movimiento</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Horas</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Personal</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Supervisor</th>
                     <th className="py-2.5 px-3 text-center whitespace-nowrap">Estado</th>
@@ -1824,7 +1826,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 <tbody className="bg-white divide-y divide-gray-100 text-gray-700">
                   {filteredRequerimientos.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-10 text-center text-gray-500">
+                      <td colSpan={11} className="py-10 text-center text-gray-500">
                         <Inbox className="w-8 h-8 mx-auto text-gray-300 mb-2" />
                         <span className="block font-semibold text-[#1E293B] text-xs">
                           {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
@@ -1912,25 +1914,27 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 )}
                               </button>
                             </td>
-                            <td className="py-2.5 px-3">
-                              <div className="text-[11px] font-medium text-[#1B3A57]">{req.area}</div>
-                              <div className="text-[10px] text-slate-500 mt-0.5">{req.fundo}</div>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span className="text-[11px] font-medium text-[#1B3A57]">{req.area}</span>
                             </td>
-                            <td className="py-2.5 px-3">
-                              <div className="flex items-center gap-1.5">
-                                <span
-                                  className={`text-[10px] font-semibold uppercase ${
-                                    req.movimiento === 'INGRESO'
-                                      ? 'text-[#3D8B1C]'
-                                      : req.movimiento === 'SALIDA'
-                                      ? 'text-[#0082B3]'
-                                      : 'text-purple-600'
-                                  }`}
-                                >
-                                  {req.movimiento}
-                                </span>
-                              </div>
-                              <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap">
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span className="text-[11px] font-medium text-slate-700">{req.fundo}</span>
+                            </td>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span
+                                className={`text-[10px] font-semibold uppercase ${
+                                  req.movimiento === 'INGRESO'
+                                    ? 'text-[#3D8B1C]'
+                                    : req.movimiento === 'SALIDA'
+                                    ? 'text-[#0082B3]'
+                                    : 'text-purple-600'
+                                }`}
+                              >
+                                {req.movimiento}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <div className="text-[11px] text-slate-600">
                                 {(() => {
                                   const h = getHorarioDisplay(req);
                                   if (h.isIngreso) {
@@ -1941,9 +1945,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                     );
                                   }
                                   return (
-                                    <span>
-                                      Hora: <strong className="font-medium text-slate-700">{h.horaNormal}</strong>
-                                    </span>
+                                    <span className="font-medium text-slate-700">{h.horaNormal}</span>
                                   );
                                 })()}
                               </div>
@@ -2033,7 +2035,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                           {/* Fila expandible con resumen de paraderos para suma rápida */}
                           {expandedReqIds.includes(req.id) && (
                             <tr key={`expand-${req.id}`} className="bg-emerald-50/40 border-b-2 border-emerald-200 animate-in fade-in duration-150">
-                              <td colSpan={9} className="p-3 sm:p-4">
+                              <td colSpan={11} className="p-3 sm:p-4">
                                 <div className="bg-white rounded-2xl border border-emerald-200 shadow-xs p-4 space-y-3">
                                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
                                     <div className="flex items-center gap-2">

@@ -1198,9 +1198,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               <tr>
                 <th className="py-2.5 px-3 w-10 whitespace-nowrap">#</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Zona / Ruta</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Área / Fundo</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Área</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Fundo</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Paraderos del recorrido</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Movimiento & Hora</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Movimiento</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Hora</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Unidad</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Personal</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Proveedor / Móvil</th>
@@ -1213,7 +1215,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
             <tbody className="bg-white divide-y divide-slate-100 text-slate-700">
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-10 text-center text-slate-500">
+                  <td colSpan={12} className="py-10 text-center text-slate-500">
                     <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
                     <span className="block font-semibold text-[#1B3A57] text-xs">
                       {rows.length === 0
@@ -1269,8 +1271,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       </td>
 
                       <td className="py-2.5 px-3 whitespace-nowrap">
-                        <div className="text-[11px] font-medium text-[#1B3A57]">{row.area}</div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">{row.fundo}</div>
+                        <span className="text-[11px] font-medium text-[#1B3A57]">{row.area}</span>
+                      </td>
+
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span className="text-[11px] font-medium text-slate-700">{row.fundo}</span>
                       </td>
 
                       <td className="py-2.5 px-3 max-w-[320px]">
@@ -1293,7 +1298,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
                       <td className="py-2.5 px-3 whitespace-nowrap">
                         <span
-                          className={`text-[10px] font-semibold uppercase block ${
+                          className={`text-[10px] font-semibold uppercase ${
                             row.movimiento === 'INGRESO'
                               ? 'text-[#3D8B1C]'
                               : row.movimiento === 'SALIDA'
@@ -1303,8 +1308,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         >
                           {row.movimiento}
                         </span>
-                        <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap tabular-nums">
-                          Hora: <strong className="font-medium text-slate-700">{row.time}</strong> ·{' '}
+                      </td>
+
+                      <td className="py-2.5 px-3 whitespace-nowrap tabular-nums">
+                        <div className="text-[11px] font-medium text-[#1B3A57]">{row.time}</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">
                           {formatTurnoDisplay(row.turno)}
                         </div>
                       </td>
