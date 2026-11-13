@@ -1,19 +1,21 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   RefreshCw,
-  Plus,
   Search,
   Edit3,
   FileSpreadsheet,
   Download,
   AlertTriangle,
   CheckCircle2,
+  CheckCheck,
   X,
-  Calendar,
   Trash2,
-  ArrowRight,
   Clock,
-  Route,
+  Layers,
+  Users,
+  PlusCircle,
+  Eye,
+  Inbox,
 } from 'lucide-react';
 import {
   Requerimiento,
@@ -753,18 +755,18 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   }, [showExcelPreview, buildProgramacionDia]);
 
   return (
-    <div className="max-w-[1480px] mx-auto space-y-5 text-slate-900">
-      {/* Notificación flotante limpia */}
+    <div className="space-y-4 text-[#173B56] font-sans">
+      {/* Notificación flotante estilo CAMPOSOL */}
       {toastMsg && (
         <div
-          className={`fixed bottom-5 right-5 z-50 px-4 py-3 rounded-lg shadow-lg border text-xs font-semibold flex items-center gap-2.5 transition-all duration-150 ${
+          className={`fixed top-4 right-6 z-50 px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-bold border transition-all duration-200 ${
             toastMsg.type === 'warn'
-              ? 'bg-amber-50 border-amber-200 text-amber-900'
-              : 'bg-slate-900 border-slate-800 text-white'
+              ? 'bg-amber-600 text-white border-amber-400/50'
+              : 'bg-[#173B56] text-white border-emerald-500/40'
           }`}
         >
           {toastMsg.type === 'warn' ? (
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-amber-200 shrink-0" />
           ) : (
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           )}
@@ -772,99 +774,72 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
       )}
 
-      {/* Encabezado Ejecutivo */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4 pb-1">
-        <div className="space-y-1">
-          <h2 className="text-[24px] font-bold tracking-tight text-slate-900 leading-tight">
-            Generador de programación
-          </h2>
-          <p className="text-[13px] text-slate-500">
-            Consolida Agricultor 1-2-3 y Sincromax (Sur) sobre la línea azul (La Brasil ↔ Viviendas Mar Verde) y mantiene recorridos por zona para fundos centrales.
-          </p>
+      {/* Franja KPI Superior (Idéntica a Recepción de requerimientos) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-semibold text-gray-500">Solicitudes</div>
+            <div className="text-xl font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">
+              {consideredReqsCount}
+            </div>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+            <Layers className="w-4 h-4" />
+          </div>
         </div>
 
-        {/* Barra de controles principales */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-3 h-9 text-xs text-slate-700 hover:border-slate-300 transition-colors">
-            <Calendar className="w-3.5 h-3.5 text-[#0F6B43] shrink-0" />
-            <select
-              value={selectedFecha}
-              onChange={(e) => setSelectedFecha(e.target.value)}
-              className="bg-transparent outline-none cursor-pointer text-xs font-semibold text-slate-800 pr-1"
-              title="Seleccionar fecha de Procesos"
-            >
-              <option value="TODOS">Todas las fechas ({eligibleReqs.length})</option>
-              {availableDates.map((dateStr) => {
-                const count = eligibleReqs.filter((r) => r.fecha === dateStr).length;
-                return (
-                  <option key={dateStr} value={dateStr}>
-                    {formatDateDDMMYYYY(dateStr)} ({count} req.)
-                  </option>
-                );
-              })}
-            </select>
+        <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-amber-400 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-semibold text-gray-500">Sin Móvil</div>
+            <div className="text-xl font-bold text-amber-600 tabular-nums leading-tight mt-0.5">
+              {pendingAssignmentCount}
+            </div>
           </div>
+          <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Clock className="w-4 h-4" />
+          </div>
+        </div>
 
-          <select
-            value={procesoEstadoFilter}
-            onChange={(e) => setProcesoEstadoFilter(e.target.value as ProcesoEstadoFilter)}
-            className="h-9 px-3 border border-slate-200 rounded-lg bg-white text-xs font-medium text-slate-700 outline-none hover:border-slate-300 transition-colors cursor-pointer"
-          >
-            <option value="ACTIVOS">Procesos: Activos</option>
-            <option value="PENDIENTE_APROBADO">Pendientes y Aprobados</option>
-            <option value="PENDIENTE">Solo Pendientes</option>
-            <option value="APROBADO">Solo Aprobados</option>
-            <option value="ATENDIDO">Solo Atendidos</option>
-          </select>
+        <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-[#009A44] shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-semibold text-gray-500">Ocupación</div>
+            <div className="text-xl font-bold text-[#009A44] tabular-nums leading-tight mt-0.5">
+              {zoneSummary.ocupacionGlobal}%
+            </div>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#009A44] flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => setConsolidarLineaAzul((prev) => !prev)}
-            className={`h-9 px-3 border rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              consolidarLineaAzul
-                ? 'bg-sky-50 border-sky-200 text-sky-800'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-            title="Consolidar remanentes sobre la línea recta (Viviendas ↔ La Brasil) y corredor Agricultor 1-2-3 / Sincromax"
-          >
-            <Route className="w-3.5 h-3.5" />
-            <span>{consolidarLineaAzul ? 'Línea Azul: 100%' : 'Por zona estricta'}</span>
-          </button>
+        <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-sky-500 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-semibold text-gray-500">Unidades</div>
+            <div className="text-xl font-bold text-sky-600 tabular-nums leading-tight mt-0.5">
+              {rows.length}
+            </div>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+            <CheckCheck className="w-4 h-4" />
+          </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="h-9 px-3.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-            <span>Actualizar</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={openAddModal}
-            disabled={activeFleetMasters.length === 0}
-            className="h-9 px-3.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 disabled:opacity-50 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#0F6B43]" />
-            <span>Agregar unidad</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDownloadExcel}
-            disabled={rows.length === 0}
-            className="h-9 px-4 bg-[#0F6B43] hover:bg-[#0B5434] text-white rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 disabled:opacity-50 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Descargar Excel</span>
-          </button>
+        <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-semibold text-gray-500">Total Personal</div>
+            <div className="text-xl font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">
+              {totalDistributedPeople}
+            </div>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#1E293B] flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4" />
+          </div>
         </div>
       </div>
 
       {/* Alerta si falta configurar flota activa */}
       {activeFleetMasters.length === 0 && (
-        <div className="bg-rose-50 border border-rose-200 rounded-lg px-4 py-3 text-xs text-rose-800 font-medium flex items-center gap-2.5">
+        <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5 text-xs text-rose-800 font-medium flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>
             No hay unidades activas en <b>Datos Maestros · Flota Buses</b>. Activa al menos una unidad para generar recorridos.
@@ -872,174 +847,267 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
       )}
 
-      {/* Franja KPI Ejecutiva */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 bg-white border border-slate-200/90 rounded-xl divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80 overflow-hidden">
-        <div className="px-5 py-4">
-          <div className="text-[11px] font-medium text-slate-500">Solicitudes consideradas</div>
-          <div className="text-[28px] font-bold tracking-tight text-slate-900 tabular-nums leading-tight mt-1">
-            {consideredReqsCount}
-          </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">Requerimientos desde Procesos</div>
-        </div>
-
-        <div className="px-5 py-4">
-          <div className="text-[11px] font-medium text-slate-500">Unidades programadas</div>
-          <div className="text-[28px] font-bold tracking-tight text-slate-900 tabular-nums leading-tight mt-1">
-            {rows.length}
-          </div>
-          <div className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
-            Ocupación promedio {zoneSummary.ocupacionGlobal}%
-          </div>
-        </div>
-
-        <div className="px-5 py-4">
-          <div className="text-[11px] font-medium text-slate-500">Personal programado</div>
-          <div className="text-[28px] font-bold tracking-tight text-slate-900 tabular-nums leading-tight mt-1">
-            {totalDistributedPeople}
-          </div>
-          <div className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
-            De {totalCapacityPeople} asientos totales
-          </div>
-        </div>
-
-        <div className="px-5 py-4">
-          <div className="text-[11px] font-medium text-slate-500">Pendientes de móvil</div>
-          <div
-            className={`text-[28px] font-bold tracking-tight tabular-nums leading-tight mt-1 ${
-              pendingAssignmentCount > 0 ? 'text-amber-600' : 'text-[#0F6B43]'
-            }`}
-          >
-            {pendingAssignmentCount}
-          </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">
-            {pendingAssignmentCount > 0
-              ? 'Requieren placa y conductor'
-              : 'Todas las unidades asignadas'}
-          </div>
-        </div>
-      </div>
-
-      {/* Tabla Principal */}
-      <div className="bg-white border border-slate-200/90 rounded-xl overflow-hidden">
-        {/* Cabecera de Tabla + Selector de Zona */}
-        <div className="px-5 py-3.5 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-baseline gap-2.5">
-            <h3 className="text-sm font-bold text-slate-900">Recorridos del servicio</h3>
-            <span className="text-xs text-slate-400 tabular-nums">
-              {filteredRows.length} {filteredRows.length === 1 ? 'unidad' : 'unidades'}
-              {selectedFecha !== 'TODOS' ? ` · ${formatDateDDMMYYYY(selectedFecha)}` : ''}
-            </span>
+      {/* Panel Principal (Mismo visual, formas, fuentes y bordes que Recepción de requerimientos) */}
+      <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs overflow-hidden">
+        {/* Cabecera del Panel */}
+        <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-[#1E293B] leading-tight">
+              Generación de programación
+            </h3>
+            <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+              <span>
+                Visualizar, optimizar y asignar recorridos • Mostrando{' '}
+                <strong className="text-[#1E293B] font-semibold">{filteredRows.length}</strong> de{' '}
+                <strong className="text-[#1E293B] font-semibold">{rows.length}</strong> unidades
+              </span>
+              {selectedFecha !== 'TODOS' && (
+                <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-[#009A44] rounded-full border border-emerald-200/70">
+                  DEL DÍA ({selectedFecha})
+                </span>
+              )}
+              {consolidarLineaAzul && (
+                <span
+                  className="px-2 py-0.5 text-[10px] font-semibold bg-sky-50 text-sky-700 rounded-full border border-sky-200/70"
+                  title="Agricultor 1-2 y Sincromax consolidan línea azul completa; Yakuy Minka consolida Norte + Sur sin Viviendas Mar Verde; fundos centrales operan por zona."
+                >
+                  LÍNEA AZUL 100%
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-            {(
-              [
-                { id: 'TODOS', label: 'Todos' },
-                { id: 'NORTE', label: 'Norte' },
-                { id: 'SUR', label: 'Sur' },
-                ...(hasMixedBlueLineRows
-                  ? [{ id: 'LÍNEA AZUL' as const, label: 'Línea Azul' }]
-                  : []),
-              ] as Array<{ id: ZoneFilter; label: string }>
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setZoneTab(tab.id)}
-                className={`px-3.5 py-1 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                  zoneTab === tab.id
-                    ? 'bg-white text-[#0F6B43] shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Filtros Compactos */}
-        <div className="px-5 py-2.5 bg-slate-50/60 border-b border-slate-200/70 flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar fundo, paradero, solicitud o placa..."
-              className="w-full h-8 pl-8 pr-3 border border-slate-200 rounded-md bg-white text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-[#0F6B43]"
-            />
-          </div>
-
-          <select
-            value={turnoFilter}
-            onChange={(e) => setTurnoFilter(e.target.value)}
-            className="h-8 px-2.5 border border-slate-200 rounded-md bg-white text-xs text-slate-700 outline-none focus:border-[#0F6B43] cursor-pointer"
-          >
-            <option value="TODOS">Todos los turnos</option>
-            <option value="MAÑANA">Mañana</option>
-            <option value="TARDE">Tarde</option>
-            <option value="NOCHE">Noche</option>
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="h-8 px-2.5 border border-slate-200 rounded-md bg-white text-xs text-slate-700 outline-none focus:border-[#0F6B43] cursor-pointer"
-          >
-            <option value="TODOS">Todos los estados</option>
-            <option value="pendiente">Sin asignar móvil</option>
-            <option value="ok">Listos</option>
-            <option value="exceso">Excede capacidad</option>
-          </select>
-
-          {hasActiveTableFilters && (
+          {/* Botones de Acción con Ícono Arriba + Buscador Píldora */}
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               type="button"
-              onClick={() => {
-                setZoneTab('TODOS');
-                setTurnoFilter('TODOS');
-                setStatusFilter('TODOS');
-                setSearchQuery('');
-              }}
-              className="h-8 px-2.5 text-xs font-semibold text-slate-500 hover:text-slate-900 cursor-pointer"
+              onClick={handleDownloadExcel}
+              disabled={rows.length === 0}
+              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#009A44] hover:text-[#007a35] hover:bg-emerald-50/70 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              title="Descargar programación en Excel"
             >
-              Limpiar
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="text-[10px] font-medium">Descarga</span>
             </button>
-          )}
+
+            <button
+              type="button"
+              onClick={openAddModal}
+              disabled={activeFleetMasters.length === 0}
+              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#009A44] hover:text-[#007a35] hover:bg-emerald-50/70 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              title="Agregar unidad manual"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span className="text-[10px] font-medium">Nuevo</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowExcelPreview(true)}
+              disabled={rows.length === 0}
+              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#009A44] hover:text-[#007a35] hover:bg-emerald-50/70 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              title="Vista previa formato Excel (26 columnas)"
+            >
+              <Eye className="w-4 h-4" />
+              <span className="text-[10px] font-medium">Vista</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#009A44] hover:text-[#007a35] hover:bg-emerald-50/70 rounded-lg transition-colors cursor-pointer"
+              title="Recalcular con Procesos y Flota Maestra"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span className="text-[10px] font-medium">Actualizar</span>
+            </button>
+
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Palabra clave"
+                className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-gray-300 rounded-full text-xs text-gray-700 placeholder-gray-400 focus:border-[#009A44] focus:outline-none transition-colors"
+              />
+              <Search className="w-4 h-4 text-[#009A44] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
         </div>
 
-        {/* Tabla Limpia */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[1060px] text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500">
-                <th className="py-2.5 pl-5 pr-2 text-left w-10">#</th>
-                <th className="py-2.5 px-3 text-left w-24">Zona</th>
-                <th className="py-2.5 px-3 text-left">Fundo y solicitud</th>
-                <th className="py-2.5 px-3 text-left">Paraderos del recorrido</th>
-                <th className="py-2.5 px-3 text-left w-28">Hora</th>
-                <th className="py-2.5 px-3 text-left w-32">Unidad</th>
-                <th className="py-2.5 px-3 text-left w-32">Ocupación</th>
-                <th className="py-2.5 px-3 text-left w-48">Proveedor y móvil</th>
-                <th className="py-2.5 px-3 text-left w-28">Estado</th>
-                <th className="py-2.5 pl-2 pr-5 text-right w-14">Editar</th>
+        {/* Filtros Tipo Píldora con Etiqueta Flotante (4 columnas exactas) */}
+        <div className="px-5 pt-2 pb-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-3.5 gap-y-3.5">
+            {/* Fecha de servicio */}
+            <div className="relative">
+              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                Fecha de servicio
+              </label>
+              <select
+                value={selectedFecha}
+                onChange={(e) => setSelectedFecha(e.target.value)}
+                className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="TODOS">Todas ({eligibleReqs.length} req.)</option>
+                {availableDates.map((dateStr) => {
+                  const count = eligibleReqs.filter((r) => r.fecha === dateStr).length;
+                  return (
+                    <option key={dateStr} value={dateStr}>
+                      {formatDateDDMMYYYY(dateStr)} ({count} req.)
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Estado Procesos */}
+            <div className="relative">
+              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                Procesos
+              </label>
+              <select
+                value={procesoEstadoFilter}
+                onChange={(e) => setProcesoEstadoFilter(e.target.value as ProcesoEstadoFilter)}
+                className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="ACTIVOS">Activos</option>
+                <option value="PENDIENTE_APROBADO">Pendientes y Aprobados</option>
+                <option value="PENDIENTE">Solo Pendientes</option>
+                <option value="APROBADO">Solo Aprobados</option>
+                <option value="ATENDIDO">Solo Atendidos</option>
+              </select>
+            </div>
+
+            {/* Turno */}
+            <div className="relative">
+              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                Turno
+              </label>
+              <select
+                value={turnoFilter}
+                onChange={(e) => setTurnoFilter(e.target.value)}
+                className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="TODOS">Todos</option>
+                <option value="MAÑANA">Mañana</option>
+                <option value="TARDE">Tarde</option>
+                <option value="NOCHE">Noche</option>
+              </select>
+            </div>
+
+            {/* Estado de móvil */}
+            <div className="relative">
+              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                Estado móvil
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="TODOS">Todos</option>
+                <option value="pendiente">Sin asignar móvil</option>
+                <option value="ok">Listos</option>
+                <option value="exceso">Excede capacidad</option>
+              </select>
+            </div>
+
+            {/* Regla de consolidación */}
+            <div className="relative">
+              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                Optimización corredor
+              </label>
+              <select
+                value={consolidarLineaAzul ? 'AZUL' : 'ZONA'}
+                onChange={(e) => setConsolidarLineaAzul(e.target.value === 'AZUL')}
+                className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="AZUL">Línea Azul: 100% (Activa)</option>
+                <option value="ZONA">Por zona estricta</option>
+              </select>
+            </div>
+
+            {/* Selectores rápidos de Zona + Limpiar */}
+            <div className="sm:col-span-1 lg:col-span-3 flex flex-wrap items-center justify-between lg:justify-end gap-2 self-center">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-medium text-gray-400 mr-0.5">Zona:</span>
+                {(
+                  [
+                    { id: 'TODOS', label: 'Todos' },
+                    { id: 'NORTE', label: 'Norte' },
+                    { id: 'SUR', label: 'Sur' },
+                    ...(hasMixedBlueLineRows
+                      ? [{ id: 'LÍNEA AZUL' as const, label: 'Línea Azul' }]
+                      : []),
+                  ] as Array<{ id: ZoneFilter; label: string }>
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setZoneTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                      zoneTab === tab.id
+                        ? 'bg-[#009A44] text-white border-[#009A44]'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {hasActiveTableFilters && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setZoneTab('TODOS');
+                    setTurnoFilter('TODOS');
+                    setStatusFilter('TODOS');
+                    setSearchQuery('');
+                  }}
+                  className="px-4 py-1.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-[11px] font-medium text-gray-700 transition-colors cursor-pointer"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tabla Limpia con Cabecera Celeste #EDF6FC (Idéntica a Recepción de requerimientos) */}
+        <div className="overflow-x-auto max-h-[calc(100vh-340px)]">
+          <table className="w-full text-left text-[11px]">
+            <thead className="sticky top-0 z-10 bg-[#EDF6FC] text-[#1D7FC4] font-semibold text-[11px] border-y border-[#DCECF7]">
+              <tr>
+                <th className="py-2.5 px-3 w-10 whitespace-nowrap">#</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Zona / Ruta</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Área / Fundo</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Paraderos del recorrido</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Movimiento & Hora</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Unidad</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Personal</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Proveedor / Móvil</th>
+                <th className="py-2.5 px-3 text-center whitespace-nowrap">Estado</th>
+                <th className="py-2.5 px-3 text-center whitespace-nowrap border-l border-[#DCECF7]/70">
+                  Acciones
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="bg-white divide-y divide-gray-100 text-gray-700">
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-14 px-6 text-center">
-                    <p className="text-sm font-semibold text-slate-700">
+                  <td colSpan={10} className="py-10 text-center text-gray-500">
+                    <Inbox className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                    <span className="block font-semibold text-[#1E293B] text-xs">
                       {rows.length === 0
-                        ? 'No hay requerimientos registrados para la selección actual'
-                        : 'Ningún recorrido coincide con tu búsqueda'}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
+                        ? 'No hay requerimientos programados para la fecha seleccionada'
+                        : 'No se encontraron recorridos con los filtros seleccionados'}
+                    </span>
+                    <span className="text-[11px] text-gray-400 mt-1 block max-w-md mx-auto">
                       {rows.length === 0
-                        ? 'Cambia la fecha o el filtro de Procesos para visualizar los requerimientos.'
-                        : 'Ajusta o limpia los filtros para ver todos los recorridos.'}
-                    </p>
+                        ? 'Cambia la fecha de servicio o el filtro de Procesos para visualizar los requerimientos.'
+                        : 'Prueba cambiando o limpiando los filtros seleccionados.'}
+                    </span>
                   </td>
                 </tr>
               ) : (
@@ -1047,52 +1115,43 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                   const pct = row.cap > 0 ? Math.round((row.people / row.cap) * 100) : 0;
                   const overCap = row.people > row.cap;
                   const missingAssign = isPendingAssignment(row);
-                  const barColor = overCap
-                    ? 'bg-rose-500'
-                    : pct >= 90
-                    ? 'bg-[#0F6B43]'
-                    : pct >= 70
-                    ? 'bg-emerald-500'
-                    : 'bg-amber-500';
 
                   return (
-                    <tr
-                      key={row.id}
-                      className="hover:bg-slate-50/80 transition-colors group"
-                    >
-                      <td className="py-3 pl-5 pr-2 font-semibold text-slate-400 tabular-nums align-middle">
+                    <tr key={row.id} className="hover:bg-[#F7FBFE] transition-colors">
+                      <td className="py-2.5 px-3 text-[11px] font-medium text-gray-400 tabular-nums whitespace-nowrap">
                         {String(idx + 1).padStart(2, '0')}
                       </td>
 
-                      <td className="py-3 px-3 align-middle whitespace-nowrap">
+                      <td className="py-2.5 px-3 whitespace-nowrap">
                         <span
-                          className={`inline-block text-[10px] font-bold tracking-wide px-2 py-0.5 rounded ${
+                          className={`text-[10px] font-semibold uppercase ${
                             row.zone === 'LÍNEA AZUL'
-                              ? 'bg-blue-50 text-blue-700'
+                              ? 'text-[#1D7FC4]'
                               : row.zone === 'SUR'
-                              ? 'bg-emerald-50 text-[#0F6B43]'
-                              : 'bg-sky-50 text-sky-800'
+                              ? 'text-[#009A44]'
+                              : 'text-sky-600'
                           }`}
                         >
                           {row.zone}
                         </span>
-                      </td>
-
-                      <td className="py-3 px-3 align-middle whitespace-nowrap">
-                        <div className="font-semibold text-slate-900">{row.fundo}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          {row.area} · {row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'} · {row.reqOwner}
+                        <div className="text-[10px] text-gray-400 mt-0.5 whitespace-nowrap">
+                          {row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
                         </div>
                       </td>
 
-                      <td className="py-3 px-3 align-middle max-w-[340px]">
-                        <div className="text-slate-700 leading-snug">
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <div className="text-[11px] font-medium text-[#1E293B]">{row.area}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5">{row.fundo}</div>
+                      </td>
+
+                      <td className="py-2.5 px-3 max-w-[320px]">
+                        <div className="text-[11px] text-gray-700 leading-snug">
                           {row.stopDetails.length > 0 ? (
                             row.stopDetails.map((s, sIdx) => (
                               <React.Fragment key={`${s.paradero}-${sIdx}`}>
-                                {sIdx > 0 && <span className="text-slate-300 mx-1">→</span>}
-                                <span className="font-medium text-slate-800">{s.paradero}</span>
-                                <span className="text-slate-400 tabular-nums ml-0.5">
+                                {sIdx > 0 && <span className="text-gray-300 mx-1">→</span>}
+                                <span className="font-medium text-[#1E293B]">{s.paradero}</span>
+                                <span className="text-gray-400 tabular-nums ml-0.5">
                                   ({s.cantidad})
                                 </span>
                               </React.Fragment>
@@ -1103,95 +1162,114 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         </div>
                       </td>
 
-                      <td className="py-3 px-3 align-middle whitespace-nowrap">
-                        <div className="font-semibold text-slate-900 tabular-nums">{row.time}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          {formatTurnoDisplay(row.turno)} · {row.movimiento === 'INGRESO' ? 'Ingreso' : 'Salida'}
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span
+                          className={`text-[10px] font-semibold uppercase block ${
+                            row.movimiento === 'INGRESO'
+                              ? 'text-[#009A44]'
+                              : row.movimiento === 'SALIDA'
+                              ? 'text-sky-600'
+                              : 'text-purple-600'
+                          }`}
+                        >
+                          {row.movimiento}
+                        </span>
+                        <div className="text-[10px] text-gray-500 mt-0.5 whitespace-nowrap tabular-nums">
+                          Hora: <strong className="font-medium text-gray-700">{row.time}</strong> ·{' '}
+                          {formatTurnoDisplay(row.turno)}
                         </div>
                       </td>
 
-                      <td className="py-3 px-3 align-middle whitespace-nowrap">
-                        <div className="font-semibold text-slate-900">{row.type}</div>
-                        <div className="text-[11px] text-slate-500 tabular-nums mt-0.5">
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <div className="text-[11px] font-medium text-[#1E293B]">{row.type}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5 tabular-nums">
                           Cap. {row.cap} pax
                         </div>
                       </td>
 
-                      <td className="py-3 px-3 align-middle whitespace-nowrap">
-                        <div className="flex items-baseline justify-between gap-2 tabular-nums">
-                          <span className="font-semibold text-slate-900">
-                            {row.people} <span className="text-slate-400 font-normal">/ {row.cap}</span>
-                          </span>
-                          <span
-                            className={`text-[11px] font-bold ${
-                              overCap
-                                ? 'text-rose-600'
-                                : pct === 100
-                                ? 'text-[#0F6B43]'
-                                : 'text-slate-500'
-                            }`}
-                          >
-                            {pct}%
+                      <td className="py-2.5 px-3 whitespace-nowrap tabular-nums">
+                        <div>
+                          <span className="font-semibold text-[#1E293B]">{row.people}</span>{' '}
+                          <span className="text-[10px] text-gray-500">
+                            / {row.cap} pers.
                           </span>
                         </div>
-                        <div className="h-1.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${barColor}`}
-                            style={{ width: `${Math.min(pct, 100)}%` }}
-                          />
+                        <div
+                          className={`text-[10px] font-semibold mt-0.5 ${
+                            overCap
+                              ? 'text-red-600'
+                              : pct >= 90
+                              ? 'text-[#009A44]'
+                              : 'text-amber-600'
+                          }`}
+                        >
+                          {pct}% ocupación
                         </div>
                       </td>
 
-                      <td className="py-3 px-3 align-middle whitespace-nowrap">
+                      <td className="py-2.5 px-3 whitespace-nowrap">
                         {missingAssign ? (
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(row)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900 cursor-pointer"
-                          >
-                            <span>Asignar unidad</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </button>
+                          <span className="text-[11px] text-gray-400 italic">Por asignar</span>
                         ) : (
                           <div>
-                            <div className="font-semibold text-slate-900">
-                              {row.provider} · {row.plate}
+                            <div className="text-[11px] font-medium text-[#1E293B]">
+                              {row.provider} • {row.plate}
                             </div>
-                            <div className="text-[11px] text-slate-500 mt-0.5 truncate max-w-[180px]">
+                            <div className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[170px]">
                               {row.driver}
                             </div>
                           </div>
                         )}
                       </td>
 
-                      <td className="py-3 px-3 align-middle whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         {overCap ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            Excede cap.
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-50 text-red-800 border border-red-200 shadow-2xs whitespace-nowrap">
+                            <AlertTriangle className="w-3 h-3 text-red-600" />
+                            EXCEDE CAP.
                           </span>
                         ) : missingAssign ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700">
-                            <Clock className="w-3.5 h-3.5" />
-                            Sin asignar
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs whitespace-nowrap">
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            SIN ASIGNAR
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0F6B43]">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Listo
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs whitespace-nowrap">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            LISTO
                           </span>
                         )}
                       </td>
 
-                      <td className="py-3 pl-2 pr-5 text-right align-middle whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(row)}
-                          className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
-                          title="Editar recorrido"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
+                      <td className="py-2.5 px-3 border-l border-gray-100 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(row)}
+                            className="p-1 rounded-md text-[#009A44] hover:bg-emerald-50 transition-colors cursor-pointer"
+                            title="Editar unidad y paraderos"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(row)}
+                            className="px-2.5 py-0.5 bg-white hover:bg-emerald-50 text-[#009A44] border border-emerald-300 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
+                            title={missingAssign ? 'Asignar placa y conductor' : 'Modificar móvil'}
+                          >
+                            {missingAssign ? 'Asignar' : 'Editar'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRow(row.id)}
+                            className="p-1 rounded-md text-orange-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Quitar recorrido"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1201,92 +1279,41 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           </table>
         </div>
 
-        {/* Pie de tabla limpio */}
-        <div className="px-5 py-3 border-t border-slate-200/80 bg-slate-50/40 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
-          <div className="flex flex-wrap items-center gap-5">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#0F6B43]" />
-              Óptimo (&ge;90%)
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              Ocupación baja (&lt;70%)
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-rose-500" />
-              Excede capacidad
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowExcelPreview(true)}
-            disabled={rows.length === 0}
-            className="text-xs font-semibold text-[#0F6B43] hover:text-[#0B5434] inline-flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>Vista previa Excel (26 columnas)</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Grilla Inferior: Balance Zonal + Reglas del Corredor */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="lg:col-span-7 bg-white border border-slate-200/90 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Balance por zona y corredor
-            </h3>
-            <span className="text-xs font-semibold text-slate-700 tabular-nums">
-              {zoneSummary.totalCount} recorridos · {zoneSummary.totalPax} personas
-            </span>
-          </div>
-
-          <div className="divide-y divide-slate-100 text-xs">
-            <div className="py-2.5 flex items-center justify-between gap-4">
-              <span className="font-medium text-slate-600">Zona Norte</span>
-              <div className="flex items-center gap-4 tabular-nums">
-                <span className="text-slate-400">{zoneSummary.norteShare}%</span>
-                <span className="font-semibold text-slate-900">
-                  {zoneSummary.norteCount} unidades · {zoneSummary.nortePax} personas
-                </span>
-              </div>
-            </div>
-            <div className="py-2.5 flex items-center justify-between gap-4">
-              <span className="font-medium text-slate-600">Zona Sur</span>
-              <div className="flex items-center gap-4 tabular-nums">
-                <span className="text-slate-400">{zoneSummary.surShare}%</span>
-                <span className="font-semibold text-slate-900">
-                  {zoneSummary.surCount} unidades · {zoneSummary.surPax} personas
-                </span>
-              </div>
-            </div>
-            {zoneSummary.blueCount > 0 && (
-              <div className="py-2.5 flex items-center justify-between gap-4">
-                <span className="font-medium text-blue-700">Corredor Línea Azul (Viviendas ↔ La Brasil)</span>
-                <div className="flex items-center gap-4 tabular-nums">
-                  <span className="text-blue-400">{zoneSummary.blueShare}%</span>
-                  <span className="font-semibold text-slate-900">
-                    {zoneSummary.blueCount} unidades · {zoneSummary.bluePax} personas
-                  </span>
-                </div>
-              </div>
+        {/* Barra Inferior Limpia (Idéntica a Recepción de requerimientos) */}
+        <div className="bg-white px-5 py-2.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-[11px]">
+          <div className="text-gray-500 font-medium tabular-nums">
+            {filteredRows.length > 0 ? (
+              <>
+                Mostrando <strong className="text-[#1E293B] font-semibold">1</strong> a{' '}
+                <strong className="text-[#1E293B] font-semibold">{filteredRows.length}</strong> de{' '}
+                <strong className="text-[#1E293B] font-semibold">{rows.length}</strong> recorridos
+              </>
+            ) : (
+              'Mostrando 0 recorridos'
             )}
           </div>
-        </div>
 
-        <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-xl p-5 flex flex-col justify-between gap-3">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-              Reglas activas de optimización
-            </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              <b>Agricultor 1, 2 y Sincromax</b> (Sur) consolidan la línea azul desde Segundo Paradero y Norte al <b>100%</b>. <b>Yakuy Minka</b> puede cubrir Norte + Sur desde La Brasil sin <b>Viviendas Mar Verde</b> (en ingreso Sur sale desde Viviendas). Los fundos del centro (<b>Glorias, Mar Verde, Oro Azul, Frusol 1-2, San José, Agromas, Napo</b>) operan por zona.
-            </p>
-          </div>
-          <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100 tabular-nums">
-            <span className="font-semibold text-slate-700">Flota Maestra: </span>
-            {activeFleetMasters.map((u) => `${u.nombre} (${u.capacidad}p)`).join(' · ')}
+          <div className="flex flex-wrap items-center gap-4 text-[11px] text-gray-500 tabular-nums">
+            <span>
+              Norte: <strong className="text-[#1E293B] font-semibold">{zoneSummary.norteCount}</strong> ({zoneSummary.nortePax} p.)
+            </span>
+            <span>
+              Sur: <strong className="text-[#1E293B] font-semibold">{zoneSummary.surCount}</strong> ({zoneSummary.surPax} p.)
+            </span>
+            {zoneSummary.blueCount > 0 && (
+              <span className="text-[#1D7FC4]">
+                Línea Azul: <strong>{zoneSummary.blueCount}</strong> ({zoneSummary.bluePax} p.)
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowExcelPreview(true)}
+              disabled={rows.length === 0}
+              className="text-[#009A44] hover:underline font-medium inline-flex items-center gap-1 disabled:opacity-40 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Vista previa Excel</span>
+            </button>
           </div>
         </div>
       </div>
@@ -1339,7 +1366,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         zone: e.target.value as ZonaParadero | 'LÍNEA AZUL',
                       }))
                     }
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#009A44]"
                   >
                     <option value="NORTE">NORTE</option>
                     <option value="SUR">SUR</option>
@@ -1356,7 +1383,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     list="maestro-fundos-list"
                     value={formState.fundo}
                     onChange={(e) => setFormState((s) => ({ ...s, fundo: e.target.value }))}
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#009A44]"
                     required
                   />
                   <datalist id="maestro-fundos-list">
@@ -1375,7 +1402,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     value={formState.stops}
                     onChange={(e) => setFormState((s) => ({ ...s, stops: e.target.value }))}
                     placeholder="Ej: LA BRASIL (2) · VIVIENDAS MAR VERDE (13)"
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#009A44]"
                     required
                   />
                 </div>
@@ -1388,7 +1415,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     type="time"
                     value={formState.time}
                     onChange={(e) => setFormState((s) => ({ ...s, time: e.target.value }))}
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#009A44]"
                     required
                   />
                 </div>
@@ -1415,7 +1442,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         );
                       }
                     }}
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#009A44]"
                   >
                     {activeFleetMasters.map((u) => (
                       <option key={u.id} value={u.id}>
@@ -1448,7 +1475,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                           : null
                       );
                     }}
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 tabular-nums outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 tabular-nums outline-none focus:border-[#009A44]"
                     required
                   />
                 </div>
@@ -1470,7 +1497,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                           : null
                       );
                     }}
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 tabular-nums outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 tabular-nums outline-none focus:border-[#009A44]"
                     required
                   />
                 </div>
@@ -1484,7 +1511,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     value={formState.provider}
                     onChange={(e) => setFormState((s) => ({ ...s, provider: e.target.value }))}
                     placeholder="Nombre del proveedor"
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#009A44]"
                   />
                 </div>
 
@@ -1497,7 +1524,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     value={formState.plate}
                     onChange={(e) => setFormState((s) => ({ ...s, plate: e.target.value }))}
                     placeholder="Ej: ABC-123"
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 uppercase outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 uppercase outline-none focus:border-[#009A44]"
                   />
                 </div>
 
@@ -1510,7 +1537,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     value={formState.driver}
                     onChange={(e) => setFormState((s) => ({ ...s, driver: e.target.value }))}
                     placeholder="Nombre completo del conductor"
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 uppercase outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 uppercase outline-none focus:border-[#009A44]"
                   />
                 </div>
 
@@ -1524,14 +1551,14 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       value={formState.dni}
                       onChange={(e) => setFormState((s) => ({ ...s, dni: e.target.value }))}
                       placeholder="DNI"
-                      className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 tabular-nums outline-none focus:border-[#0F6B43]"
+                      className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 tabular-nums outline-none focus:border-[#009A44]"
                     />
                     <input
                       type="text"
                       value={formState.sayta}
                       onChange={(e) => setFormState((s) => ({ ...s, sayta: e.target.value }))}
                       placeholder="Sayta"
-                      className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 tabular-nums outline-none focus:border-[#0F6B43]"
+                      className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 tabular-nums outline-none focus:border-[#009A44]"
                     />
                   </div>
                 </div>
@@ -1544,7 +1571,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     type="text"
                     value={formState.reqOwner}
                     onChange={(e) => setFormState((s) => ({ ...s, reqOwner: e.target.value }))}
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#009A44]"
                   />
                 </div>
 
@@ -1559,7 +1586,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       setFormState((s) => ({ ...s, observaciones: e.target.value }))
                     }
                     placeholder="Opcional"
-                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#0F6B43]"
+                    className="w-full h-9 px-2.5 border border-slate-200 rounded-md text-xs text-slate-900 outline-none focus:border-[#009A44]"
                   />
                 </div>
               </div>
@@ -1591,7 +1618,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-md bg-[#0F6B43] hover:bg-[#0B5434] text-white text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-md bg-[#009A44] hover:bg-[#007a35] text-white text-xs font-semibold cursor-pointer"
                   >
                     Guardar
                   </button>
@@ -1609,7 +1636,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4 text-[#0F6B43]" />
+                  <FileSpreadsheet className="w-4 h-4 text-[#009A44]" />
                   <span>Vista previa Excel · PROGRAMA_DE_VIAJES</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1629,7 +1656,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               <div className="bg-white border border-slate-200 rounded-lg overflow-auto">
                 <table className="w-full border-collapse text-[11px] min-w-[2000px] tabular-nums">
                   <thead>
-                    <tr className="bg-[#0F6B43] text-white text-[10px] uppercase tracking-wider">
+                    <tr className="bg-[#009A44] text-white text-[10px] uppercase tracking-wider">
                       {[
                         'SEMANA',
                         'FECHA',
@@ -1749,7 +1776,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                   handleDownloadExcel();
                   setShowExcelPreview(false);
                 }}
-                className="px-4 py-2 rounded-md bg-[#0F6B43] hover:bg-[#0B5434] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-md bg-[#009A44] hover:bg-[#007a35] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Descargar Excel (.xlsx)</span>
