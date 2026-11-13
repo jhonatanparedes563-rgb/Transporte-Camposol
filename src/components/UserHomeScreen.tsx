@@ -112,14 +112,14 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   return (
     <div className="flex flex-col w-full p-4 space-y-4 pb-24">
       {/* 1. Header Hero Card */}
-      <div className="bg-white rounded-3xl p-5 border border-gray-200/90 shadow-xs relative overflow-hidden">
+      <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs relative overflow-hidden">
         {/* Subtle background decoration */}
         <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
-          <Bus className="w-36 h-36 text-[#00843D]" />
+          <Bus className="w-36 h-36 text-[#55A529]" />
         </div>
 
         <div className="flex items-center gap-3 mb-1.5">
-          <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-0.5">
+          <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/70 bg-[#55A529] flex items-center justify-center p-0.5">
             <img
               src={getPublicAssetUrl('camposol-emblem.png')}
               onError={(e) => {
@@ -134,40 +134,40 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
             />
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#00843D] block">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#55A529] block">
               CAMPOSOL
             </span>
-            <h1 className="text-base font-black text-[#173B56] leading-tight">
+            <h1 className="text-base font-bold text-[#1B3A57] leading-tight">
               Transporte de Personal
             </h1>
           </div>
         </div>
 
-        <p className="text-xs text-gray-500 leading-relaxed mt-2">
+        <p className="text-xs text-slate-500 leading-relaxed mt-2">
           Registra y consulta tus requerimientos para el ingreso o salida de personal de tu área.
         </p>
 
         {/* User identification badge from active session */}
         {currentUser && (
-          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-[#E8F5EF] text-[#00843D] flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-full bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold text-xs">
                 <UserCheck className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-[10px] font-bold text-gray-400 block uppercase leading-none">
+                <span className="text-[10px] font-bold text-slate-400 block uppercase leading-none">
                   Solicitante Conectado
                 </span>
-                <span className="text-xs font-black text-[#173B56] leading-tight block">
+                <span className="text-xs font-bold text-[#1B3A57] leading-tight block">
                   {currentUser.nombre}
                 </span>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-[10px] font-extrabold text-[#00843D] bg-[#E8F5EF] px-2 py-0.5 rounded-full inline-block">
+              <span className="text-[10px] font-bold text-[#2F7D18] bg-[#EAF7E4] border border-[#C6E9B4] px-2.5 py-0.5 rounded-full inline-block">
                 {currentUser.area}
               </span>
-              <span className="text-[10px] text-gray-400 block mt-0.5">
+              <span className="text-[10px] text-slate-400 block mt-0.5">
                 {currentUser.fundo}
               </span>
             </div>
@@ -179,17 +179,17 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
       <button
         id="btn-mobile-nuevo-requerimiento"
         onClick={onNewRequirement}
-        className="w-full bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white p-5 rounded-3xl shadow-md hover:shadow-lg transition-all text-left flex items-center justify-between group active:scale-[0.99]"
+        className="w-full bg-[#22A846] hover:bg-[#1C8E3A] active:bg-[#177830] text-white p-5 rounded-2xl shadow-sm hover:shadow-md transition-all text-left flex items-center justify-between group active:scale-[0.99]"
       >
         <div className="flex items-center gap-4">
           <div className="w-13 h-13 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 text-white shadow-inner">
             <PlusCircle className="w-8 h-8" />
           </div>
           <div>
-            <div className="text-base sm:text-lg font-black uppercase tracking-tight text-white leading-tight">
+            <div className="text-base sm:text-lg font-bold uppercase tracking-tight text-white leading-tight">
               + NUEVO REQUERIMIENTO
             </div>
-            <div className="text-xs text-emerald-100 font-medium mt-0.5">
+            <div className="text-xs text-[#EAF7E4] font-medium mt-0.5">
               Solicitar transporte para personal agrícola
             </div>
           </div>
@@ -203,65 +203,65 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
       <button
         id="btn-mobile-mis-requerimientos"
         onClick={onMyRequirements}
-        className="w-full bg-white hover:bg-gray-50/90 active:bg-gray-100 p-4.5 rounded-3xl border border-gray-200/90 shadow-xs transition-all text-left flex items-center justify-between group"
+        className="w-full bg-white hover:bg-[#F7FBFE] p-4.5 rounded-2xl border border-[#E5ECF2] shadow-xs transition-all text-left flex items-center justify-between group"
       >
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-[#173B56] text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-11 h-11 rounded-2xl bg-[#1B3A57] text-white flex items-center justify-center shrink-0 shadow-xs">
             <ClipboardList className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-black uppercase text-[#173B56]">
+              <span className="text-sm font-bold uppercase text-[#1B3A57]">
                 MIS REQUERIMIENTOS
               </span>
-              <span className="px-2.5 py-0.5 text-[10px] font-black bg-[#E8F5EF] text-[#00843D] rounded-full">
+              <span className="px-2.5 py-0.5 text-[10px] font-bold bg-[#EAF7E4] text-[#2F7D18] rounded-full border border-[#C6E9B4]">
                 {totalReqs}
               </span>
             </div>
-            <div className="text-xs text-gray-500 font-medium mt-0.5">
+            <div className="text-xs text-slate-500 font-medium mt-0.5">
               Consulta el estado de tus solicitudes
             </div>
           </div>
         </div>
-        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 group-hover:translate-x-1 group-hover:text-[#00843D] transition-all">
+        <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center text-slate-500 group-hover:translate-x-1 group-hover:text-[#55A529] transition-all">
           <ChevronRight className="w-4 h-4" />
         </div>
       </button>
 
       {/* 4. RESUMEN DEL USUARIO: PENDIENTES, APROBADOS, ATENDIDOS */}
       <div className="space-y-2">
-        <div className="px-1 text-[11px] font-black text-gray-400 uppercase tracking-wider">
+        <div className="px-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
           Resumen de mis Solicitudes
         </div>
         <div className="grid grid-cols-3 gap-2.5">
           {/* Pendientes */}
-          <div className="bg-white p-3 rounded-2xl border border-amber-200/80 shadow-2xs text-center">
-            <div className="flex items-center justify-center gap-1 text-[11px] text-amber-800 font-bold mb-1">
+          <div className="bg-white p-3 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-amber-400 shadow-2xs text-center">
+            <div className="flex items-center justify-center gap-1 text-[11px] text-[#B45309] font-bold mb-1">
               <Clock className="w-3.5 h-3.5 text-amber-500" />
               <span>Pendientes</span>
             </div>
-            <div className="text-xl font-black text-amber-600 leading-none">{pendingReqs}</div>
-            <div className="text-[9px] text-gray-400 mt-1">En revisión</div>
+            <div className="text-xl font-bold text-[#B45309] leading-none">{pendingReqs}</div>
+            <div className="text-[9px] text-slate-400 mt-1">En revisión</div>
           </div>
 
           {/* Aprobados */}
-          <div className="bg-white p-3 rounded-2xl border border-emerald-200/80 shadow-2xs text-center">
-            <div className="flex items-center justify-center gap-1 text-[11px] text-emerald-800 font-bold mb-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#00843D]" />
+          <div className="bg-white p-3 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-[#55A529] shadow-2xs text-center">
+            <div className="flex items-center justify-center gap-1 text-[11px] text-[#2F7D18] font-bold mb-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#55A529]" />
               <span>Aprobados</span>
             </div>
-            <div className="text-xl font-black text-[#00843D] leading-none">{approvedReqs}</div>
-            <div className="text-[9px] text-gray-400 mt-1">Programados</div>
+            <div className="text-xl font-bold text-[#2F7D18] leading-none">{approvedReqs}</div>
+            <div className="text-[9px] text-slate-400 mt-1">Programados</div>
           </div>
 
           {/* Atendidos */}
-          <div className="bg-white p-3 rounded-2xl border border-blue-200/80 shadow-2xs text-center">
-            <div className="flex items-center justify-center gap-1 text-[11px] text-blue-800 font-bold mb-1">
-              <CheckCheck className="w-3.5 h-3.5 text-blue-600" />
+          <div className="bg-white p-3 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-[#0082B3] shadow-2xs text-center">
+            <div className="flex items-center justify-center gap-1 text-[11px] text-[#0082B3] font-bold mb-1">
+              <CheckCheck className="w-3.5 h-3.5 text-[#0082B3]" />
               <span>Atendidos</span>
             </div>
-            <div className="text-xl font-black text-blue-600 leading-none">{attendedReqs}</div>
-            <div className="text-[9px] text-gray-400 mt-1">Completados</div>
+            <div className="text-xl font-bold text-[#0082B3] leading-none">{attendedReqs}</div>
+            <div className="text-[9px] text-slate-400 mt-1">Completados</div>
           </div>
         </div>
 
@@ -270,15 +270,15 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
           <button
             type="button"
             onClick={onMyRequirements}
-            className="w-full mt-2 p-2.5 rounded-2xl bg-rose-50/70 border border-rose-200 hover:bg-rose-50 text-rose-900 flex items-center justify-between text-xs transition-colors shadow-2xs"
+            className="w-full mt-2 p-2.5 rounded-2xl bg-[#FDECEC] border border-[#FECACA] hover:bg-red-100/70 text-[#DC2626] flex items-center justify-between text-xs transition-colors shadow-2xs"
           >
             <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-rose-600 shrink-0" />
+              <History className="w-4 h-4 text-[#DC2626] shrink-0" />
               <span className="font-bold">
                 {historyReqs} {historyReqs === 1 ? 'solicitud guardada' : 'solicitudes guardadas'} en historial
               </span>
             </div>
-            <span className="text-[11px] text-rose-700 font-extrabold flex items-center gap-0.5">
+            <span className="text-[11px] text-[#DC2626] font-bold flex items-center gap-0.5">
               <span>Ver Historial</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </span>
@@ -290,12 +290,12 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
       {latestReq ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Última Solicitud Registrada
             </span>
             <button
               onClick={onMyRequirements}
-              className="text-[11px] font-bold text-[#00843D] hover:underline"
+              className="text-[11px] font-semibold text-[#2F7D18] hover:underline"
             >
               Ver todas ({totalReqs})
             </button>
@@ -304,20 +304,20 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
           <div
             id="card-latest-mobile-req"
             onClick={() => onSelectRequirement(latestReq)}
-            className="bg-white rounded-3xl p-4 border border-gray-200/90 shadow-xs hover:border-[#00843D] transition-all cursor-pointer space-y-3 active:scale-[0.99]"
+            className="bg-white rounded-2xl p-4 border border-[#E5ECF2] shadow-xs hover:border-[#55A529] transition-all cursor-pointer space-y-3 active:scale-[0.99]"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-mono font-black text-xs text-[#00843D] bg-[#E8F5EF] px-2.5 py-1 rounded-lg">
+                <span className="font-mono font-bold text-xs text-[#2F7D18] bg-[#EAF7E4] border border-[#C6E9B4] px-2.5 py-0.5 rounded-full">
                   {latestReq.numeroRequerimiento}
                 </span>
-                <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   {formatDisplayDate(latestReq.fecha)}
                 </span>
               </div>
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black border ${
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
                   getStatusStyle(latestReq.estado).badge
                 }`}
               >
@@ -326,18 +326,18 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
               </span>
             </div>
 
-            <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-1 text-xs">
+            <div className="bg-[#F8FAFC] p-3 rounded-xl border border-[#E5ECF2] space-y-1 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-gray-400 font-bold text-[10px] uppercase">Área:</span>
-                <span className="font-black text-[#173B56]">{latestReq.area}</span>
+                <span className="text-slate-400 font-bold text-[10px] uppercase">Área:</span>
+                <span className="font-bold text-[#1B3A57]">{latestReq.area}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400 font-bold text-[10px] uppercase">Fundo:</span>
-                <span className="font-black text-[#173B56]">{latestReq.fundo}</span>
+                <span className="text-slate-400 font-bold text-[10px] uppercase">Fundo:</span>
+                <span className="font-bold text-[#1B3A57]">{latestReq.fundo}</span>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-gray-200/50">
-                <span className="text-gray-400 font-bold text-[10px] uppercase">Movimiento:</span>
-                <span className="font-black text-[#00843D]">
+              <div className="flex items-center justify-between pt-1 border-t border-slate-200/50">
+                <span className="text-slate-400 font-bold text-[10px] uppercase">Movimiento:</span>
+                <span className="font-bold text-[#2F7D18]">
                   {latestReq.movimiento === 'INGRESO'
                     ? `↓ INGRESO (${getHorarioDisplay(latestReq).textoHorario})`
                     : latestReq.movimiento === 'SALIDA'
@@ -348,11 +348,11 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
             </div>
 
             <div className="flex items-center justify-between text-xs pt-1">
-              <div className="flex items-center gap-1.5 font-black text-[#173B56]">
-                <Users className="w-4 h-4 text-[#00843D]" />
+              <div className="flex items-center gap-1.5 font-bold text-[#1B3A57]">
+                <Users className="w-4 h-4 text-[#55A529]" />
                 <span>{latestReq.totalPersonas} personas solicitadas</span>
               </div>
-              <span className="text-[#00843D] font-bold flex items-center gap-0.5 text-xs">
+              <span className="text-[#2F7D18] font-semibold flex items-center gap-0.5 text-xs">
                 <span>Ver detalle</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </span>
@@ -360,25 +360,25 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl p-6 border border-gray-200/80 text-center space-y-2">
-          <div className="w-10 h-10 rounded-full bg-emerald-50 text-[#00843D] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl p-6 border border-[#E5ECF2] text-center space-y-2">
+          <div className="w-10 h-10 rounded-full bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center mx-auto">
             <Bus className="w-5 h-5" />
           </div>
-          <div className="text-xs font-black text-[#173B56] uppercase">
+          <div className="text-xs font-bold text-[#1B3A57] uppercase">
             Aún no tienes requerimientos registrados
           </div>
-          <p className="text-[11px] text-gray-500">
+          <p className="text-[11px] text-slate-500">
             Toca el botón "+ Nuevo Requerimiento" para registrar tu primer pedido de transporte.
           </p>
         </div>
       )}
 
       {/* 6. Nota de Coordinación */}
-      <div className="bg-[#E8F5EF]/70 rounded-2xl p-3.5 border border-[#00843D]/15 flex items-start gap-2.5">
-        <Info className="w-4 h-4 text-[#00843D] shrink-0 mt-0.5" />
-        <div className="text-[11px] text-[#173B56] leading-relaxed">
-          <span className="font-bold text-[#00843D]">Coordinación de Transporte: </span>
-          El horario regular de recepción de solicitudes para la salida del mismo día es hasta las <strong className="font-bold text-[#173B56]">09:00 AM</strong> y para el día siguiente es hasta las <strong className="font-bold text-[#173B56]">14:00 PM</strong>.
+      <div className="bg-[#EAF7E4] rounded-2xl p-3.5 border border-[#C6E9B4] flex items-start gap-2.5">
+        <Info className="w-4 h-4 text-[#2F7D18] shrink-0 mt-0.5" />
+        <div className="text-[11px] text-[#1B3A57] leading-relaxed">
+          <span className="font-bold text-[#2F7D18]">Coordinación de Transporte: </span>
+          El horario regular de recepción de solicitudes para la salida del mismo día es hasta las <strong className="font-bold text-[#1B3A57]">09:00 AM</strong> y para el día siguiente es hasta las <strong className="font-bold text-[#1B3A57]">14:00 PM</strong>.
         </div>
       </div>
     </div>

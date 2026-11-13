@@ -101,15 +101,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] flex flex-col justify-start sm:justify-center items-center p-4 py-8 overflow-y-auto font-sans antialiased text-[#173B56]">
+    <div className="min-h-screen bg-[#EEF3F7] flex flex-col justify-start sm:justify-center items-center p-4 py-8 overflow-y-auto font-sans antialiased text-[#1B3A57]">
       <div className="w-full max-w-md my-auto">
         {/* Card Principal de Autenticación / Recuperación */}
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-200/90 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-[#E5ECF2] overflow-hidden">
           {/* Cabecera Oficial CAMPOSOL */}
-          <div className="bg-[#58A33E] p-6 sm:p-7 text-center text-white relative">
+          <div className="bg-[#55A529] p-6 sm:p-7 text-center text-white relative">
             <div className="flex flex-col items-center">
               {/* Emblema Oficial CAMPOSOL con borde dorado */}
-              <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg mb-3 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-1">
+              <div className="w-24 h-24 rounded-full overflow-hidden shadow-md mb-3 border-2 border-[#B89F67]/70 bg-[#55A529] flex items-center justify-center p-1">
                 <img
                   src={getPublicAssetUrl('camposol-emblem.png')}
                   onError={(e) => {
@@ -124,10 +124,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 />
               </div>
 
-              <span className="text-xs font-black uppercase tracking-widest text-emerald-100">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#EAF7E4]">
                 CAMPOSOL
               </span>
-              <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white mt-0.5">
+              <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-white mt-0.5">
                 TRANSPORTE DE PERSONAL
               </h1>
             </div>
@@ -136,8 +136,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           {/* VISTA: INICIAR SESIÓN */}
           {viewMode === 'login' && (
             <div className="p-6 sm:p-8 space-y-5">
-              <div className="text-center pb-1 border-b border-gray-100">
-                <h2 className="text-base font-black uppercase tracking-wider text-[#173B56]">
+              <div className="text-center pb-1 border-b border-[#E5ECF2]">
+                <h2 className="text-base font-bold uppercase tracking-wider text-[#1B3A57]">
                   INICIAR SESIÓN
                 </h2>
               </div>
@@ -146,9 +146,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               {errorMessage && (
                 <div
                   id="login-error-box"
-                  className="p-3.5 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2.5 text-xs text-red-800 animate-in fade-in"
+                  className="p-3.5 bg-[#FDECEC] border border-[#FECACA] rounded-2xl flex items-start gap-2.5 text-xs text-[#DC2626] animate-in fade-in"
                 >
-                  <ShieldAlert className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
                   <div className="font-bold leading-relaxed">{errorMessage}</div>
                 </div>
               )}
@@ -158,12 +158,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="input-login-username"
-                    className="block text-xs font-bold uppercase tracking-wider text-gray-700"
+                    className="block text-xs font-semibold uppercase tracking-wider text-slate-600"
                   >
                     Usuario:
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <User className="w-4 h-4" />
                     </div>
                     <input
@@ -176,7 +176,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       autoCorrect="off"
                       autoComplete="username"
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00843D] focus:border-[#00843D] transition-colors"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-[#D8E2EA] rounded-full text-sm font-semibold text-[#1B3A57] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#55A529] focus:border-[#55A529] transition-colors"
                     />
                   </div>
                 </div>
@@ -186,7 +186,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   <div className="flex items-center justify-between">
                     <label
                       htmlFor="input-login-password"
-                      className="block text-xs font-bold uppercase tracking-wider text-gray-700"
+                      className="block text-xs font-semibold uppercase tracking-wider text-slate-600"
                     >
                       Contraseña:
                     </label>
@@ -195,13 +195,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       id="btn-toggle-password-text"
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-[11px] font-bold text-[#00843D] hover:underline focus:outline-none cursor-pointer"
+                      className="text-[11px] font-semibold text-[#2F7D18] hover:underline focus:outline-none cursor-pointer"
                     >
                       {showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     </button>
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                       <Lock className="w-4 h-4" />
                     </div>
                     <input
@@ -212,14 +212,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       placeholder="Ingrese su contraseña"
                       autoComplete="current-password"
                       required
-                      className="w-full pl-10 pr-11 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00843D] focus:border-[#00843D] transition-colors"
+                      className="w-full pl-11 pr-11 py-3 bg-white border border-[#D8E2EA] rounded-full text-sm font-semibold text-[#1B3A57] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#55A529] focus:border-[#55A529] transition-colors"
                     />
                     {/* Botón Icono Mostrar/Ocultar Contraseña */}
                     <button
                       id="btn-toggle-password-icon"
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
                       title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -239,7 +239,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       setRecoveryIdentifier(username.trim());
                       setViewMode('recovery');
                     }}
-                    className="text-xs font-semibold text-gray-500 hover:text-[#00843D] hover:underline transition-colors focus:outline-none cursor-pointer py-0.5"
+                    className="text-xs font-semibold text-slate-500 hover:text-[#2F7D18] hover:underline transition-colors focus:outline-none cursor-pointer py-0.5"
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
@@ -250,7 +250,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   id="btn-login-submit"
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer mt-2"
+                  className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:bg-[#177830] text-white font-bold rounded-full text-sm uppercase tracking-wider transition-colors shadow-xs flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer mt-2"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -271,11 +271,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               {!recoverySuccess ? (
                 <>
                   {/* Título de la pantalla */}
-                  <div className="text-center pb-2 border-b border-gray-100">
-                    <h2 className="text-base font-black uppercase tracking-wider text-[#173B56]">
+                  <div className="text-center pb-2 border-b border-[#E5ECF2]">
+                    <h2 className="text-base font-bold uppercase tracking-wider text-[#1B3A57]">
                       RECUPERAR CONTRASEÑA
                     </h2>
-                    <p className="text-xs text-gray-500 font-medium mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       Ingrese su usuario o correo electrónico registrado para solicitar el restablecimiento de su acceso.
                     </p>
                   </div>
@@ -284,9 +284,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   {recoveryError && (
                     <div
                       id="recovery-error-box"
-                      className="p-3.5 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2.5 text-xs text-red-800 animate-in fade-in"
+                      className="p-3.5 bg-[#FDECEC] border border-[#FECACA] rounded-2xl flex items-start gap-2.5 text-xs text-[#DC2626] animate-in fade-in"
                     >
-                      <ShieldAlert className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                      <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
                       <div className="font-bold leading-relaxed">{recoveryError}</div>
                     </div>
                   )}
@@ -296,12 +296,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="input-recovery-identifier"
-                        className="block text-xs font-bold uppercase tracking-wider text-gray-700"
+                        className="block text-xs font-semibold uppercase tracking-wider text-slate-600"
                       >
                         Usuario o correo electrónico registrado:
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                           <Mail className="w-4 h-4" />
                         </div>
                         <input
@@ -313,7 +313,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                           autoCapitalize="none"
                           autoCorrect="off"
                           required
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl text-sm font-semibold text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00843D] focus:border-[#00843D] transition-colors"
+                          className="w-full pl-11 pr-4 py-3 bg-white border border-[#D8E2EA] rounded-full text-sm font-semibold text-[#1B3A57] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#55A529] focus:border-[#55A529] transition-colors"
                         />
                       </div>
                     </div>
@@ -323,7 +323,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       id="btn-send-recovery"
                       type="submit"
                       disabled={isRecoverySubmitting}
-                      className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer mt-2"
+                      className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:bg-[#177830] text-white font-bold rounded-full text-sm uppercase tracking-wider transition-colors shadow-xs flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer mt-2"
                     >
                       {isRecoverySubmitting ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -344,7 +344,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                           setViewMode('login');
                           setRecoveryError('');
                         }}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-[#00843D] transition-colors cursor-pointer py-1"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#2F7D18] transition-colors cursor-pointer py-1"
                       >
                         <ArrowLeft className="w-3.5 h-3.5" />
                         <span>Volver al inicio de sesión</span>
@@ -355,49 +355,49 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               ) : (
                 /* Estado Exitoso: Solicitud de Recuperación Enviada */
                 <div className="space-y-4 py-2 animate-in fade-in">
-                  <div className="w-14 h-14 bg-[#E8F5EF] border border-[#00843D]/20 text-[#00843D] rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+                  <div className="w-14 h-14 bg-[#EAF7E4] border border-[#C6E9B4] text-[#2F7D18] rounded-2xl flex items-center justify-center mx-auto shadow-2xs">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
 
                   <div className="text-center space-y-1">
-                    <h2 className="text-base font-black uppercase tracking-wider text-[#173B56]">
+                    <h2 className="text-base font-bold uppercase tracking-wider text-[#1B3A57]">
                       SOLICITUD ENVIADA
                     </h2>
-                    <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
                       El sistema ha recibido y registrado su requerimiento de recuperación de contraseña.
                     </p>
                   </div>
 
                   {recoveredUser && (
-                    <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl space-y-2 text-xs">
-                      <div className="flex items-center justify-between border-b border-gray-200/60 pb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    <div className="bg-[#F8FAFC] border border-[#E5ECF2] p-4 rounded-2xl space-y-2 text-xs">
+                      <div className="flex items-center justify-between border-b border-[#E5ECF2] pb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                           Trabajador:
                         </span>
-                        <span className="font-black text-[#173B56]">
+                        <span className="font-bold text-[#1B3A57]">
                           {recoveredUser.nombre}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between border-b border-gray-200/60 pb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                      <div className="flex items-center justify-between border-b border-[#E5ECF2] pb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                           Usuario:
                         </span>
-                        <span className="font-mono font-bold text-[#00843D]">
+                        <span className="font-mono font-bold text-[#2F7D18]">
                           @{recoveredUser.usuario}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                           Correo Institucional:
                         </span>
-                        <span className="font-mono text-gray-700 font-bold">
+                        <span className="font-mono text-slate-700 font-bold">
                           {recoveredUser.email || `${recoveredUser.usuario}@camposol.com.pe`}
                         </span>
                       </div>
                     </div>
                   )}
 
-                  <div className="p-3.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-left text-xs text-emerald-900 leading-relaxed font-medium">
+                  <div className="p-3.5 bg-[#EAF7E4] border border-[#C6E9B4] rounded-2xl text-left text-xs text-[#1B3A57] leading-relaxed font-medium">
                     Se han enviado las pautas de validación a su correo institucional y se ha remitido aviso al <strong>Administrador del Sistema de Transporte</strong> para restablecer su clave en el Maestro de Usuarios.
                   </div>
 
@@ -414,7 +414,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         onLoginSuccess(admin);
                       }
                     }}
-                    className="w-full py-3.5 px-4 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white font-black rounded-2xl text-sm uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer mt-2"
+                    className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:bg-[#177830] text-white font-bold rounded-full text-sm uppercase tracking-wider transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer mt-2"
                   >
                     <span>INGRESAR AHORA CON ESTA CUENTA</span>
                     <ArrowRight className="w-4 h-4" />
@@ -430,7 +430,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       setRecoveryIdentifier('');
                       setRecoveryError('');
                     }}
-                    className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2.5 px-4 bg-[#F1F5F9] hover:bg-slate-200 text-slate-700 font-semibold rounded-full text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Volver a la pantalla de login</span>

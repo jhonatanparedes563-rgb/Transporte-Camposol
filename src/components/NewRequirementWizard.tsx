@@ -125,7 +125,7 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   return (
     <div className="flex-1 flex flex-col w-full py-0.5">
       {/* 4-Step Progress Header */}
-      <div className="mb-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-2xs">
+      <div className="mb-3 bg-white p-3 rounded-2xl border border-[#E5ECF2] shadow-xs">
         <div className="flex items-center justify-between gap-1">
           {stepsInfo.map((s) => {
             const isActive = currentStep === s.id;
@@ -144,12 +144,12 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
                 className="flex flex-col items-center flex-1 transition-all"
               >
                 <div
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                     isActive
-                      ? 'bg-[#00843D] text-white ring-4 ring-emerald-100 shadow-xs scale-105'
+                      ? 'bg-[#55A529] text-white ring-4 ring-[#EAF7E4] shadow-xs scale-105'
                       : isCompleted
-                      ? 'bg-[#E8F5EF] text-[#00843D] border border-[#00843D]/30'
-                      : 'bg-gray-100 text-gray-400'
+                      ? 'bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4]'
+                      : 'bg-[#F1F5F9] text-slate-400'
                   }`}
                 >
                   {s.id}
@@ -157,10 +157,10 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
                 <span
                   className={`text-[9px] sm:text-[10px] mt-1 font-bold truncate max-w-[65px] ${
                     isActive
-                      ? 'text-[#00843D]'
+                      ? 'text-[#2F7D18]'
                       : isCompleted
-                      ? 'text-gray-600'
-                      : 'text-gray-400'
+                      ? 'text-slate-600'
+                      : 'text-slate-400'
                   }`}
                 >
                   {s.title}
@@ -171,11 +171,11 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
         </div>
 
         {/* Current Step Description Callout */}
-        <div className="mt-2.5 pt-2 border-t border-gray-100 text-center">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#00843D] block">
+        <div className="mt-2.5 pt-2 border-t border-slate-100 text-center">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#55A529] block">
             Paso {currentStep} de 4
           </span>
-          <p className="text-xs font-black text-[#173B56]">
+          <p className="text-xs font-bold text-[#1B3A57]">
             {stepsInfo[currentStep - 1]?.label}
           </p>
         </div>

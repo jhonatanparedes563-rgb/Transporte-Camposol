@@ -379,114 +379,131 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   }, [filteredUsers, userCurrentPage, userPageSize]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 text-[#1B3A57]">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#00843D] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 font-bold text-xs">
-          <CheckCircle2 className="w-5 h-5" />
+        <div className="fixed bottom-6 right-6 z-50 bg-[#1B3A57] text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 font-semibold text-xs border border-[#55A529]/40">
+          <CheckCircle2 className="w-5 h-5 text-[#7BD44B]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Cabecera Principal: MAESTRO DE USUARIOS */}
-      <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#00843D] block">
-            ADMINISTRACIÓN DE ACCESOS Y PERMISOS
-          </span>
-          <h2 className="text-xl font-black text-[#173B56] uppercase tracking-tight flex items-center gap-2 mt-0.5">
-            <Users className="w-6 h-6 text-[#00843D]" />
-            <span>MAESTRO DE USUARIOS</span>
-          </h2>
-          <p className="text-xs text-gray-500 font-medium mt-1">
-            Gestión centralizada de cuentas de trabajadores, asignación estricta de roles, áreas, fundos y estados de acceso.
-          </p>
-        </div>
-
-        {/* Botón: + NUEVO USUARIO */}
-        <button
-          id="btn-create-user"
-          onClick={handleOpenCreate}
-          className="py-3 px-5 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all self-start md:self-auto cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>+ NUEVO USUARIO</span>
-        </button>
-      </div>
-
-      {/* Barra de Filtros y Búsqueda */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-        {/* Buscador */}
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            id="input-search-users"
-            type="text"
-            placeholder="Buscar por ID, nombre, usuario, área, fundo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#173B56] focus:outline-none focus:ring-2 focus:ring-[#00843D]"
-          />
-        </div>
-
-        {/* Filtros por Rol y Estado */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto">
-          <div className="flex items-center gap-1.5 shrink-0 text-xs font-bold text-gray-500">
-            <Filter className="w-3.5 h-3.5 text-[#00843D]" />
-            <span>Rol:</span>
+      {/* Cabecera + Filtros + Tabla unificada estilo corporativo */}
+      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
+        {/* Cabecera del Panel */}
+        <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-[#1B3A57] leading-tight">
+              Maestro de usuarios
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Gestión centralizada de cuentas, roles, áreas, fundos y permisos • Mostrando{' '}
+              <strong className="text-[#1B3A57] font-semibold">{filteredUsers.length}</strong> de{' '}
+              <strong className="text-[#1B3A57] font-semibold">{users.length}</strong> usuarios
+            </p>
           </div>
-          <select
-            id="select-filter-user-role"
-            value={selectedRoleFilter}
-            onChange={(e) => setSelectedRoleFilter(e.target.value)}
-            className="py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-[#173B56] focus:outline-none focus:ring-2 focus:ring-[#00843D]"
-          >
-            <option value="TODOS">TODOS LOS ROLES</option>
-            <option value="usuario">USUARIO</option>
-            <option value="receptor">RECEPTOR</option>
-            <option value="admin">ADMINISTRADOR</option>
-          </select>
 
-          <div className="flex items-center gap-1.5 shrink-0 text-xs font-bold text-gray-500 ml-2">
-            <span>Estado:</span>
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Buscador píldora */}
+            <div className="relative">
+              <input
+                id="input-search-users"
+                type="text"
+                placeholder="Buscar usuario, área, fundo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-56 sm:w-64 h-9 pl-4 pr-9 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
+              />
+              <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Botón: + Nuevo usuario */}
+            <button
+              id="btn-create-user"
+              onClick={handleOpenCreate}
+              className="h-9 px-4 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Nuevo usuario</span>
+            </button>
           </div>
-          <select
-            id="select-filter-user-status"
-            value={selectedStatusFilter}
-            onChange={(e) => setSelectedStatusFilter(e.target.value)}
-            className="py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-[#173B56] focus:outline-none focus:ring-2 focus:ring-[#00843D]"
-          >
-            <option value="TODOS">TODOS LOS ESTADOS</option>
-            <option value="ACTIVO">ACTIVO</option>
-            <option value="INACTIVO">INACTIVO</option>
-          </select>
         </div>
-      </div>
 
-      {/* Tabla Oficial de Usuarios con las Columnas Solicitadas */}
-      <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
+        {/* Barra de Filtros con etiquetas flotantes */}
+        <div className="px-5 pt-2 pb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 flex-1 max-w-2xl">
+            <div className="relative">
+              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                Rol del usuario
+              </label>
+              <select
+                id="select-filter-user-role"
+                value={selectedRoleFilter}
+                onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="TODOS">Todos los roles</option>
+                <option value="usuario">Usuario</option>
+                <option value="receptor">Receptor</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+
+            <div className="relative">
+              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                Estado de cuenta
+              </label>
+              <select
+                id="select-filter-user-status"
+                value={selectedStatusFilter}
+                onChange={(e) => setSelectedStatusFilter(e.target.value)}
+                className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="TODOS">Todos los estados</option>
+                <option value="ACTIVO">Activo</option>
+                <option value="INACTIVO">Inactivo</option>
+              </select>
+            </div>
+          </div>
+
+          {(searchTerm || selectedRoleFilter !== 'TODOS' || selectedStatusFilter !== 'TODOS') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedRoleFilter('TODOS');
+                setSelectedStatusFilter('TODOS');
+              }}
+              className="px-4 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
+            >
+              Restablecer
+            </button>
+          )}
+        </div>
+
+        {/* Tabla Corporativa con Cabecera Celeste */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-[#173B56] text-white uppercase text-[10px] tracking-wider font-extrabold">
-                <th className="py-3.5 px-4">ID</th>
-                <th className="py-3.5 px-4">NOMBRE COMPLETO</th>
-                <th className="py-3.5 px-4">USUARIO</th>
-                <th className="py-3.5 px-4">CONTRASEÑA</th>
-                <th className="py-3.5 px-4">ROL</th>
-                <th className="py-3.5 px-4">ÁREA</th>
-                <th className="py-3.5 px-4">FUNDO</th>
-                <th className="py-3.5 px-4">CULTIVO</th>
-                <th className="py-3.5 px-4 text-center">ESTADO</th>
-                <th className="py-3.5 px-4 text-center">ACCIONES</th>
+          <table className="w-full text-left text-[11px] border-collapse">
+            <thead className="bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
+              <tr>
+                <th className="py-2.5 px-3.5 whitespace-nowrap">ID</th>
+                <th className="py-2.5 px-3.5 whitespace-nowrap">Nombre completo</th>
+                <th className="py-2.5 px-3.5 whitespace-nowrap">Usuario</th>
+                <th className="py-2.5 px-3.5 whitespace-nowrap">Contraseña</th>
+                <th className="py-2.5 px-3.5 whitespace-nowrap">Rol</th>
+                <th className="py-2.5 px-3.5 whitespace-nowrap">Área</th>
+                <th className="py-2.5 px-3.5 whitespace-nowrap">Fundo</th>
+                <th className="py-2.5 px-3.5 whitespace-nowrap">Cultivo</th>
+                <th className="py-2.5 px-3.5 text-center whitespace-nowrap">Estado</th>
+                <th className="py-2.5 px-3.5 text-center whitespace-nowrap border-l border-[#D4E9F7]/70">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="bg-white divide-y divide-slate-100 text-slate-700">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-gray-400">
-                    <Users className="w-10 h-10 mx-auto mb-2 opacity-40 text-gray-400" />
-                    <span className="font-bold text-xs">
+                  <td colSpan={10} className="py-12 text-center text-slate-400">
+                    <Users className="w-9 h-9 mx-auto mb-2 opacity-40 text-slate-400" />
+                    <span className="font-semibold text-xs text-slate-500">
                       No se encontraron usuarios registrados con los criterios especificados.
                     </span>
                   </td>
@@ -495,151 +512,148 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 paginatedUsers.map((u) => {
                   const isCurrent = u.id === currentAdminUser.id;
                   return (
-                    <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
+                    <tr key={u.id} className="hover:bg-[#F7FBFE] transition-colors">
                       {/* ID */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-gray-500 text-[11px]">
+                      <td className="py-2.5 px-3.5 font-mono font-medium text-slate-500 text-[11px] whitespace-nowrap">
                         {u.id}
                       </td>
 
-                      {/* NOMBRE COMPLETO */}
-                      <td className="py-3.5 px-4">
+                      {/* Nombre completo */}
+                      <td className="py-2.5 px-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-gray-100 text-[#173B56] font-black flex items-center justify-center text-xs shrink-0 border border-gray-200">
+                          <div className="w-7 h-7 rounded-full bg-[#EAF7E4] text-[#2F7D18] font-bold flex items-center justify-center text-[10px] shrink-0 border border-[#C6E9B4]">
                             {u.nombre.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <span className="font-black text-[#173B56] block">
+                            <span className="font-semibold text-[#1B3A57] block">
                               {u.nombre}
                             </span>
                             {isCurrent && (
-                              <span className="text-[9px] font-extrabold text-[#00843D] bg-emerald-50 px-1.5 py-0.2 rounded-md">
-                                Sesión Actual
+                              <span className="text-[9px] font-semibold text-[#2F7D18] bg-[#EAF7E4] px-1.5 py-0.2 rounded-full">
+                                Sesión actual
                               </span>
                             )}
                           </div>
                         </div>
                       </td>
 
-                      {/* USUARIO */}
-                      <td className="py-3.5 px-4 font-mono text-xs">
-                        <span className="font-bold text-gray-700 block">@{u.usuario}</span>
-                        <span className="text-[10px] text-gray-400 font-sans block truncate max-w-[170px]" title={u.email || `${u.usuario}@camposol.com.pe`}>
+                      {/* Usuario */}
+                      <td className="py-2.5 px-3.5 font-mono text-[11px]">
+                        <span className="font-semibold text-slate-700 block">@{u.usuario}</span>
+                        <span className="text-[10px] text-slate-400 font-sans block truncate max-w-[170px]" title={u.email || `${u.usuario}@camposol.com.pe`}>
                           {u.email || `${u.usuario}@camposol.com.pe`}
                         </span>
                       </td>
 
-                      {/* CONTRASEÑA: OBLIGATORIAMENTE MOSTRAR •••••••• */}
-                      <td className="py-3.5 px-4">
-                        <span className="font-mono text-xs tracking-widest text-gray-500 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                      {/* Contraseña */}
+                      <td className="py-2.5 px-3.5">
+                        <span className="font-mono text-[11px] tracking-widest text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                           ••••••••
                         </span>
                       </td>
 
-                      {/* ROL */}
-                      <td className="py-3.5 px-4">
+                      {/* Rol */}
+                      <td className="py-2.5 px-3.5 whitespace-nowrap">
                         {u.rol === 'usuario' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-[#00843D] border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4]">
                             <Smartphone className="w-3 h-3" />
-                            <span>USUARIO</span>
+                            <span>Usuario</span>
                           </span>
                         ) : u.rol === 'receptor' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFF6E0] text-[#B45309] border border-[#FDE68A]">
                             <Inbox className="w-3 h-3" />
-                            <span>RECEPTOR</span>
+                            <span>Receptor</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-100 text-blue-900 border border-blue-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#EDF2FA] text-[#1E3A5F] border border-[#D4E2F4]">
                             <ShieldCheck className="w-3 h-3" />
-                            <span>ADMINISTRADOR</span>
+                            <span>Administrador</span>
                           </span>
                         )}
                       </td>
 
-                      {/* ÁREA */}
-                      <td className="py-3.5 px-4 font-bold text-[#173B56]">
+                      {/* Área */}
+                      <td className="py-2.5 px-3.5 font-medium text-[#1B3A57]">
                         <div className="flex items-center gap-1.5">
-                          <Building className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span>{u.area}</span>
                         </div>
                       </td>
 
-                      {/* FUNDO */}
-                      <td className="py-3.5 px-4 font-bold text-gray-700">
+                      {/* Fundo */}
+                      <td className="py-2.5 px-3.5 text-slate-600">
                         <div className="flex items-center gap-1.5">
-                          <Compass className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <Compass className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span>{u.fundo}</span>
                         </div>
                       </td>
 
-                      {/* CULTIVO */}
-                      <td className="py-3.5 px-4 font-bold">
+                      {/* Cultivo */}
+                      <td className="py-2.5 px-3.5">
                         <div className="flex items-center gap-1.5">
-                          <Sprout className="w-3.5 h-3.5 text-[#00843D] shrink-0" />
-                          <span className="bg-emerald-50 text-[#00843D] border border-emerald-200/90 px-2 py-0.5 rounded-md text-[11px] font-black">
+                          <Sprout className="w-3.5 h-3.5 text-[#3D8B1C] shrink-0" />
+                          <span className="bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap">
                             {u.cultivo || (u.rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS')}
                           </span>
                         </div>
                       </td>
 
-                      {/* ESTADO */}
-                      <td className="py-3.5 px-4 text-center">
+                      {/* Estado */}
+                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(u)}
                           disabled={isCurrent}
                           title={isCurrent ? 'No puedes desactivar tu propia cuenta' : 'Cambiar estado'}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black transition-all cursor-pointer ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer ${
                             u.estado === 'ACTIVO'
-                              ? 'bg-emerald-50 text-[#00843D] border border-emerald-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300'
-                              : 'bg-red-50 text-red-700 border border-red-300 hover:bg-emerald-50 hover:text-[#00843D]'
+                              ? 'bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] hover:bg-[#FDECEC] hover:text-[#DC2626] hover:border-[#FECACA]'
+                              : 'bg-[#FDECEC] text-[#DC2626] border border-[#FECACA] hover:bg-[#EAF7E4] hover:text-[#2F7D18]'
                           } ${isCurrent ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                           {u.estado === 'ACTIVO' ? (
                             <>
                               <Check className="w-3 h-3" />
-                              <span>ACTIVO</span>
+                              <span>Activo</span>
                             </>
                           ) : (
                             <>
                               <X className="w-3 h-3" />
-                              <span>INACTIVO</span>
+                              <span>Inactivo</span>
                             </>
                           )}
                         </button>
                       </td>
 
-                      {/* ACCIONES */}
-                      <td className="py-3.5 px-4 text-center">
+                      {/* Acciones */}
+                      <td className="py-2.5 px-3.5 text-center border-l border-slate-100 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Editar Usuario */}
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(u)}
-                            className="p-1.5 rounded-lg bg-gray-100 hover:bg-emerald-50 text-gray-600 hover:text-[#00843D] transition-colors border border-gray-200 cursor-pointer"
+                            className="p-1.5 rounded-full text-[#3D8B1C] hover:bg-[#EAF7E4] transition-colors cursor-pointer"
                             title="Editar usuario"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Restablecer Contraseña */}
                           <button
                             type="button"
                             onClick={() => handleOpenReset(u)}
-                            className="p-1.5 rounded-lg bg-gray-100 hover:bg-amber-50 text-gray-600 hover:text-amber-700 transition-colors border border-gray-200 cursor-pointer"
+                            className="p-1.5 rounded-full text-amber-600 hover:bg-[#FFF6E0] transition-colors cursor-pointer"
                             title="Restablecer contraseña"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Eliminar Usuario */}
                           <button
                             type="button"
                             onClick={() => handleOpenDelete(u)}
                             disabled={isCurrent}
-                            className={`p-1.5 rounded-lg transition-colors border ${
+                            className={`p-1.5 rounded-full transition-colors ${
                               isCurrent
-                                ? 'bg-gray-50 text-gray-300 border-gray-150 cursor-not-allowed'
-                                : 'bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-700 border-gray-200 cursor-pointer'
+                                ? 'text-slate-300 cursor-not-allowed'
+                                : 'text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] cursor-pointer'
                             }`}
                             title={isCurrent ? 'No puedes eliminar tu propia cuenta en sesión' : 'Eliminar usuario'}
                           >
@@ -657,37 +671,37 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
 
         {/* Barra de Paginación de Usuarios */}
         {filteredUsers.length > 0 && (
-          <div className="bg-gray-50/80 px-6 py-3.5 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="bg-white px-5 py-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-[11px]">
             <div className="flex items-center gap-2">
-              <span className="text-gray-500 font-medium">
+              <span className="text-slate-500 font-medium">
                 Mostrando{' '}
-                <strong className="text-[#173B56]">
+                <strong className="text-[#1B3A57] font-semibold">
                   {userPageSize === -1 ? 1 : (userCurrentPage - 1) * userPageSize + 1}
                 </strong>{' '}
                 a{' '}
-                <strong className="text-[#173B56]">
+                <strong className="text-[#1B3A57] font-semibold">
                   {userPageSize === -1
                     ? filteredUsers.length
                     : Math.min(userCurrentPage * userPageSize, filteredUsers.length)}
                 </strong>{' '}
-                de <strong className="text-[#00843D]">{filteredUsers.length}</strong> usuarios filtrados
-                <span className="text-gray-400 font-normal"> (Total registrados: {users.length})</span>
+                de <strong className="text-[#2F7D18] font-semibold">{filteredUsers.length}</strong> usuarios
+                <span className="text-slate-400 font-normal"> (Total: {users.length})</span>
               </span>
             </div>
 
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-gray-500 font-medium">Filas por página:</span>
+                <span className="text-slate-500 font-medium">Por página:</span>
                 <select
                   value={userPageSize}
                   onChange={(e) => setUserPageSize(Number(e.target.value))}
-                  className="px-2.5 py-1 bg-white border border-gray-200 rounded-xl font-bold text-[#173B56] focus:outline-none focus:ring-2 focus:ring-[#00843D] text-xs cursor-pointer shadow-2xs"
+                  className="px-2.5 py-1 bg-white border border-[#D8E2EA] rounded-full font-medium text-[#1B3A57] focus:outline-none focus:border-[#55A529] text-[11px] cursor-pointer"
                 >
                   <option value={20}>20</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
                   <option value={100}>100</option>
-                  <option value={200}>200 (Vista Extendida)</option>
+                  <option value={200}>200</option>
                   <option value={-1}>Todos ({filteredUsers.length})</option>
                 </select>
               </div>
@@ -698,22 +712,22 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     type="button"
                     onClick={() => setUserCurrentPage(1)}
                     disabled={userCurrentPage === 1}
-                    className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                    className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title="Primera página"
                   >
-                    <ChevronsLeft className="w-3.5 h-3.5 text-gray-600" />
+                    <ChevronsLeft className="w-3.5 h-3.5 text-slate-600" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setUserCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={userCurrentPage === 1}
-                    className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                    className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title="Página anterior"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5 text-gray-600" />
+                    <ChevronLeft className="w-3.5 h-3.5 text-slate-600" />
                   </button>
 
-                  <span className="px-3 py-1 font-bold text-[#173B56] bg-white rounded-lg border border-gray-200 shadow-2xs text-[11px]">
+                  <span className="px-3 py-1 font-semibold text-[#1B3A57] bg-white rounded-full border border-[#D8E2EA] text-[11px]">
                     Pág. {userCurrentPage} de {totalUserPages}
                   </span>
 
@@ -721,19 +735,19 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     type="button"
                     onClick={() => setUserCurrentPage((p) => Math.min(totalUserPages, p + 1))}
                     disabled={userCurrentPage === totalUserPages}
-                    className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                    className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title="Página siguiente"
                   >
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-600" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setUserCurrentPage(totalUserPages)}
                     disabled={userCurrentPage === totalUserPages}
-                    className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                    className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title="Última página"
                   >
-                    <ChevronsRight className="w-3.5 h-3.5 text-gray-600" />
+                    <ChevronsRight className="w-3.5 h-3.5 text-slate-600" />
                   </button>
                 </div>
               )}
@@ -747,11 +761,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       {/* ============================================================= */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 border border-gray-200">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 border border-[#E5ECF2]">
             {/* Cabecera */}
-            <div className="bg-[#00843D] text-white p-5 flex items-center justify-between">
+            <div className="bg-[#55A529] text-white p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white text-[#00843D] flex items-center justify-center shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-white text-[#55A529] flex items-center justify-center shadow-xs">
                   <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
@@ -792,13 +806,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   placeholder="Ej. Juan Pérez"
                   value={createForm.nombre}
                   onChange={(e) => setCreateForm({ ...createForm, nombre: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                 />
               </div>
 
               {/* Usuario */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Usuario *
                 </label>
                 <input
@@ -809,13 +823,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   autoCapitalize="none"
                   value={createForm.usuario}
                   onChange={(e) => setCreateForm({ ...createForm, usuario: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold font-mono text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                 />
               </div>
 
               {/* Correo Electrónico Corporativo */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Correo Electrónico Corporativo (Opcional)
                 </label>
                 <input
@@ -824,7 +838,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   placeholder="Ej. jperez@camposol.com.pe"
                   value={createForm.email}
                   onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                 />
               </div>
 
@@ -832,13 +846,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold uppercase text-gray-700">
+                    <label className="block text-[11px] font-semibold uppercase text-slate-600">
                       Contraseña *
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowCreatePass(!showCreatePass)}
-                      className="text-[10px] text-gray-400 hover:text-gray-600"
+                      className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       {showCreatePass ? 'Ocultar' : 'Ver'}
                     </button>
@@ -850,12 +864,12 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     placeholder="••••••••"
                     value={createForm.contrasena}
                     onChange={(e) => setCreateForm({ ...createForm, contrasena: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold font-mono text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase text-gray-700">
+                  <label className="block text-[11px] font-semibold uppercase text-slate-600">
                     Confirmar contraseña *
                   </label>
                   <input
@@ -867,24 +881,24 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     onChange={(e) =>
                       setCreateForm({ ...createForm, confirmarContrasena: e.target.value })
                     }
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold font-mono text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                   />
                 </div>
               </div>
 
               {/* Rol */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Rol *
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setCreateForm({ ...createForm, rol: 'usuario' })}
-                    className={`p-2.5 rounded-xl border text-center font-bold text-xs transition-all ${
+                    className={`p-2.5 rounded-xl border text-center font-semibold text-xs transition-all cursor-pointer ${
                       createForm.rol === 'usuario'
-                        ? 'bg-emerald-50 border-[#00843D] text-[#00843D] shadow-xs'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-[#EAF7E4] border-[#55A529] text-[#2F7D18] shadow-xs'
+                        : 'bg-[#EEF3F7] border-[#E5ECF2] text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <Smartphone className="w-4 h-4 mx-auto mb-1" />
@@ -894,10 +908,10 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => setCreateForm({ ...createForm, rol: 'receptor' })}
-                    className={`p-2.5 rounded-xl border text-center font-bold text-xs transition-all ${
+                    className={`p-2.5 rounded-xl border text-center font-semibold text-xs transition-all cursor-pointer ${
                       createForm.rol === 'receptor'
-                        ? 'bg-amber-50 border-amber-500 text-amber-800 shadow-xs'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-[#FFF6E0] border-amber-500 text-[#B45309] shadow-xs'
+                        : 'bg-[#EEF3F7] border-[#E5ECF2] text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <Inbox className="w-4 h-4 mx-auto mb-1" />
@@ -907,10 +921,10 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => setCreateForm({ ...createForm, rol: 'admin' })}
-                    className={`p-2.5 rounded-xl border text-center font-bold text-xs transition-all ${
+                    className={`p-2.5 rounded-xl border text-center font-semibold text-xs transition-all cursor-pointer ${
                       createForm.rol === 'admin'
-                        ? 'bg-blue-50 border-blue-600 text-blue-900 shadow-xs'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-[#E6F3FB] border-[#0082B3] text-[#0082B3] shadow-xs'
+                        : 'bg-[#EEF3F7] border-[#E5ECF2] text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4 mx-auto mb-1" />
@@ -922,14 +936,14 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
               {/* Área, Fundo y Cultivo */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase text-gray-700">
+                  <label className="block text-[11px] font-semibold uppercase text-slate-600">
                     Área *
                   </label>
                   <select
                     id="select-create-area"
                     value={createForm.area}
                     onChange={(e) => setCreateForm({ ...createForm, area: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                   >
                     <option value="TODAS LAS ÁREAS">TODAS LAS ÁREAS</option>
                     {areas.map((a) => (
@@ -941,14 +955,14 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase text-gray-700">
+                  <label className="block text-[11px] font-semibold uppercase text-slate-600">
                     Fundo *
                   </label>
                   <select
                     id="select-create-fundo"
                     value={createForm.fundo}
                     onChange={(e) => setCreateForm({ ...createForm, fundo: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                   >
                     <option value="TODOS LOS FUNDOS">TODOS LOS FUNDOS</option>
                     {fundos.map((f) => (
@@ -960,15 +974,15 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase text-gray-700 flex items-center gap-1">
-                    <Sprout className="w-3.5 h-3.5 text-[#00843D]" />
+                  <label className="block text-[11px] font-semibold uppercase text-slate-600 flex items-center gap-1">
+                    <Sprout className="w-3.5 h-3.5 text-[#55A529]" />
                     <span>Cultivo *</span>
                   </label>
                   <select
                     id="select-create-cultivo"
                     value={createForm.cultivo}
                     onChange={(e) => setCreateForm({ ...createForm, cultivo: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                   >
                     <option value="TODOS LOS CULTIVOS">TODOS LOS CULTIVOS</option>
                     {MAESTRO_CULTIVOS.map((c) => (
@@ -982,50 +996,50 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
 
               {/* Estado */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Estado *
                 </label>
-                <div className="flex gap-4 p-2.5 bg-gray-50 border border-gray-200 rounded-xl">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
+                <div className="flex gap-4 p-2.5 bg-[#EEF3F7] border border-[#E5ECF2] rounded-xl">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
                     <input
                       type="radio"
                       name="create-estado"
                       checked={createForm.estado === 'ACTIVO'}
                       onChange={() => setCreateForm({ ...createForm, estado: 'ACTIVO' })}
-                      className="text-[#00843D] focus:ring-[#00843D]"
+                      className="text-[#55A529] focus:ring-[#55A529]"
                     />
-                    <span className="text-[#00843D]">ACTIVO</span>
+                    <span className="text-[#2F7D18]">ACTIVO</span>
                   </label>
 
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
                     <input
                       type="radio"
                       name="create-estado"
                       checked={createForm.estado === 'INACTIVO'}
                       onChange={() => setCreateForm({ ...createForm, estado: 'INACTIVO' })}
-                      className="text-red-600 focus:ring-red-600"
+                      className="text-[#DC2626] focus:ring-[#DC2626]"
                     />
-                    <span className="text-red-600">INACTIVO</span>
+                    <span className="text-[#DC2626]">INACTIVO</span>
                   </label>
                 </div>
               </div>
 
               {/* Botones GUARDAR y CANCELAR */}
-              <div className="pt-4 border-t border-gray-150 flex items-center justify-end gap-2.5">
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-800 uppercase tracking-wider transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
                 >
-                  CANCELAR
+                  Cancelar
                 </button>
                 <button
                   id="btn-save-new-user"
                   type="submit"
-                  className="px-5 py-2.5 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>GUARDAR</span>
+                  <span>Guardar</span>
                 </button>
               </div>
             </form>
@@ -1038,11 +1052,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       {/* ============================================================= */}
       {isEditModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 border border-gray-200">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 border border-[#E5ECF2]">
             {/* Cabecera */}
-            <div className="bg-[#173B56] text-white p-5 flex items-center justify-between">
+            <div className="bg-[#1B3A57] text-white p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#00843D] text-white flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[#55A529] text-white flex items-center justify-center">
                   <Edit2 className="w-5 h-5" />
                 </div>
                 <div>
@@ -1082,13 +1096,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   required
                   value={editForm.nombre}
                   onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                 />
               </div>
 
               {/* Usuario */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Usuario *
                 </label>
                 <input
@@ -1098,13 +1112,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   autoCapitalize="none"
                   value={editForm.usuario}
                   onChange={(e) => setEditForm({ ...editForm, usuario: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold font-mono text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                 />
               </div>
 
               {/* Correo Electrónico Corporativo */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Correo Electrónico Corporativo
                 </label>
                 <input
@@ -1113,15 +1127,15 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   placeholder="Ej. jperez@camposol.com.pe"
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                 />
               </div>
 
               {/* Opción rápida: Cambiar contraseña */}
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
+              <div className="p-3 bg-[#FFF6E0] border border-[#FDE68A] rounded-2xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span className="text-xs font-bold text-amber-900">
+                  <KeyRound className="w-4 h-4 text-[#B45309] shrink-0" />
+                  <span className="text-xs font-semibold text-[#B45309]">
                     ¿Deseas cambiar la contraseña?
                   </span>
                 </div>
@@ -1131,25 +1145,25 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     setIsEditModalOpen(false);
                     handleOpenReset(selectedUser);
                   }}
-                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-black uppercase transition-colors"
+                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-full text-xs font-semibold transition-colors cursor-pointer"
                 >
-                  CAMBIAR CONTRASEÑA
+                  Cambiar contraseña
                 </button>
               </div>
 
               {/* Rol */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Rol *
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setEditForm({ ...editForm, rol: 'usuario' })}
-                    className={`p-2.5 rounded-xl border text-center font-bold text-xs transition-all ${
+                    className={`p-2.5 rounded-xl border text-center font-semibold text-xs transition-all cursor-pointer ${
                       editForm.rol === 'usuario'
-                        ? 'bg-emerald-50 border-[#00843D] text-[#00843D] shadow-xs'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-[#EAF7E4] border-[#55A529] text-[#2F7D18] shadow-xs'
+                        : 'bg-[#EEF3F7] border-[#E5ECF2] text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <Smartphone className="w-4 h-4 mx-auto mb-1" />
@@ -1159,10 +1173,10 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => setEditForm({ ...editForm, rol: 'receptor' })}
-                    className={`p-2.5 rounded-xl border text-center font-bold text-xs transition-all ${
+                    className={`p-2.5 rounded-xl border text-center font-semibold text-xs transition-all cursor-pointer ${
                       editForm.rol === 'receptor'
-                        ? 'bg-amber-50 border-amber-500 text-amber-800 shadow-xs'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-[#FFF6E0] border-amber-500 text-[#B45309] shadow-xs'
+                        : 'bg-[#EEF3F7] border-[#E5ECF2] text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <Inbox className="w-4 h-4 mx-auto mb-1" />
@@ -1172,10 +1186,10 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => setEditForm({ ...editForm, rol: 'admin' })}
-                    className={`p-2.5 rounded-xl border text-center font-bold text-xs transition-all ${
+                    className={`p-2.5 rounded-xl border text-center font-semibold text-xs transition-all cursor-pointer ${
                       editForm.rol === 'admin'
-                        ? 'bg-blue-50 border-blue-600 text-blue-900 shadow-xs'
-                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-[#E6F3FB] border-[#0082B3] text-[#0082B3] shadow-xs'
+                        : 'bg-[#EEF3F7] border-[#E5ECF2] text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4 mx-auto mb-1" />
@@ -1187,14 +1201,14 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
               {/* Área, Fundo y Cultivo */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase text-gray-700">
+                  <label className="block text-[11px] font-semibold uppercase text-slate-600">
                     Área *
                   </label>
                   <select
                     id="select-edit-area"
                     value={editForm.area}
                     onChange={(e) => setEditForm({ ...editForm, area: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                   >
                     <option value="TODAS LAS ÁREAS">TODAS LAS ÁREAS</option>
                     {areas.map((a) => (
@@ -1206,14 +1220,14 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase text-gray-700">
+                  <label className="block text-[11px] font-semibold uppercase text-slate-600">
                     Fundo *
                   </label>
                   <select
                     id="select-edit-fundo"
                     value={editForm.fundo}
                     onChange={(e) => setEditForm({ ...editForm, fundo: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                   >
                     <option value="TODOS LOS FUNDOS">TODOS LOS FUNDOS</option>
                     {fundos.map((f) => (
@@ -1225,15 +1239,15 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold uppercase text-gray-700 flex items-center gap-1">
-                    <Sprout className="w-3.5 h-3.5 text-[#00843D]" />
+                  <label className="block text-[11px] font-semibold uppercase text-slate-600 flex items-center gap-1">
+                    <Sprout className="w-3.5 h-3.5 text-[#55A529]" />
                     <span>Cultivo *</span>
                   </label>
                   <select
                     id="select-edit-cultivo"
                     value={editForm.cultivo}
                     onChange={(e) => setEditForm({ ...editForm, cultivo: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                   >
                     <option value="TODOS LOS CULTIVOS">TODOS LOS CULTIVOS</option>
                     {MAESTRO_CULTIVOS.map((c) => (
@@ -1247,36 +1261,36 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
 
               {/* Estado */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Estado *
                 </label>
-                <div className="flex gap-4 p-2.5 bg-gray-50 border border-gray-200 rounded-xl">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
+                <div className="flex gap-4 p-2.5 bg-[#EEF3F7] border border-[#E5ECF2] rounded-xl">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
                     <input
                       type="radio"
                       name="edit-estado"
                       checked={editForm.estado === 'ACTIVO'}
                       onChange={() => setEditForm({ ...editForm, estado: 'ACTIVO' })}
-                      className="text-[#00843D] focus:ring-[#00843D]"
+                      className="text-[#55A529] focus:ring-[#55A529]"
                     />
-                    <span className="text-[#00843D]">ACTIVO</span>
+                    <span className="text-[#2F7D18]">ACTIVO</span>
                   </label>
 
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
                     <input
                       type="radio"
                       name="edit-estado"
                       checked={editForm.estado === 'INACTIVO'}
                       onChange={() => setEditForm({ ...editForm, estado: 'INACTIVO' })}
-                      className="text-red-600 focus:ring-red-600"
+                      className="text-[#DC2626] focus:ring-[#DC2626]"
                     />
-                    <span className="text-red-600">INACTIVO</span>
+                    <span className="text-[#DC2626]">INACTIVO</span>
                   </label>
                 </div>
               </div>
 
               {/* Botones GUARDAR, ELIMINAR y CANCELAR */}
-              <div className="pt-4 border-t border-gray-150 flex items-center justify-between gap-2.5">
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2.5">
                 {selectedUser && selectedUser.id !== currentAdminUser.id ? (
                   <button
                     id="btn-delete-from-edit-modal"
@@ -1285,7 +1299,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                       setIsEditModalOpen(false);
                       handleOpenDelete(selectedUser);
                     }}
-                    className="px-3 py-2 text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-2 text-xs font-semibold text-[#DC2626] hover:bg-[#FDECEC] rounded-full transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Eliminar usuario</span>
@@ -1298,17 +1312,17 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(false)}
-                    className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-800 uppercase tracking-wider transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
                   >
-                    CANCELAR
+                    Cancelar
                   </button>
                   <button
                     id="btn-save-edit-user"
                     type="submit"
-                    className="px-5 py-2.5 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-5 py-2.5 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
-                    <span>GUARDAR</span>
+                    <span>Guardar</span>
                   </button>
                 </div>
               </div>
@@ -1352,13 +1366,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 <span className="text-gray-400 font-bold block text-[10px] uppercase">
                   Usuario seleccionado:
                 </span>
-                <span className="font-black text-[#173B56] text-sm block">
+                <span className="font-bold text-[#1B3A57] text-sm block">
                   {selectedUser.nombre} (@{selectedUser.usuario})
                 </span>
               </div>
 
               {errorMessage && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-bold flex items-center gap-2">
+                <div className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl text-xs text-[#DC2626] font-semibold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
@@ -1367,13 +1381,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
               {/* Nueva Contraseña */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold uppercase text-gray-700">
+                  <label className="block text-[11px] font-semibold uppercase text-slate-600">
                     Nueva contraseña *
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowResetPass(!showResetPass)}
-                    className="text-[10px] text-gray-400 hover:text-gray-600"
+                    className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     {showResetPass ? 'Ocultar' : 'Ver'}
                   </button>
@@ -1387,13 +1401,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   onChange={(e) =>
                     setResetForm({ ...resetForm, nuevaContrasena: e.target.value })
                   }
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold font-mono text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                 />
               </div>
 
               {/* Confirmar Contraseña */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold uppercase text-gray-700">
+                <label className="block text-[11px] font-semibold uppercase text-slate-600">
                   Confirmar nueva contraseña *
                 </label>
                 <input
@@ -1405,30 +1419,30 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   onChange={(e) =>
                     setResetForm({ ...resetForm, confirmarContrasena: e.target.value })
                   }
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold font-mono text-[#1B3A57] focus:outline-none focus:border-[#55A529]"
                 />
               </div>
 
-              <p className="text-[11px] text-gray-400 leading-relaxed">
+              <p className="text-[11px] text-slate-400 leading-relaxed">
                 La contraseña se almacenará de forma segura con encriptación SHA-256 y salt. Nunca se almacena en texto plano.
               </p>
 
               {/* Botones */}
-              <div className="pt-4 border-t border-gray-150 flex items-center justify-end gap-2.5">
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsResetModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-800 uppercase tracking-wider"
+                  className="px-4 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-xs font-semibold text-slate-600 cursor-pointer"
                 >
-                  CANCELAR
+                  Cancelar
                 </button>
                 <button
                   id="btn-save-reset-password"
                   type="submit"
-                  className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>GUARDAR</span>
+                  <span>Guardar</span>
                 </button>
               </div>
             </form>
@@ -1441,18 +1455,18 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       {/* ============================================================= */}
       {isDeleteModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 border border-gray-200">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 border border-[#E5ECF2]">
             {/* Cabecera Roja de Alerta */}
-            <div className="bg-red-600 text-white p-5 flex items-center justify-between">
+            <div className="bg-[#DC2626] text-white p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white text-red-600 flex items-center justify-center shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-white text-[#DC2626] flex items-center justify-center shadow-xs">
                   <Trash2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-red-100">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-red-100">
                     ACCIÓN IRREVERSIBLE
                   </span>
-                  <h3 className="text-base font-black uppercase tracking-tight">
+                  <h3 className="text-base font-bold uppercase tracking-tight">
                     ELIMINAR USUARIO
                   </h3>
                 </div>
@@ -1468,23 +1482,23 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             {/* Contenido del modal */}
             <div className="p-6 space-y-4">
               {errorMessage && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-bold flex items-center gap-2">
+                <div className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl text-xs text-[#DC2626] font-semibold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
-              <p className="text-xs text-gray-600 leading-relaxed">
+              <p className="text-xs text-slate-600 leading-relaxed">
                 ¿Está seguro de que desea eliminar permanentemente este usuario del sistema? Esta acción eliminará su cuenta de acceso de forma definitiva.
               </p>
 
               {/* Ficha resumen del usuario a eliminar */}
-              <div className="p-4 bg-red-50/70 border border-red-200 rounded-2xl space-y-1.5 text-xs">
+              <div className="p-4 bg-[#FDECEC]/60 border border-[#FECACA] rounded-2xl space-y-1.5 text-xs">
                 <div className="flex justify-between items-center pb-2 border-b border-red-200/60">
-                  <span className="font-bold text-gray-500 text-[10px] uppercase tracking-wider">
+                  <span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">
                     Nombre Completo
                   </span>
-                  <span className="font-black text-[#173B56] text-sm">
+                  <span className="font-bold text-[#1B3A57] text-sm">
                     {selectedUser.nombre}
                   </span>
                 </div>

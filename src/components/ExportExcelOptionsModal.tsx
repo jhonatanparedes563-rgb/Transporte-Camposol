@@ -155,26 +155,26 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto border border-gray-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1B3A57]/40 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto border border-[#E5ECF2]">
         {/* Header */}
-        <div className="bg-[#173B56] text-white p-5 relative">
+        <div className="bg-[#1B3A57] text-white p-5 relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#00843D] flex items-center justify-center text-white shadow-md">
+            <div className="w-12 h-12 rounded-2xl bg-[#55A529] flex items-center justify-center text-white shadow-sm">
               <FileSpreadsheet className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-[10px] font-extrabold tracking-widest text-emerald-300 uppercase">
+              <span className="text-[10px] font-bold tracking-widest text-[#A3E47D] uppercase">
                 EXPORTACIÓN OPTIMIZADA PARA EXCEL
               </span>
-              <h2 className="text-lg font-black uppercase tracking-tight">
+              <h2 className="text-lg font-bold uppercase tracking-tight">
                 Descarga de Datos para Sumas
               </h2>
               <p className="text-xs text-white/80 font-medium">
@@ -186,7 +186,7 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
 
         {/* Content */}
         <div className="p-5 space-y-4">
-          <p className="text-xs text-gray-600 leading-relaxed">
+          <p className="text-xs text-slate-600 leading-relaxed">
             Selecciona el formato que mejor se adapte a tu trabajo en Excel para que puedas <strong>sumar fácilmente por paradero, supervisor o fundo</strong>:
           </p>
 
@@ -196,15 +196,15 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
               onClick={() => setSelectedFormat('xlsx-multi')}
               className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
                 selectedFormat === 'xlsx-multi'
-                  ? 'border-[#00843D] bg-emerald-50/50 shadow-xs'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                  ? 'border-[#55A529] bg-[#F3F8F0] shadow-xs'
+                  : 'border-[#E5ECF2] hover:border-[#D8E2EA] bg-white'
               }`}
             >
               <div
                 className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
                   selectedFormat === 'xlsx-multi'
-                    ? 'border-[#00843D] bg-[#00843D] text-white'
-                    : 'border-gray-300'
+                    ? 'border-[#55A529] bg-[#55A529] text-white'
+                    : 'border-slate-300'
                 }`}
               >
                 {selectedFormat === 'xlsx-multi' && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -212,18 +212,18 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
 
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <strong className="text-xs font-black text-[#173B56] uppercase">
+                  <strong className="text-xs font-bold text-[#1B3A57] uppercase">
                     Libro Completo Excel (.xlsx)
                   </strong>
-                  <span className="bg-[#00843D] text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                  <span className="bg-[#55A529] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full">
                     RECOMENDADO
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-600 mt-1 leading-normal">
+                <p className="text-[11px] text-slate-600 mt-1 leading-normal">
                   Incluye <strong>3 hojas automáticas</strong>:
                 </p>
-                <ul className="text-[10px] text-gray-500 mt-1 space-y-0.5 list-disc list-inside">
-                  <li><strong>Hoja 1 (Detalle para Sumas):</strong> Cada paradero en una fila con columna numérica de pasajeros para usar <code className="bg-gray-100 px-1 rounded text-gray-700">=SUMA()</code>.</li>
+                <ul className="text-[10px] text-slate-500 mt-1 space-y-0.5 list-disc list-inside">
+                  <li><strong>Hoja 1 (Detalle para Sumas):</strong> Cada paradero en una fila con columna numérica de pasajeros para usar <code className="bg-slate-100 px-1 rounded text-slate-700">=SUMA()</code>.</li>
                   <li><strong>Hoja 2 (Resumen por Paradero):</strong> Totales consolidados de cada paradero con porcentajes y pasajeros.</li>
                   <li><strong>Hoja 3 (Matriz Cruzada):</strong> Columnas numéricas individuales por cada paradero con fila de suma total al final.</li>
                 </ul>
@@ -235,25 +235,25 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
               onClick={() => setSelectedFormat('csv-detallado')}
               className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
                 selectedFormat === 'csv-detallado'
-                  ? 'border-[#00843D] bg-emerald-50/50 shadow-xs'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                  ? 'border-[#55A529] bg-[#F3F8F0] shadow-xs'
+                  : 'border-[#E5ECF2] hover:border-[#D8E2EA] bg-white'
               }`}
             >
               <div
                 className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
                   selectedFormat === 'csv-detallado'
-                    ? 'border-[#00843D] bg-[#00843D] text-white'
-                    : 'border-gray-300'
+                    ? 'border-[#55A529] bg-[#55A529] text-white'
+                    : 'border-slate-300'
                 }`}
               >
                 {selectedFormat === 'csv-detallado' && <CheckCircle2 className="w-3.5 h-3.5" />}
               </div>
 
               <div className="flex-1">
-                <strong className="text-xs font-black text-[#173B56] uppercase block">
+                <strong className="text-xs font-bold text-[#1B3A57] uppercase block">
                   CSV Detallado para Tablas Dinámicas (.csv)
                 </strong>
-                <p className="text-[11px] text-gray-600 mt-1 leading-normal">
+                <p className="text-[11px] text-slate-600 mt-1 leading-normal">
                   Una sola tabla plana donde cada paradero tiene su propia fila y una columna con <strong>números puros</strong> lista para crear Tablas Dinámicas (Pivot Tables) o aplicar filtros rápidos en Excel.
                 </p>
               </div>
@@ -264,25 +264,25 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
               onClick={() => setSelectedFormat('csv-estandar')}
               className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
                 selectedFormat === 'csv-estandar'
-                  ? 'border-[#00843D] bg-emerald-50/50 shadow-xs'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                  ? 'border-[#55A529] bg-[#F3F8F0] shadow-xs'
+                  : 'border-[#E5ECF2] hover:border-[#D8E2EA] bg-white'
               }`}
             >
               <div
                 className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
                   selectedFormat === 'csv-estandar'
-                    ? 'border-[#00843D] bg-[#00843D] text-white'
-                    : 'border-gray-300'
+                    ? 'border-[#55A529] bg-[#55A529] text-white'
+                    : 'border-slate-300'
                 }`}
               >
                 {selectedFormat === 'csv-estandar' && <CheckCircle2 className="w-3.5 h-3.5" />}
               </div>
 
               <div className="flex-1">
-                <strong className="text-xs font-black text-[#173B56] uppercase block">
+                <strong className="text-xs font-bold text-[#1B3A57] uppercase block">
                   Reporte General de Requerimientos (.csv)
                 </strong>
-                <p className="text-[11px] text-gray-600 mt-1 leading-normal">
+                <p className="text-[11px] text-slate-600 mt-1 leading-normal">
                   Una fila por cada requerimiento con el total de personas numérico y los paraderos resumidos limpiamente sin repeticiones.
                 </p>
               </div>
@@ -290,8 +290,8 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
           </div>
 
           {/* Tip Box */}
-          <div className="p-3 bg-blue-50/80 border border-blue-200/80 rounded-2xl text-[11px] text-blue-950 flex items-start gap-2">
-            <Sigma className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <div className="p-3 bg-[#E6F3FB] border border-[#D4E9F7] rounded-2xl text-[11px] text-[#1B3A57] flex items-start gap-2">
+            <Sigma className="w-4 h-4 text-[#0082B3] shrink-0 mt-0.5" />
             <p>
               <strong>Fácil de sumar:</strong> Al abrir en Excel, los valores de pasajeros son números reales. Puedes seleccionar la columna y ver la suma instantánea en la barra inferior de Excel o usar el botón <strong>Autosuma (Σ)</strong>.
             </p>
@@ -299,16 +299,16 @@ export const ExportExcelOptionsModal: React.FC<ExportExcelOptionsModalProps> = (
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2">
+        <div className="p-4 bg-[#F8FAFC] border-t border-[#E5ECF2] flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-200 rounded-xl transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-slate-600 bg-[#F1F5F9] hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
           >
             Cancelar
           </button>
           <button
             onClick={handleExecuteExport}
-            className="px-5 py-2.5 bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white rounded-xl text-xs font-bold uppercase transition-all shadow-md flex items-center gap-1.5"
+            className="px-5 py-2 bg-[#22A846] hover:bg-[#1C8E3A] active:bg-[#177830] text-white rounded-full text-xs font-semibold uppercase transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>Descargar Archivo</span>

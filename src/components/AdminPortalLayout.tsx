@@ -646,149 +646,157 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#F3F4F6] text-[#173B56] overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-[#EEF3F7] text-[#1B3A57] overflow-hidden font-sans">
       {/* Toast alert */}
       {toastMessage && (
-        <div className="fixed top-4 right-6 z-50 bg-[#173B56] text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-bold border border-emerald-500/40 animate-in fade-in slide-in-from-top-3 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="fixed top-4 right-6 z-50 bg-[#1B3A57] text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold border border-[#55A529]/50 animate-in fade-in slide-in-from-top-3 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-[#7CD64B]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* LEFT SIDEBAR (Identical to user's Camposol web layout)          */}
+      {/* LEFT SIDEBAR (Formato Corporativo CAMPOSOL)                   */}
       {/* ------------------------------------------------------------- */}
       <aside
-        className={`bg-white border-r border-gray-200 flex flex-col justify-between transition-all duration-200 shrink-0 z-30 ${
-          sidebarCollapsed ? 'w-20' : 'w-64'
+        className={`bg-white border-r border-[#E2E8F0] flex flex-col justify-between transition-all duration-200 shrink-0 z-30 ${
+          sidebarCollapsed ? 'w-20' : 'w-60'
         }`}
       >
-        {/* Sidebar Top: Logo & Collapse Button */}
         <div>
-          <div className="h-16 px-3.5 flex items-center justify-between border-b border-gray-100">
-            <div className="flex items-center gap-2.5 min-w-0">
-              {/* Camposol Corporate Badge */}
-              <div className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border-2 border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-0.5">
-                <img
-                  src={getPublicAssetUrl('camposol-emblem.png')}
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (!target.src.includes('.svg')) {
-                      target.src = getPublicAssetUrl('camposol-emblem.svg');
-                    }
-                  }}
-                  alt="CAMPOSOL"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              {!sidebarCollapsed && (
-                <div className="min-w-0">
-                  <div className="text-sm font-black text-[#00843D] tracking-tight leading-none uppercase">
-                    CAMPOSOL
-                  </div>
-                  <div className="text-[9.5px] font-bold text-gray-500 tracking-normal uppercase mt-0.5 whitespace-nowrap">
-                    Transporte Agrícola
-                  </div>
-                </div>
-              )}
+          {/* Sidebar Top: Centered Corporate Logo & Collapse Icon */}
+          <div className={`relative flex items-center justify-center border-b border-[#F1F5F9] ${sidebarCollapsed ? 'h-16 px-2' : 'pt-5 pb-4 px-4'}`}>
+            <div
+              className={`${
+                sidebarCollapsed ? 'w-10 h-10' : 'w-16 h-16'
+              } rounded-full overflow-hidden shadow-xs shrink-0 border-2 border-[#B89F67]/50 bg-[#55A529] flex items-center justify-center p-1 transition-all`}
+            >
+              <img
+                src={getPublicAssetUrl('camposol-emblem.png')}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.src.includes('.svg')) {
+                    target.src = getPublicAssetUrl('camposol-emblem.svg');
+                  }
+                }}
+                alt="CAMPOSOL"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-contain"
+              />
             </div>
 
-            {/* Collapse toggle button « » */}
             <button
               id="sidebar-toggle-btn"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="absolute top-3 right-2.5 p-1 rounded-lg text-slate-400 hover:text-[#1B3A57] hover:bg-slate-100 transition-colors cursor-pointer"
               title={sidebarCollapsed ? 'Expandir menú' : 'Contraer menú'}
             >
-              {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+              {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </button>
           </div>
 
           {/* Sidebar Navigation Items */}
-          <nav className="p-3 space-y-1 text-xs font-semibold">
-            {/* + Nuevo Requerimiento Action */}
+          <nav className="p-3 space-y-1 text-xs font-medium">
+            {/* + Nuevo Requerimiento */}
             <button
               id="menu-nuevo-requerimiento"
               onClick={() => setCurrentSection('nuevo')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
                 currentSection === 'nuevo'
-                  ? 'bg-[#00843D] text-white font-black shadow-xs'
-                  : 'text-[#00843D] hover:bg-[#E8F5EF] font-extrabold'
+                  ? 'bg-[#55A529] text-white font-semibold shadow-xs'
+                  : 'text-[#3D8B1C] hover:bg-[#F3F8F0] font-semibold'
               }`}
               title="Registrar nuevo requerimiento de bus"
             >
-              <PlusCircle className="w-5 h-5 shrink-0" />
-              {!sidebarCollapsed && <span>+ Nuevo Requerimiento</span>}
+              <PlusCircle className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span className="whitespace-nowrap">+ Nuevo Requerimiento</span>}
             </button>
 
-            {/* 1. Procesos (Bandeja principal) */}
+            {/* 1. Procesos */}
             <button
               id="menu-procesos"
               onClick={() => setCurrentSection('procesos')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
                 currentSection === 'procesos'
-                  ? 'bg-[#E8F5EF] text-[#00843D] font-black'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+                  ? 'bg-[#55A529] text-white font-semibold shadow-xs'
+                  : 'text-[#475569] hover:bg-[#F3F8F0] hover:text-[#2F7D18]'
               }`}
               title="Procesos (Recepción y gestión de requerimientos)"
             >
               <div className="flex items-center gap-3">
-                <Layers className="w-5 h-5 shrink-0" />
+                <Layers className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && <span>Procesos</span>}
               </div>
               {!sidebarCollapsed && metrics.pendientes > 0 && (
-                <span className="px-2 py-0.5 text-[10px] font-black bg-amber-100 text-amber-800 rounded-full">
+                <span
+                  className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                    currentSection === 'procesos'
+                      ? 'bg-white/25 text-white'
+                      : 'bg-[#FFF6E0] text-[#B45309]'
+                  }`}
+                >
                   {metrics.pendientes}
                 </span>
               )}
             </button>
 
-            {/* 1.1 Historial & Trazabilidad */}
+            {/* 1.1 Historial */}
             <button
               id="menu-historial-trazabilidad"
               onClick={() => setCurrentSection('historial')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-left ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-left cursor-pointer ${
                 currentSection === 'historial'
-                  ? 'bg-[#E8F5EF] text-[#00843D] font-black'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+                  ? 'bg-[#55A529] text-white font-semibold shadow-xs'
+                  : 'text-[#475569] hover:bg-[#F3F8F0] hover:text-[#2F7D18]'
               }`}
               title="Historial de Requerimientos & Auditoría de Anulaciones"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <History className="w-5 h-5 shrink-0" />
+                <History className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && <span className="whitespace-nowrap">Historial</span>}
               </div>
               {!sidebarCollapsed && totalAnuladosCount > 0 && (
-                <span className="px-2 py-0.5 text-[10px] font-black bg-rose-100 text-rose-800 rounded-full shrink-0">
+                <span
+                  className={`px-2 py-0.5 text-[10px] font-bold rounded-full shrink-0 ${
+                    currentSection === 'historial'
+                      ? 'bg-white/25 text-white'
+                      : 'bg-[#FDECEC] text-[#DC2626]'
+                  }`}
+                >
                   {totalAnuladosCount}
                 </span>
               )}
             </button>
 
-            {/* 1.2 Generador de Programación */}
+            {/* 1.2 Programación */}
             <button
               id="menu-generador-programacion"
               onClick={() => setCurrentSection('generador')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-left ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-left cursor-pointer ${
                 currentSection === 'generador'
-                  ? 'bg-[#E8F5EF] text-[#00843D] font-black'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+                  ? 'bg-[#55A529] text-white font-semibold shadow-xs'
+                  : 'text-[#475569] hover:bg-[#F3F8F0] hover:text-[#2F7D18]'
               }`}
               title="Generador de programación por paraderos y zonas"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <CalendarCheck2 className="w-5 h-5 shrink-0 text-[#176b45]" />
+                <CalendarCheck2 className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && <span className="whitespace-nowrap">Programación</span>}
               </div>
               {!sidebarCollapsed && (
-                <span className="px-2 py-0.5 text-[9px] font-black bg-[#eaf5ee] text-[#176b45] rounded-full uppercase shrink-0">
+                <span
+                  className={`px-2 py-0.5 text-[9px] font-bold rounded-full uppercase shrink-0 ${
+                    currentSection === 'generador'
+                      ? 'bg-white/25 text-white'
+                      : 'bg-[#EAF7E4] text-[#2F7D18]'
+                  }`}
+                >
                   TDP
                 </span>
               )}
             </button>
 
-            {/* 2. Datos Maestros (Solo Administrador) */}
+            {/* 2. Datos Maestros */}
             {userRole === 'admin' && (
               <button
                 id="menu-datos-maestros"
@@ -796,14 +804,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   setCurrentSection('maestros');
                   if (onOpenMasters) onOpenMasters();
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
                   currentSection === 'maestros'
-                    ? 'bg-[#E8F5EF] text-[#00843D] font-black'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+                    ? 'bg-[#55A529] text-white font-semibold shadow-xs'
+                    : 'text-[#475569] hover:bg-[#F3F8F0] hover:text-[#2F7D18]'
                 }`}
                 title="Datos maestros (Paraderos, Fundos, Áreas)"
               >
-                <FileText className="w-5 h-5 shrink-0" />
+                <FileText className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && <span>Datos maestros</span>}
               </button>
             )}
@@ -815,49 +823,49 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 setCurrentSection('reportes');
                 if (onOpenAnalytics) onOpenAnalytics();
               }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
                 currentSection === 'reportes'
-                  ? 'bg-[#E8F5EF] text-[#00843D] font-black'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+                  ? 'bg-[#55A529] text-white font-semibold shadow-xs'
+                  : 'text-[#475569] hover:bg-[#F3F8F0] hover:text-[#2F7D18]'
               }`}
               title="Reportes y Analítica Power BI"
             >
-              <BarChart2 className="w-5 h-5 shrink-0" />
+              <BarChart2 className="w-4 h-4 shrink-0" />
               {!sidebarCollapsed && <span>Reportes</span>}
             </button>
 
-            {/* 4. Base de datos & Respaldos (Solo Administrador) */}
+            {/* 4. Base de datos */}
             {userRole === 'admin' && (
               <button
                 id="menu-base-datos"
                 onClick={() => {
                   onOpenDatabaseModal();
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
                   currentSection === 'base-datos'
-                    ? 'bg-[#E8F5EF] text-[#00843D] font-black'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+                    ? 'bg-[#55A529] text-white font-semibold shadow-xs'
+                    : 'text-[#475569] hover:bg-[#F3F8F0] hover:text-[#2F7D18]'
                 }`}
                 title="Base de datos y respaldos JSON/CSV"
               >
-                <Database className="w-5 h-5 shrink-0" />
+                <Database className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && <span>Base de datos</span>}
               </button>
             )}
 
-            {/* 5. Gestión de Usuarios (Solo Administrador) */}
+            {/* 5. Maestro de Usuarios */}
             {userRole === 'admin' && (
               <button
                 id="menu-gestion-usuarios"
                 onClick={() => setCurrentSection('usuarios')}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
                   currentSection === 'usuarios'
-                    ? 'bg-[#E8F5EF] text-[#00843D] font-black'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-[#173B56]'
+                    ? 'bg-[#55A529] text-white font-semibold shadow-xs'
+                    : 'text-[#475569] hover:bg-[#F3F8F0] hover:text-[#2F7D18]'
                 }`}
                 title="Gestión de Usuarios, Roles y Permisos"
               >
-                <Users className="w-5 h-5 shrink-0" />
+                <Users className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && <span>Maestro de Usuarios</span>}
               </button>
             )}
@@ -865,15 +873,15 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
         </div>
 
         {/* Sidebar Bottom Actions: Cerrar Sesión */}
-        <div className="p-3 border-t border-gray-100 space-y-1">
+        <div className="p-3 border-t border-[#F1F5F9] space-y-1">
           {onLogout && (
             <button
               id="sidebar-logout-btn"
               onClick={onLogout}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold text-[#1E293B] hover:text-red-600 hover:bg-red-50/70 transition-colors cursor-pointer"
               title="Cerrar sesión actual"
             >
-              <LogOut className="w-5 h-5 shrink-0 text-red-600" />
+              <LogOut className="w-4 h-4 shrink-0" />
               {!sidebarCollapsed && <span>Cerrar Sesión</span>}
             </button>
           )}
@@ -883,20 +891,30 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
       {/* ------------------------------------------------------------- */}
       {/* MAIN CONTAINER: Top Header + Content Area                     */}
       {/* ------------------------------------------------------------- */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* TOP BAR: Page Title + User Profile Pill (as in user's image) */}
-        <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-black text-[#173B56] tracking-tight">
-              {currentSection === 'procesos' && 'Procesos / Recepción de Requerimientos'}
-              {currentSection === 'historial' && 'Historial & Trazabilidad / Auditoría de Requerimientos'}
-              {currentSection === 'generador' && 'Operaciones / Generador de Programación'}
-              {currentSection === 'maestros' && 'Datos Maestros / Catálogos Operativos'}
-              {currentSection === 'reportes' && 'Reportes & Exportaciones Power BI'}
-              {currentSection === 'base-datos' && 'Base de Datos Local & Respaldos'}
-              {currentSection === 'nuevo' && 'Nuevo Requerimiento de Transporte'}
-              {currentSection === 'usuarios' && 'Maestro de Usuarios / Gestión y Control de Acceso'}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#EEF3F7]">
+        {/* TOP BAR: Título Principal + Subtítulo Verde + Tarjetas Derecha */}
+        <header className="px-6 pt-4 pb-2 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div>
+            <h1 className="text-2xl font-bold text-[#1B3A57] tracking-tight leading-tight">
+              {currentSection === 'procesos' && 'Procesos'}
+              {currentSection === 'historial' && 'Historial'}
+              {currentSection === 'generador' && 'Programación'}
+              {currentSection === 'maestros' && 'Datos maestros'}
+              {currentSection === 'reportes' && 'Reportes'}
+              {currentSection === 'base-datos' && 'Base de datos'}
+              {currentSection === 'nuevo' && 'Nuevo Requerimiento'}
+              {currentSection === 'usuarios' && 'Maestro de Usuarios'}
             </h1>
+            <div className="text-xs font-semibold text-[#55A529] mt-0.5">
+              {currentSection === 'procesos' && 'Recepción de Requerimientos'}
+              {currentSection === 'historial' && 'Historial & Trazabilidad de Requerimientos'}
+              {currentSection === 'generador' && 'Generador de Programación'}
+              {currentSection === 'maestros' && 'Catálogos Operativos y Flota'}
+              {currentSection === 'reportes' && 'Analítica y Exportaciones Power BI'}
+              {currentSection === 'base-datos' && 'Respaldos y Sincronización Cloud'}
+              {currentSection === 'nuevo' && 'Registro de Transporte de Personal'}
+              {currentSection === 'usuarios' && 'Gestión de Cuentas y Permisos'}
+            </div>
           </div>
 
           {/* Top Right Header Elements */}
@@ -904,14 +922,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             {/* Live Web Sync Badge */}
             <div
               id="header-cloud-sync-badge"
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-bold"
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#E2E8F0] text-[#2F7D18] text-xs font-semibold shadow-2xs"
               title="Base de datos en la nube (Firestore) activa. Los requerimientos se sincronizan automáticamente en tiempo real entre todos los usuarios."
             >
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00843D]"></span>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7CD64B] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#55A529]"></span>
               </span>
-              <span className="text-[11px] font-extrabold text-[#00843D]">Base Cloud Firestore Activa</span>
+              <span className="text-[11px]">Base Cloud Firestore Activa</span>
             </div>
 
             {/* Manual Sync Button */}
@@ -920,8 +938,8 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               type="button"
               onClick={handleManualSync}
               disabled={isManualSyncing}
-              className={`p-2 rounded-xl text-gray-600 hover:text-[#00843D] hover:bg-emerald-50 border border-gray-200 transition-all ${
-                isManualSyncing ? 'animate-spin text-[#00843D]' : ''
+              className={`p-2 rounded-xl bg-white text-slate-600 hover:text-[#55A529] border border-[#E2E8F0] shadow-2xs transition-all cursor-pointer ${
+                isManualSyncing ? 'animate-spin text-[#55A529]' : ''
               }`}
               title="Sincronizar ahora con el servidor web"
             >
@@ -936,85 +954,66 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 setCurrentSection('procesos');
                 showToast(`Filtrando ${metrics.pendientes} requerimientos pendientes`);
               }}
-              className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-[#173B56] transition-colors"
+              className="relative p-2 rounded-xl bg-white border border-[#E2E8F0] text-slate-600 hover:text-[#1B3A57] shadow-2xs transition-colors cursor-pointer"
               title={`${metrics.pendientes} requerimientos pendientes de atención`}
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-4 h-4" />
               {metrics.pendientes > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-white"></span>
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D97706] ring-2 ring-white"></span>
               )}
             </button>
 
-            {/* Official Camposol User Profile Pill */}
-            <div className="flex items-center gap-2.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border ${
-                  userRole === 'receptor'
-                    ? 'bg-amber-50 text-amber-800 border-amber-300'
-                    : 'bg-[#E8F5EF] text-[#00843D] border-emerald-300'
-                }`}
-              >
+            {/* Official Camposol User Profile Card */}
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-white border border-[#E2E8F0] rounded-xl shadow-2xs">
+              <div className="w-7 h-7 rounded-full bg-[#F3F8F0] text-[#55A529] flex items-center justify-center shrink-0 border border-[#D4E9C9]">
                 {userRole === 'receptor' ? (
-                  <Inbox className="w-4 h-4" />
+                  <Inbox className="w-3.5 h-3.5" />
                 ) : (
-                  <ShieldCheck className="w-4 h-4" />
+                  <ShieldCheck className="w-3.5 h-3.5" />
                 )}
               </div>
               <div className="text-left hidden sm:block leading-tight">
-                <span className="text-xs font-black text-[#173B56] tracking-tight block uppercase">
+                <span className="text-[11px] font-semibold text-[#2F7D18] tracking-tight block uppercase">
                   {currentUser?.nombre ||
                     (userRole === 'receptor'
                       ? 'Roberto Gonzáles'
                       : 'Administrador del Sistema')}
                 </span>
-                <span className="text-[10px] font-extrabold text-[#00843D]">
+                <span className="text-[10px] font-medium text-[#64748B]">
                   @{currentUser?.usuario || (userRole === 'receptor' ? 'receptor' : 'admin')}{' '}
-                  • {userRole === 'receptor' ? 'RECEPTOR' : 'ADMINISTRADOR'} •{' '}
+                  · {userRole === 'receptor' ? 'RECEPTOR' : 'ADMIN'} ·{' '}
                   {currentUser?.area === 'OPERACIONES AGRÍCOLAS' || currentUser?.area === 'OPERACIONES' || !currentUser?.area
                     ? 'TDP'
                     : currentUser.area}
                 </span>
               </div>
             </div>
-
-            {/* Cerrar Sesión Button in Header */}
-            {onLogout && (
-              <button
-                id="header-logout-btn"
-                onClick={onLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 transition-colors"
-                title="Cerrar sesión"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Cerrar Sesión</span>
-              </button>
-            )}
           </div>
         </header>
 
         {/* ------------------------------------------------------------- */}
-        {/* MAIN BODY VIEW (Procesos, Torre de Control, Maestros, etc.)   */}
+        {/* MAIN BODY VIEW (Procesos, Programación, Maestros, etc.)        */}
         {/* ------------------------------------------------------------- */}
-        <main className="flex-1 overflow-y-auto p-5 space-y-4">
+        <main className="flex-1 overflow-y-auto px-6 py-3 space-y-4">
           {/* Sub-view: Historial & Trazabilidad (Otro apartado para bajas y auditoría) */}
           {currentSection === 'historial' && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Header Banner del Historial */}
-              <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200">
-                    <History className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-2xl bg-[#FDECEC] text-[#DC2626] flex items-center justify-center shrink-0 border border-[#FECACA]">
+                    <History className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-black text-[#173B56] uppercase tracking-tight">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base font-bold text-[#1B3A57] tracking-tight">
                         Historial de Requerimientos & Auditoría
                       </h2>
-                      <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
-                        Apartado de Bajas & Días
+                      <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#FDECEC] text-[#DC2626] border border-[#FECACA]">
+                        Apartado de bajas & días
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
+                    <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
                       En este apartado se almacenan de forma permanente los requerimientos cancelados o eliminados. Los datos de personas, fundos y paraderos se preservan intactos para auditoría histórica y trazabilidad operativa.
                     </p>
                   </div>
@@ -1024,7 +1023,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   <button
                     type="button"
                     onClick={() => setCurrentSection('procesos')}
-                    className="px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs font-bold text-gray-700 transition-colors flex items-center gap-2"
+                    className="px-4 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-xs font-medium text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     <span>Volver a Procesos</span>
@@ -1039,114 +1038,141 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       )
                     }
                     disabled={historialRequerimientos.length === 0}
-                    className="px-4 py-2.5 rounded-xl bg-[#00843D] hover:bg-[#006e33] active:scale-95 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 disabled:opacity-50"
+                    className="px-4 py-2 rounded-full bg-[#22A846] hover:bg-[#1C8E3A] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Exportar Historial</span>
+                    <span>Exportar historial</span>
                   </button>
                 </div>
               </div>
 
               {/* KPI Strip del Historial */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-white rounded-2xl p-4 border border-rose-200/80 shadow-xs bg-gradient-to-br from-white to-rose-50/40">
-                  <div className="flex items-center justify-between text-xs text-rose-800 font-bold">
+                <div className="bg-white rounded-2xl p-4 border border-[#E5ECF2] border-l-4 border-l-[#DC2626] shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
                     <span>Total en Historial</span>
-                    <History className="w-4 h-4 text-rose-500" />
+                    <History className="w-4 h-4 text-[#DC2626]" />
                   </div>
-                  <div className="text-2xl font-black text-rose-700 mt-1">
+                  <div className="text-xl font-bold text-[#DC2626] mt-1 tabular-nums">
                     {historialRequerimientos.length}
                   </div>
-                  <div className="text-[10px] text-rose-600/80 mt-0.5">Requerimientos dados de baja</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Requerimientos dados de baja</div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs">
-                  <div className="flex items-center justify-between text-xs text-gray-500 font-semibold">
+                <div className="bg-white rounded-2xl p-4 border border-[#E5ECF2] shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
                     <span>Personas Preservadas</span>
-                    <Users className="w-4 h-4 text-gray-400" />
+                    <Users className="w-4 h-4 text-slate-400" />
                   </div>
-                  <div className="text-2xl font-black text-[#173B56] mt-1">
+                  <div className="text-xl font-bold text-[#1B3A57] mt-1 tabular-nums">
                     {historialRequerimientos.reduce((a, b) => a + (b.totalPersonas || 0), 0)}
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">Pasajeros registrados en historial</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Pasajeros registrados en historial</div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs">
-                  <div className="flex items-center justify-between text-xs text-gray-500 font-semibold">
+                <div className="bg-white rounded-2xl p-4 border border-[#E5ECF2] shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
                     <span>Días de Servicio</span>
-                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <Calendar className="w-4 h-4 text-slate-400" />
                   </div>
-                  <div className="text-2xl font-black text-[#173B56] mt-1">
+                  <div className="text-xl font-bold text-[#1B3A57] mt-1 tabular-nums">
                     {new Set(historialRequerimientos.map((r) => r.fecha)).size}
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">Días con registros históricos</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Días con registros históricos</div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 border border-emerald-200/80 shadow-xs bg-gradient-to-br from-white to-emerald-50/40">
-                  <div className="flex items-center justify-between text-xs text-emerald-800 font-bold">
+                <div className="bg-white rounded-2xl p-4 border border-[#E5ECF2] border-l-4 border-l-[#55A529] shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
                     <span>Trazabilidad</span>
-                    <ShieldCheck className="w-4 h-4 text-[#00843D]" />
+                    <ShieldCheck className="w-4 h-4 text-[#2F7D18]" />
                   </div>
-                  <div className="text-2xl font-black text-[#00843D] mt-1">
+                  <div className="text-xl font-bold text-[#2F7D18] mt-1 tabular-nums">
                     100%
                   </div>
-                  <div className="text-[10px] text-emerald-700/80 mt-0.5">Auditoría activa y sincronizada</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Auditoría activa y sincronizada</div>
                 </div>
               </div>
 
               {/* Filtros para el Historial */}
-              <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
-                  <span className="text-xs font-black text-[#173B56] uppercase tracking-wide flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-[#00843D]" />
-                    <span>Filtros de Búsqueda Histórica</span>
-                  </span>
+              <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#1B3A57] flex items-center gap-2">
+                      <History className="w-4 h-4 text-[#55A529]" />
+                      <span>Historial de Requerimientos</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Registro permanente de bajas y trazabilidad operativa
+                    </p>
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilterFechaDesde('');
-                      setFilterFechaHasta('');
-                      setFilterArea('TODAS');
-                      setFilterFundo('TODOS');
-                      setFilterSupervisor('TODOS');
-                      setSearchKeyword('');
-                    }}
-                    className="text-xs font-bold text-gray-500 hover:text-[#00843D] transition-colors"
-                  >
-                    Limpiar Filtros
-                  </button>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        exportToCSV(
+                          'historial_trazabilidad_camposol.csv',
+                          historialRequerimientos as unknown as Record<string, unknown>[]
+                        )
+                      }
+                      disabled={historialRequerimientos.length === 0}
+                      className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />
+                      <span className="text-[10px] font-medium">Descarga</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterFechaDesde('');
+                        setFilterFechaHasta('');
+                        setFilterArea('TODAS');
+                        setFilterFundo('TODOS');
+                        setFilterSupervisor('TODOS');
+                        setSearchKeyword('');
+                      }}
+                      className="px-4 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
+                    >
+                      Restablecer
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Fecha Desde:</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 text-xs pt-1">
+                  <div className="relative">
+                    <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                      Fecha desde
+                    </label>
                     <input
                       type="date"
                       value={filterFechaDesde}
                       onChange={(e) => setFilterFechaDesde(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                      className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Fecha Hasta:</label>
+                  <div className="relative">
+                    <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                      Fecha hasta
+                    </label>
                     <input
                       type="date"
                       value={filterFechaHasta}
                       onChange={(e) => setFilterFechaHasta(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                      className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Fundo:</label>
+                  <div className="relative">
+                    <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                      Fundo
+                    </label>
                     <select
                       value={filterFundo}
                       onChange={(e) => setFilterFundo(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                      className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                     >
-                      <option value="TODOS">Todos los fundos</option>
+                      <option value="TODOS">Todos</option>
                       {fundos.map((f) => (
                         <option key={f.fundo} value={f.fundo}>
                           {f.fundo}
@@ -1155,14 +1181,16 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Área:</label>
+                  <div className="relative">
+                    <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                      Área
+                    </label>
                     <select
                       value={filterArea}
                       onChange={(e) => setFilterArea(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
+                      className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                     >
-                      <option value="TODAS">Todas las áreas</option>
+                      <option value="TODAS">Todas</option>
                       {areas.map((a) => (
                         <option key={a.area} value={a.area}>
                           {a.area}
@@ -1171,128 +1199,125 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Búsqueda rápida:</label>
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Código, usuario o motivo..."
-                        value={searchKeyword}
-                        onChange={(e) => setSearchKeyword(e.target.value)}
-                        className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium text-[#173B56] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]"
-                      />
-                    </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Palabra clave"
+                      value={searchKeyword}
+                      onChange={(e) => setSearchKeyword(e.target.value)}
+                      className="w-full h-10 pl-4 pr-9 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
+                    />
+                    <Search className="w-4 h-4 text-[#55A529] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
               </div>
 
               {/* Tabla de Registros en Historial */}
-              <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
-                <div className="p-4 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
-                  <span className="text-xs font-black text-[#173B56] uppercase tracking-wide">
-                    Registros Almacenados en Historial ({historialRequerimientos.length})
+              <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#1B3A57]">
+                    Registros en Historial ({historialRequerimientos.length})
                   </span>
-                  <span className="text-[11px] text-gray-400 font-medium">
-                    Mostrando requerimientos anulados preservados en la base de datos
+                  <span className="text-[11px] text-slate-400">
+                    Requerimientos anulados preservados
                   </span>
                 </div>
 
                 {historialRequerimientos.length === 0 ? (
                   <div className="p-12 text-center space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
+                    <div className="w-12 h-12 rounded-full bg-[#FDECEC] text-[#DC2626] flex items-center justify-center mx-auto">
                       <History className="w-6 h-6" />
                     </div>
-                    <h3 className="text-base font-bold text-[#173B56]">
+                    <h3 className="text-sm font-bold text-[#1B3A57]">
                       No hay requerimientos en el historial con estos filtros
                     </h3>
-                    <p className="text-xs text-gray-500 max-w-md mx-auto">
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
                       Cuando un usuario o administrador anule un requerimiento de la programación diaria, quedará almacenado en este apartado con todos sus datos y trazabilidad.
                     </p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-gray-100/80 text-gray-700 font-black uppercase text-[10px] tracking-wider border-b border-gray-200">
+                    <table className="w-full text-left text-[11px]">
+                      <thead className="bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
                         <tr>
-                          <th className="py-3 px-4">Código</th>
-                          <th className="py-3 px-4">Fecha Servicio</th>
-                          <th className="py-3 px-4">Fundo / Área</th>
-                          <th className="py-3 px-4 text-center">Personas</th>
-                          <th className="py-3 px-4">Solicitante</th>
-                          <th className="py-3 px-4">Estado Histórico</th>
-                          <th className="py-3 px-4">Baja / Auditoría</th>
-                          <th className="py-3 px-4">Motivo Anulación</th>
-                          <th className="py-3 px-4 text-center">Acciones</th>
+                          <th className="py-2.5 px-3.5 whitespace-nowrap">Código</th>
+                          <th className="py-2.5 px-3.5 whitespace-nowrap">Fecha Servicio</th>
+                          <th className="py-2.5 px-3.5 whitespace-nowrap">Fundo / Área</th>
+                          <th className="py-2.5 px-3.5 text-center whitespace-nowrap">Personas</th>
+                          <th className="py-2.5 px-3.5 whitespace-nowrap">Solicitante</th>
+                          <th className="py-2.5 px-3.5 whitespace-nowrap">Estado</th>
+                          <th className="py-2.5 px-3.5 whitespace-nowrap">Baja / Auditoría</th>
+                          <th className="py-2.5 px-3.5 whitespace-nowrap">Motivo Anulación</th>
+                          <th className="py-2.5 px-3.5 text-center whitespace-nowrap border-l border-[#D4E9F7]/70">Acciones</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-slate-100">
                         {historialRequerimientos.map((req) => (
-                          <tr key={req.id} className="hover:bg-rose-50/30 transition-colors">
-                            <td className="py-3.5 px-4 font-black text-[#173B56] whitespace-nowrap">
-                              <span className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-lg border border-gray-200 font-mono text-xs">
+                          <tr key={req.id} className="hover:bg-[#F7FBFE] transition-colors">
+                            <td className="py-2.5 px-3.5 font-semibold text-[#1B3A57] whitespace-nowrap">
+                              <span className="bg-slate-100 text-[#1B3A57] px-2 py-0.5 rounded border border-slate-200 font-mono text-[11px]">
                                 {req.numeroRequerimiento}
                               </span>
                               {formatHoraSimple(req.fechaRegistro) && (
-                                <div className="text-[10px] text-gray-500 font-medium flex items-center gap-1 mt-1 whitespace-nowrap">
-                                  <Clock className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                                <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-1 whitespace-nowrap">
+                                  <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
                                   <span>{formatHoraSimple(req.fechaRegistro)}</span>
                                 </div>
                               )}
                             </td>
-                            <td className="py-3.5 px-4 font-bold text-gray-800 whitespace-nowrap">
+                            <td className="py-2.5 px-3.5 font-medium text-slate-700 whitespace-nowrap">
                               {req.fecha}
                             </td>
-                            <td className="py-3.5 px-4">
-                              <div className="font-bold text-[#173B56]">{req.fundo}</div>
-                              <div className="text-[11px] text-gray-500">{req.area}</div>
+                            <td className="py-2.5 px-3.5">
+                              <div className="font-semibold text-[#1B3A57]">{req.fundo}</div>
+                              <div className="text-[10px] text-slate-500">{req.area}</div>
                             </td>
-                            <td className="py-3.5 px-4 text-center font-black text-rose-700 whitespace-nowrap">
+                            <td className="py-2.5 px-3.5 text-center font-semibold text-[#DC2626] whitespace-nowrap">
                               {req.totalPersonas} pax
                             </td>
-                            <td className="py-3.5 px-4 text-gray-700 font-medium whitespace-nowrap">
+                            <td className="py-2.5 px-3.5 text-slate-700 font-medium whitespace-nowrap">
                               {req.usuario}
                             </td>
-                            <td className="py-3.5 px-4 whitespace-nowrap">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-50 text-rose-800 border border-rose-300">
-                                <XCircle className="w-3 h-3 text-rose-600" />
-                                <span>ANULADO (Historial)</span>
+                            <td className="py-2.5 px-3.5 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#FDECEC] text-[#DC2626] border border-[#FECACA]">
+                                <XCircle className="w-3 h-3 text-[#DC2626]" />
+                                <span>Anulado</span>
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-[11px] whitespace-nowrap text-gray-600">
+                            <td className="py-2.5 px-3.5 text-[11px] whitespace-nowrap text-slate-600">
                               {req.fechaAnulacion ? (
                                 <div>
-                                  <div className="font-bold text-rose-900">
+                                  <div className="font-semibold text-[#DC2626]">
                                     {new Date(req.fechaAnulacion).toLocaleString('es-PE')}
                                   </div>
-                                  <div className="text-[10px] text-gray-500">
+                                  <div className="text-[10px] text-slate-400">
                                     Por: {req.usuarioAnulacion || 'Administrador'}
                                   </div>
                                 </div>
                               ) : (
-                                <span className="italic text-gray-400">Registrado en histórico</span>
+                                <span className="italic text-slate-400">Registrado en histórico</span>
                               )}
                             </td>
-                            <td className="py-3.5 px-4 text-[11px] text-gray-600 max-w-[200px] truncate" title={req.motivoAnulacion || ''}>
+                            <td className="py-2.5 px-3.5 text-[11px] text-slate-600 max-w-[200px] truncate" title={req.motivoAnulacion || ''}>
                               {req.motivoAnulacion || 'Anulado de la programación diaria'}
                             </td>
-                            <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <td className="py-2.5 px-3.5 text-center border-l border-slate-100 whitespace-nowrap">
                               <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   type="button"
                                   onClick={() => onOpenRequirementDetail(req)}
-                                  className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                                  className="p-1.5 rounded-full text-[#3D8B1C] hover:bg-[#EAF7E4] transition-colors cursor-pointer"
                                   title="Ver detalle completo de paraderos y trazabilidad"
                                 >
-                                  <Eye className="w-4 h-4" />
+                                  <Eye className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleRestoreFromHistory(req)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-[11px] font-bold flex items-center gap-1 transition-colors shadow-2xs"
+                                  className="px-2.5 py-1 rounded-full bg-[#EAF7E4] hover:bg-[#d8f1cc] text-[#2F7D18] border border-[#C6E9B4] text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                                   title="Restaurar este requerimiento a la bandeja activa de procesos"
                                 >
-                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <RotateCcw className="w-3 h-3" />
                                   <span>Restaurar</span>
                                 </button>
                               </div>
@@ -1326,7 +1351,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs">
+              <div>
                 <MasterDataManagementScreen
                   onBack={() => setCurrentSection('procesos')}
                   onNavigateToNewRequest={() => setCurrentSection('nuevo')}
@@ -1359,16 +1384,16 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
           {/* Sub-view: Nuevo Requerimiento */}
           {currentSection === 'nuevo' && (
-            <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs">
-              <div className="mb-4 flex items-center justify-between pb-3 border-b border-gray-150">
+            <div className="bg-white rounded-2xl p-6 border border-[#E5ECF2] shadow-xs">
+              <div className="mb-4 flex items-center justify-between pb-3 border-b border-slate-100">
                 <button
                   onClick={() => setCurrentSection('procesos')}
-                  className="text-xs font-bold text-gray-500 hover:text-[#00843D] flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors"
+                  className="text-xs font-semibold text-slate-600 hover:text-[#2F7D18] flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-[#F3F8F0] transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Volver a Procesos</span>
                 </button>
-                <span className="text-xs font-black text-[#173B56] uppercase tracking-wide">
+                <span className="text-xs font-bold text-[#1B3A57]">
                   Nuevo Requerimiento (Gestión Central)
                 </span>
               </div>
@@ -1407,7 +1432,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs">
+              <div>
                 <UserManagementScreen
                   currentAdminUser={
                     currentUser || {
@@ -1432,52 +1457,52 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             <>
           {/* Top KPI Metrics Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-gray-500">Solicitudes</div>
-                <div className="text-xl font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">{metrics.total}</div>
+                <div className="text-[11px] font-semibold text-slate-500">Solicitudes</div>
+                <div className="text-xl font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">{metrics.total}</div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#F1F5F9] text-[#1B3A57] flex items-center justify-center shrink-0">
                 <Layers className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-amber-400 shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-amber-400 shadow-2xs flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-gray-500">Pendientes</div>
-                <div className="text-xl font-bold text-amber-600 tabular-nums leading-tight mt-0.5">{metrics.pendientes}</div>
+                <div className="text-[11px] font-semibold text-slate-500">Pendientes</div>
+                <div className="text-xl font-bold text-[#B45309] tabular-nums leading-tight mt-0.5">{metrics.pendientes}</div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#FFF6E0] text-[#B45309] flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-[#009A44] shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-[#55A529] shadow-2xs flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-gray-500">Aprobados</div>
-                <div className="text-xl font-bold text-[#009A44] tabular-nums leading-tight mt-0.5">{metrics.aprobados}</div>
+                <div className="text-[11px] font-semibold text-slate-500">Aprobados</div>
+                <div className="text-xl font-bold text-[#2F7D18] tabular-nums leading-tight mt-0.5">{metrics.aprobados}</div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#009A44] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-sky-500 shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-[#0082B3] shadow-2xs flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-gray-500">Atendidos</div>
-                <div className="text-xl font-bold text-sky-600 tabular-nums leading-tight mt-0.5">{metrics.atendidos}</div>
+                <div className="text-[11px] font-semibold text-slate-500">Atendidos</div>
+                <div className="text-xl font-bold text-[#0082B3] tabular-nums leading-tight mt-0.5">{metrics.atendidos}</div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center shrink-0">
                 <CheckCheck className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-gray-500">Total Personal</div>
-                <div className="text-xl font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">{metrics.totalPasajeros}</div>
+                <div className="text-[11px] font-semibold text-slate-500">Total Personal</div>
+                <div className="text-xl font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">{metrics.totalPasajeros}</div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#1E293B] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#F1F5F9] text-[#1B3A57] flex items-center justify-center shrink-0">
                 <Users className="w-4 h-4" />
               </div>
             </div>
@@ -1486,31 +1511,31 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           {/* ------------------------------------------------------------- */}
           {/* HIGH-PRECISION STRUCTURED FILTERS PANEL                      */}
           {/* ------------------------------------------------------------- */}
-          <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
             {/* Top Toolbar Header */}
             <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-[#1E293B] leading-tight">
+                <h3 className="text-sm font-bold text-[#1B3A57] leading-tight">
                   Recepción de requerimientos
                 </h3>
-                <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
                   <span>
                     Visualizar, filtrar y gestionar requerimientos • Mostrando{' '}
-                    <strong className="text-[#1E293B] font-semibold">{filteredRequerimientos.length}</strong> de{' '}
-                    <strong className="text-[#1E293B] font-semibold">{requerimientos.length}</strong>
+                    <strong className="text-[#1B3A57] font-semibold">{filteredRequerimientos.length}</strong> de{' '}
+                    <strong className="text-[#1B3A57] font-semibold">{requerimientos.length}</strong>
                   </span>
                   {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr() && (
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-[#009A44] rounded-full border border-emerald-200/70">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#EAF7E4] text-[#2F7D18] rounded-full border border-[#C6E9B4]">
                       DEL DÍA ({getTodayStr()})
                     </span>
                   )}
                   {filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr() && (
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 rounded-full border border-amber-200/70">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#FFF6E0] text-[#B45309] rounded-full border border-[#FDE68A]">
                       DE AYER ({getYesterdayStr()})
                     </span>
                   )}
                   {filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr() && (
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-sky-50 text-sky-700 rounded-full border border-sky-200/70">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#E6F3FB] text-[#0082B3] rounded-full border border-[#D4E9F7]">
                       DE MAÑANA ({getTomorrowStr()})
                     </span>
                   )}
@@ -1523,7 +1548,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   id="btn-export-excel-header"
                   type="button"
                   onClick={() => setShowExportModal(true)}
-                  className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#009A44] hover:text-[#007a35] hover:bg-emerald-50/70 rounded-lg transition-colors cursor-pointer"
+                  className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
                   title="Exportar a Excel"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
@@ -1533,7 +1558,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 <button
                   type="button"
                   onClick={onNewRequirement}
-                  className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#009A44] hover:text-[#007a35] hover:bg-emerald-50/70 rounded-lg transition-colors cursor-pointer"
+                  className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
                   title="Crear nuevo requerimiento"
                 >
                   <PlusCircle className="w-4 h-4" />
@@ -1546,9 +1571,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     placeholder="Palabra clave"
-                    className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-gray-300 rounded-full text-xs text-gray-700 placeholder-gray-400 focus:border-[#009A44] focus:outline-none transition-colors"
+                    className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
                   />
-                  <Search className="w-4 h-4 text-[#009A44] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             </div>
@@ -1558,39 +1583,39 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-3.5 gap-y-3.5">
                 {/* Fecha Desde */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
                     Fecha desde
                   </label>
                   <input
                     type="date"
                     value={filterFechaDesde}
                     onChange={(e) => setFilterFechaDesde(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                   />
                 </div>
 
                 {/* Fecha Hasta */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
                     Fecha hasta
                   </label>
                   <input
                     type="date"
                     value={filterFechaHasta}
                     onChange={(e) => setFilterFechaHasta(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                   />
                 </div>
 
                 {/* Área */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
                     Área
                   </label>
                   <select
                     value={filterArea}
                     onChange={(e) => setFilterArea(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                   >
                     <option value="TODAS">Todas</option>
                     {areas.map((a) => (
@@ -1603,13 +1628,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
                 {/* Fundo */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
                     Fundo
                   </label>
                   <select
                     value={filterFundo}
                     onChange={(e) => setFilterFundo(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                   >
                     <option value="TODOS">Todos</option>
                     {fundos.map((f) => (
@@ -1622,13 +1647,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
                 {/* Supervisor / Solicitante */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
                     Supervisor
                   </label>
                   <select
                     value={filterSupervisor}
                     onChange={(e) => setFilterSupervisor(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                   >
                     <option value="TODOS">Todos</option>
                     {supervisoresList.map((sup) => (
@@ -1641,13 +1666,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
                 {/* Estado */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-gray-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
                     Estado
                   </label>
                   <select
                     value={filterEstado}
                     onChange={(e) => setFilterEstado(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-gray-300 rounded-full text-xs text-gray-700 focus:border-[#009A44] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                   >
                     <option value="TODOS">Todos</option>
                     <option value="PENDIENTE">PENDIENTE</option>
@@ -1672,8 +1697,8 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       }}
                       className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
                         filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
-                          ? 'bg-[#009A44] text-white border-[#009A44]'
-                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                          ? 'bg-[#22A846] text-white border-[#22A846]'
+                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
                       }`}
                     >
                       Hoy
@@ -1687,8 +1712,8 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       }}
                       className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
                         filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr()
-                          ? 'bg-[#009A44] text-white border-[#009A44]'
-                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                          ? 'bg-[#22A846] text-white border-[#22A846]'
+                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
                       }`}
                     >
                       Ayer
@@ -1702,8 +1727,8 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       }}
                       className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
                         filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr()
-                          ? 'bg-[#009A44] text-white border-[#009A44]'
-                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                          ? 'bg-[#22A846] text-white border-[#22A846]'
+                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
                       }`}
                     >
                       Mañana
@@ -1716,8 +1741,8 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       }}
                       className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
                         !filterFechaDesde && !filterFechaHasta
-                          ? 'bg-[#173B56] text-white border-[#173B56]'
-                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                          ? 'bg-[#1B3A57] text-white border-[#1B3A57]'
+                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
                       }`}
                     >
                       Todo el historial
@@ -1727,23 +1752,23 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   <button
                     type="button"
                     onClick={handleResetFilters}
-                    className="px-4 py-1.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-[11px] font-medium text-gray-700 transition-colors cursor-pointer"
+                    className="px-4 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
                   >
-                    Limpiar
+                    Restablecer
                   </button>
                 </div>
               </div>
 
               {selectedReqIds.length > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100">
-                  <span className="text-[11px] font-semibold text-[#009A44]">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <span className="text-[11px] font-semibold text-[#2F7D18]">
                     {selectedReqIds.length} requerimiento{selectedReqIds.length !== 1 ? 's' : ''} seleccionado{selectedReqIds.length !== 1 ? 's' : ''}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={handleBatchApprove}
-                      className="px-3 py-1 bg-[#009A44] hover:bg-[#007a35] text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1 bg-[#22A846] hover:bg-[#1B8F3A] text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       <CheckCircle2 className="w-3 h-3" />
                       <span>Aprobar Seleccionados</span>
@@ -1751,7 +1776,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     <button
                       type="button"
                       onClick={handleBatchAtender}
-                      className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1 bg-[#0082B3] hover:bg-[#006B94] text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       <CheckCheck className="w-3 h-3" />
                       <span>Marcar Atendidos</span>
@@ -1773,7 +1798,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             {/* Clean Light-Blue Table Header + Flat White Rows */}
             <div className="overflow-x-auto max-h-[calc(100vh-340px)]">
               <table className="w-full text-left text-[11px]">
-                <thead className="sticky top-0 z-10 bg-[#EDF6FC] text-[#1D7FC4] font-semibold text-[11px] border-y border-[#DCECF7]">
+                <thead className="sticky top-0 z-10 bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
                   <tr>
                     <th className="py-2.5 px-3 w-8">
                       <input
@@ -1783,7 +1808,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                           paginatedRequerimientos.length > 0 &&
                           paginatedRequerimientos.every((r) => selectedReqIds.includes(r.id))
                         }
-                        className="rounded-sm border-gray-300 text-[#009A44] focus:ring-[#009A44]"
+                        className="rounded-sm border-slate-300 text-[#55A529] focus:ring-[#55A529]"
                       />
                     </th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Código Req.</th>
@@ -1793,7 +1818,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     <th className="py-2.5 px-3 whitespace-nowrap">Personal</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Supervisor</th>
                     <th className="py-2.5 px-3 text-center whitespace-nowrap">Estado</th>
-                    <th className="py-2.5 px-3 text-center whitespace-nowrap border-l border-[#DCECF7]/70">Acciones</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap border-l border-[#D4E9F7]/70">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100 text-gray-700">
@@ -1847,7 +1872,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                         <React.Fragment key={req.id}>
                           <tr
                             className={`hover:bg-[#F7FBFE] transition-colors ${
-                              isSelected ? 'bg-emerald-50/40' : ''
+                              isSelected ? 'bg-[#EAF7E4]/40' : ''
                             }`}
                           >
                             <td className="py-2.5 px-3">
@@ -1855,77 +1880,77 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => handleToggleSelectRow(req.id)}
-                                className="rounded-sm border-gray-300 text-[#009A44] focus:ring-[#009A44]"
+                                className="rounded-sm border-slate-300 text-[#55A529] focus:ring-[#55A529]"
                               />
                             </td>
                             <td className="py-2.5 px-3">
                               <button
                                 onClick={() => onOpenRequirementDetail(req)}
-                                className="font-medium text-[#1E293B] hover:text-[#009A44] hover:underline transition-colors text-left whitespace-nowrap cursor-pointer"
+                                className="font-semibold text-[#1B3A57] hover:text-[#2F7D18] hover:underline transition-colors text-left whitespace-nowrap cursor-pointer"
                                 title="Ver detalle del requerimiento"
                               >
                                 {req.numeroRequerimiento}
                               </button>
-                              <div className="text-[10px] text-gray-400 whitespace-nowrap mt-0.5">
+                              <div className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
                                 {req.fechaRegistro ? req.fechaRegistro.slice(0, 10) : '-'}
                                 {formatHoraSimple(req.fechaRegistro) ? ` • ${formatHoraSimple(req.fechaRegistro)}` : ''}
                               </div>
                             </td>
                             <td className="py-2.5 px-3">
-                              <div className="text-[11px] text-gray-700 whitespace-nowrap">{req.fecha}</div>
+                              <div className="text-[11px] text-slate-700 whitespace-nowrap">{req.fecha}</div>
                               <button
                                 type="button"
                                 onClick={() => toggleExpandReq(req.id)}
-                                className="text-[10px] font-medium text-[#009A44] hover:underline flex items-center gap-0.5 mt-0.5 cursor-pointer whitespace-nowrap"
+                                className="text-[10px] font-medium text-[#3D8B1C] hover:underline flex items-center gap-0.5 mt-0.5 cursor-pointer whitespace-nowrap"
                                 title="Haz clic para desplegar el resumen de paraderos"
                               >
                                 <span>{paraderosCount} paradero{paraderosCount !== 1 ? 's' : ''}</span>
                                 {expandedReqIds.includes(req.id) ? (
-                                  <ChevronUp className="w-3 h-3 text-[#009A44]" />
+                                  <ChevronUp className="w-3 h-3 text-[#3D8B1C]" />
                                 ) : (
-                                  <ChevronDown className="w-3 h-3 text-[#009A44]" />
+                                  <ChevronDown className="w-3 h-3 text-[#3D8B1C]" />
                                 )}
                               </button>
                             </td>
                             <td className="py-2.5 px-3">
-                              <div className="text-[11px] font-medium text-[#1E293B]">{req.area}</div>
-                              <div className="text-[10px] text-gray-500 mt-0.5">{req.fundo}</div>
+                              <div className="text-[11px] font-medium text-[#1B3A57]">{req.area}</div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">{req.fundo}</div>
                             </td>
                             <td className="py-2.5 px-3">
                               <div className="flex items-center gap-1.5">
                                 <span
                                   className={`text-[10px] font-semibold uppercase ${
                                     req.movimiento === 'INGRESO'
-                                      ? 'text-[#009A44]'
+                                      ? 'text-[#3D8B1C]'
                                       : req.movimiento === 'SALIDA'
-                                      ? 'text-sky-600'
+                                      ? 'text-[#0082B3]'
                                       : 'text-purple-600'
                                   }`}
                                 >
                                   {req.movimiento}
                                 </span>
                               </div>
-                              <div className="text-[10px] text-gray-500 mt-0.5 whitespace-nowrap">
+                              <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap">
                                 {(() => {
                                   const h = getHorarioDisplay(req);
                                   if (h.isIngreso) {
                                     return (
                                       <span>
-                                        Norte: <strong className="font-medium text-gray-700">{h.horaNorte}</strong> | Sur: <strong className="font-medium text-gray-700">{h.horaSur}</strong>
+                                        Norte: <strong className="font-medium text-slate-700">{h.horaNorte}</strong> | Sur: <strong className="font-medium text-slate-700">{h.horaSur}</strong>
                                       </span>
                                     );
                                   }
                                   return (
                                     <span>
-                                      Hora: <strong className="font-medium text-gray-700">{h.horaNormal}</strong>
+                                      Hora: <strong className="font-medium text-slate-700">{h.horaNormal}</strong>
                                     </span>
                                   );
                                 })()}
                               </div>
                             </td>
                             <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span className="font-semibold text-[#1E293B]">{req.totalPersonas}</span>{' '}
-                              <span className="text-[10px] text-gray-500">pers.</span>
+                              <span className="font-semibold text-[#1B3A57]">{req.totalPersonas}</span>{' '}
+                              <span className="text-[10px] text-slate-500">pers.</span>
                             </td>
                             <td className="py-2.5 px-3">
                               <button
@@ -1934,20 +1959,20 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                   e.stopPropagation();
                                   setSupervisorModalReq(req);
                                 }}
-                                className="group text-left hover:text-[#009A44] transition-colors cursor-pointer"
+                                className="group text-left hover:text-[#2F7D18] transition-colors cursor-pointer"
                                 title="Haz clic para ver detalles del supervisor"
                               >
-                                <span className="text-[11px] text-gray-700 group-hover:text-[#009A44] block truncate max-w-[140px]">
+                                <span className="text-[11px] text-slate-700 group-hover:text-[#2F7D18] block truncate max-w-[140px]">
                                   {req.usuario || 'Supervisor'}
                                 </span>
-                                <span className="text-[10px] text-[#009A44] flex items-center gap-0.5">
+                                <span className="text-[10px] text-[#3D8B1C] flex items-center gap-0.5">
                                   <span>Ver paraderos</span>
                                   <ChevronRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
                                 </span>
                               </button>
                               {req.observaciones && (
                                 <span
-                                  className="text-[10px] text-gray-400 italic block truncate max-w-[140px] mt-0.5"
+                                  className="text-[10px] text-slate-400 italic block truncate max-w-[140px] mt-0.5"
                                   title={req.observaciones}
                                 >
                                   {req.observaciones}
@@ -1957,12 +1982,12 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                             <td className="py-2.5 px-3 text-center">
                               {renderEstadoBadge(req.estado)}
                             </td>
-                            <td className="py-2.5 px-3">
+                            <td className="py-2.5 px-3 border-l border-slate-100">
                               <div className="flex items-center justify-center gap-1.5">
                                 {/* Ver Detalle */}
                                 <button
                                   onClick={() => onOpenRequirementDetail(req)}
-                                  className="p-1 rounded-md text-[#009A44] hover:bg-emerald-50 transition-colors cursor-pointer"
+                                  className="p-1 rounded-full text-[#3D8B1C] hover:bg-[#EAF7E4] transition-colors cursor-pointer"
                                   title="Ver detalles y desglose de paraderos"
                                   aria-label="Ver detalles"
                                 >
@@ -1973,7 +1998,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 {req.estado !== 'APROBADO' && req.estado !== 'ATENDIDO' && (
                                   <button
                                     onClick={() => handleQuickStatusChange(req.id, 'APROBADO')}
-                                    className="px-2 py-0.5 bg-white hover:bg-emerald-50 text-[#009A44] border border-emerald-300 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
+                                    className="px-2.5 py-0.5 bg-white hover:bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
                                     title="Aprobar requerimiento"
                                   >
                                     Aprobar
@@ -1984,7 +2009,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 {req.estado === 'APROBADO' && (
                                   <button
                                     onClick={() => handleQuickStatusChange(req.id, 'ATENDIDO')}
-                                    className="px-2 py-0.5 bg-white hover:bg-sky-50 text-sky-600 border border-sky-300 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
+                                    className="px-2.5 py-0.5 bg-white hover:bg-[#E6F3FB] text-[#0082B3] border border-[#D4E9F7] rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
                                     title="Marcar como atendido"
                                   >
                                     Atender
@@ -1995,7 +2020,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 <button
                                   id={`btn-eliminar-req-${req.id}`}
                                   onClick={() => setReqToDelete(req)}
-                                  className="p-1 rounded-md text-orange-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                  className="p-1 rounded-full text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] transition-colors cursor-pointer"
                                   title="Eliminar requerimiento"
                                   aria-label="Eliminar requerimiento"
                                 >
@@ -2091,25 +2116,25 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                             </div>
                                           </div>
 
-                                          <div className="flex items-center justify-between p-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900">
-                                            <div className="flex items-center gap-1.5 font-bold">
-                                              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#E6F3FB] border border-[#D4E9F7] text-[#0082B3]">
+                                            <div className="flex items-center gap-1.5 font-semibold">
+                                              <span className="w-2 h-2 rounded-full bg-[#0082B3]" />
                                               <span>Zona Norte:</span>
                                             </div>
                                             <div className="font-mono">
-                                              <strong className="text-sm font-black text-indigo-950">{totalNorte}</strong>{' '}
-                                              <span className="text-[10px] text-indigo-800">({norteList.length} paraderos)</span>
+                                              <strong className="text-sm font-bold text-[#1B3A57]">{totalNorte}</strong>{' '}
+                                              <span className="text-[10px] text-[#0082B3]">({norteList.length} paraderos)</span>
                                             </div>
                                           </div>
 
-                                          <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900">
-                                            <div className="flex items-center gap-1.5 font-bold">
-                                              <span className="w-2 h-2 rounded-full bg-[#00843D]" />
+                                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#EAF7E4] border border-[#C6E9B4] text-[#2F7D18]">
+                                            <div className="flex items-center gap-1.5 font-semibold">
+                                              <span className="w-2 h-2 rounded-full bg-[#55A529]" />
                                               <span>Total:</span>
                                             </div>
                                             <div className="font-mono">
-                                              <strong className="text-sm font-black text-[#00843D]">{totalGen}</strong>{' '}
-                                              <span className="text-[10px] text-emerald-800">({agrupados.length} paraderos)</span>
+                                              <strong className="text-sm font-bold text-[#2F7D18]">{totalGen}</strong>{' '}
+                                              <span className="text-[10px] text-[#2F7D18]">({agrupados.length} paraderos)</span>
                                             </div>
                                           </div>
                                         </div>
@@ -2120,34 +2145,34 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                               key={pIdx}
                                               className={`p-2.5 rounded-xl border transition-colors ${
                                                 p.zona === 'SUR'
-                                                  ? 'bg-amber-50/40 border-amber-200 hover:border-amber-400'
-                                                  : 'bg-indigo-50/40 border-indigo-200 hover:border-indigo-400'
+                                                  ? 'bg-[#FFF6E0]/50 border-[#FDE68A] hover:border-amber-400'
+                                                  : 'bg-[#E6F3FB]/50 border-[#D4E9F7] hover:border-[#0082B3]/40'
                                               }`}
                                             >
-                                              <div className="flex items-center justify-between text-[10px] text-gray-600 mb-1">
-                                                <span className="font-bold truncate max-w-[85px]" title={p.paradero}>
+                                              <div className="flex items-center justify-between text-[10px] text-slate-600 mb-1">
+                                                <span className="font-semibold truncate max-w-[85px]" title={p.paradero}>
                                                   {p.paradero}
                                                 </span>
                                                 <span
-                                                  className={`px-1 py-0.2 rounded text-[8px] font-black uppercase ${
+                                                  className={`px-1.5 py-0.5 rounded-full text-[8px] font-semibold uppercase ${
                                                     p.zona === 'SUR'
-                                                      ? 'bg-amber-100 text-amber-800'
-                                                      : 'bg-indigo-100 text-indigo-800'
+                                                      ? 'bg-[#FFF6E0] text-[#B45309] border border-[#FDE68A]'
+                                                      : 'bg-[#E6F3FB] text-[#0082B3] border border-[#D4E9F7]'
                                                   }`}
                                                 >
                                                   {p.zona}
                                                 </span>
                                               </div>
                                               <div className="flex items-baseline justify-between">
-                                                <span className="text-base font-mono font-black text-[#00843D]">
+                                                <span className="text-base font-mono font-bold text-[#2F7D18]">
                                                   {p.totalPersonas}
-                                                  <span className="text-[10px] font-normal text-gray-400 ml-0.5">pers.</span>
+                                                  <span className="text-[10px] font-normal text-slate-400 ml-0.5">pers.</span>
                                                 </span>
-                                                <span className="text-[10px] font-mono text-gray-500">{p.porcentaje}%</span>
+                                                <span className="text-[10px] font-mono text-slate-500">{p.porcentaje}%</span>
                                               </div>
                                               {p.comedoresDetalle.length > 1 && (
                                                 <div
-                                                  className="text-[9px] text-gray-400 mt-1 truncate"
+                                                  className="text-[9px] text-slate-400 mt-1 truncate"
                                                   title={p.comedoresDetalle.map((c) => `${c.comedor}: ${c.cantidad}`).join(', ')}
                                                 >
                                                   {p.comedoresDetalle.map((c) => `${c.comedor}: ${c.cantidad}`).join(', ')}
@@ -2156,18 +2181,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                             </div>
                                           ))}
                                         </div>
-                                        <div className="flex flex-wrap items-center justify-between text-[11px] pt-1 text-gray-500 border-t border-gray-100">
+                                        <div className="flex flex-wrap items-center justify-between text-[11px] pt-1 text-slate-500 border-t border-slate-100">
                                           <span>Totales agrupados de todos los comedores (clasificados por zona según catálogo maestro)</span>
                                           <div className="flex items-center gap-3">
-                                            <span className="text-amber-800 font-bold">
+                                            <span className="text-[#B45309] font-semibold">
                                               Sur: <strong>{totalSur}</strong> pers.
                                             </span>
-                                            <span className="text-indigo-800 font-bold">
+                                            <span className="text-[#0082B3] font-semibold">
                                               Norte: <strong>{totalNorte}</strong> pers.
                                             </span>
-                                            <span className="font-bold text-[#173B56]">
+                                            <span className="font-semibold text-[#1B3A57]">
                                               Suma Total:{' '}
-                                              <strong className="text-[#00843D] font-black text-xs">
+                                              <strong className="text-[#2F7D18] font-bold text-xs">
                                                 {totalGen} personas
                                               </strong>
                                             </span>
@@ -2188,25 +2213,25 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               </table>
             </div>
 
-            {/* Barra de Paginación de Requerimientos (Soporte para 200+ registros diarios) */}
+            {/* Barra de Paginación de Requerimientos */}
             {filteredRequerimientos.length > 0 && (
-              <div className="bg-white px-5 py-2.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-[11px]">
+              <div className="bg-white px-5 py-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px]">
                 {/* Contador de registros */}
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-500 font-medium">
+                  <span className="text-slate-500 font-medium">
                     Mostrando{' '}
-                    <strong className="text-[#1E293B] font-semibold">
+                    <strong className="text-[#1B3A57] font-semibold">
                       {pageSize === -1 ? 1 : (currentPage - 1) * pageSize + 1}
                     </strong>{' '}
                     a{' '}
-                    <strong className="text-[#1E293B] font-semibold">
+                    <strong className="text-[#1B3A57] font-semibold">
                       {pageSize === -1
                         ? filteredRequerimientos.length
                         : Math.min(currentPage * pageSize, filteredRequerimientos.length)}
                     </strong>{' '}
-                    de <strong className="text-[#009A44] font-semibold">{filteredRequerimientos.length}</strong> requerimientos
+                    de <strong className="text-[#2F7D18] font-semibold">{filteredRequerimientos.length}</strong> requerimientos
                     {selectedReqIds.length > 0 && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-50 text-[#009A44] font-semibold text-[10px] border border-emerald-200">
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-[#EAF7E4] text-[#2F7D18] font-semibold text-[10px] border border-[#C6E9B4]">
                         {selectedReqIds.length} seleccionados
                       </span>
                     )}
@@ -2217,11 +2242,11 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 <div className="flex items-center gap-3">
                   {/* Selector de registros por página */}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-gray-500 font-medium">Por página:</span>
+                    <span className="text-slate-500 font-medium">Por página:</span>
                     <select
                       value={pageSize}
                       onChange={(e) => setPageSize(Number(e.target.value))}
-                      className="px-2.5 py-1 bg-white border border-gray-300 rounded-full font-medium text-[#1E293B] focus:outline-hidden focus:border-[#009A44] text-[11px] cursor-pointer"
+                      className="px-2.5 py-1 bg-white border border-[#D8E2EA] rounded-full font-medium text-[#1B3A57] focus:outline-hidden focus:border-[#55A529] text-[11px] cursor-pointer"
                     >
                       <option value={25}>25</option>
                       <option value={50}>50</option>
@@ -2238,22 +2263,22 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                         type="button"
                         onClick={() => setCurrentPage(1)}
                         disabled={currentPage === 1}
-                        className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                        className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                         title="Primera página"
                       >
-                        <ChevronsLeft className="w-3.5 h-3.5 text-gray-600" />
+                        <ChevronsLeft className="w-3.5 h-3.5 text-slate-600" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                        className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                         title="Página anterior"
                       >
-                        <ChevronLeft className="w-3.5 h-3.5 text-gray-600" />
+                        <ChevronLeft className="w-3.5 h-3.5 text-slate-600" />
                       </button>
 
-                      <span className="px-3 py-1 font-bold text-[#173B56] bg-white rounded-lg border border-gray-200 shadow-2xs text-[11px]">
+                      <span className="px-3 py-1 font-semibold text-[#1B3A57] bg-white rounded-full border border-[#D8E2EA] text-[11px]">
                         Pág. {currentPage} de {totalPages}
                       </span>
 
@@ -2261,19 +2286,19 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                         type="button"
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                        className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                         title="Página siguiente"
                       >
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-600" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setCurrentPage(totalPages)}
                         disabled={currentPage === totalPages}
-                        className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                        className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                         title="Última página"
                       >
-                        <ChevronsRight className="w-3.5 h-3.5 text-gray-600" />
+                        <ChevronsRight className="w-3.5 h-3.5 text-slate-600" />
                       </button>
                     </div>
                   )}
@@ -2285,42 +2310,42 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           {/* Modal de confirmación de eliminación individual */}
           {reqToDelete && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-              <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-red-100 p-6 overflow-hidden">
-                <div className="flex items-center gap-3 text-red-600 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center shrink-0">
-                    <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-[#E5ECF2] p-6 overflow-hidden">
+                <div className="flex items-center gap-3 text-[#DC2626] mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#FDECEC] flex items-center justify-center shrink-0 border border-[#FECACA]">
+                    <Trash2 className="w-6 h-6 text-[#DC2626]" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-[#173B56]">
+                    <h3 className="text-base font-bold text-[#1B3A57]">
                       ¿Eliminar Requerimiento?
                     </h3>
-                    <p className="text-xs text-red-600 font-bold">
+                    <p className="text-xs text-[#DC2626] font-semibold">
                       {reqToDelete.numeroRequerimiento}
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-2xl p-3.5 mb-4 border border-gray-200 text-xs space-y-2 text-gray-700">
+                <div className="bg-[#EEF3F7] rounded-2xl p-3.5 mb-4 border border-[#E5ECF2] text-xs space-y-2 text-slate-700">
                   <div className="flex justify-between">
-                    <span className="text-gray-500 font-medium">Fecha:</span>
-                    <span className="font-bold text-[#173B56]">{reqToDelete.fecha}</span>
+                    <span className="text-slate-500 font-medium">Fecha:</span>
+                    <span className="font-semibold text-[#1B3A57]">{reqToDelete.fecha}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500 font-medium">Área / Fundo:</span>
-                    <span className="font-bold text-[#173B56]">{reqToDelete.area} - {reqToDelete.fundo}</span>
+                    <span className="text-slate-500 font-medium">Área / Fundo:</span>
+                    <span className="font-semibold text-[#1B3A57]">{reqToDelete.area} - {reqToDelete.fundo}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500 font-medium">Personal:</span>
-                    <span className="font-bold text-[#173B56]">{reqToDelete.totalPersonas} personas</span>
+                    <span className="text-slate-500 font-medium">Personal:</span>
+                    <span className="font-semibold text-[#1B3A57]">{reqToDelete.totalPersonas} personas</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500 font-medium">Supervisor:</span>
-                    <span className="font-bold text-[#173B56]">{reqToDelete.usuario}</span>
+                    <span className="text-slate-500 font-medium">Supervisor:</span>
+                    <span className="font-semibold text-[#1B3A57]">{reqToDelete.usuario}</span>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 bg-emerald-50 p-3.5 rounded-xl border border-emerald-200 text-xs text-emerald-900 mb-5">
-                  <ShieldCheck className="w-4 h-4 text-[#00843D] shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 bg-[#EAF7E4] p-3.5 rounded-xl border border-[#C6E9B4] text-xs text-[#2F7D18] mb-5">
+                  <ShieldCheck className="w-4 h-4 text-[#55A529] shrink-0 mt-0.5" />
                   <p className="text-[11px] leading-relaxed">
                     <strong>Trazabilidad Garantizada:</strong> Al anular este requerimiento, quedará guardado permanentemente en el <strong>historial de los días</strong> con todos sus paraderos, cantidades y auditoría para que nunca se pierda el registro de la operación.
                   </p>
@@ -2330,7 +2355,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   <button
                     type="button"
                     onClick={() => setReqToDelete(null)}
-                    className="px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="px-4 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
                   >
                     Cancelar
                   </button>
@@ -2338,7 +2363,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     id="btn-confirm-delete-req"
                     type="button"
                     onClick={handleConfirmDelete}
-                    className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-full bg-[#DC2626] hover:bg-red-700 text-white text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Sí, Anular y Guardar en Historial</span>
@@ -2351,27 +2376,27 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           {/* Modal de confirmación de eliminación múltiple (Batch) */}
           {showBatchDeleteConfirm && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-              <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-red-100 p-6 overflow-hidden">
-                <div className="flex items-center gap-3 text-red-600 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center shrink-0">
-                    <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-[#E5ECF2] p-6 overflow-hidden">
+                <div className="flex items-center gap-3 text-[#DC2626] mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#FDECEC] flex items-center justify-center shrink-0 border border-[#FECACA]">
+                    <Trash2 className="w-6 h-6 text-[#DC2626]" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-[#173B56]">
+                    <h3 className="text-base font-bold text-[#1B3A57]">
                       ¿Anular {selectedReqIds.length} Requerimientos?
                     </h3>
-                    <p className="text-xs text-red-600 font-bold">
+                    <p className="text-xs text-[#DC2626] font-semibold">
                       Acción masiva conservando trazabilidad
                     </p>
                   </div>
                 </div>
 
-                <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+                <p className="text-xs text-slate-600 mb-4 leading-relaxed">
                   Estás a punto de anular los <strong>{selectedReqIds.length}</strong> requerimientos seleccionados.
                 </p>
 
-                <div className="flex items-start gap-2 bg-emerald-50 p-3.5 rounded-xl border border-emerald-200 text-xs text-emerald-900 mb-5">
-                  <ShieldCheck className="w-4 h-4 text-[#00843D] shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 bg-[#EAF7E4] p-3.5 rounded-xl border border-[#C6E9B4] text-xs text-[#2F7D18] mb-5">
+                  <ShieldCheck className="w-4 h-4 text-[#55A529] shrink-0 mt-0.5" />
                   <p className="text-[11px] leading-relaxed">
                     <strong>Trazabilidad Operativa:</strong> Todos los requerimientos se conservarán en el historial como <strong>ANULADOS</strong>, preservando los datos de paraderos, personas y fechas para control y auditoría.
                   </p>
@@ -2381,14 +2406,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowBatchDeleteConfirm(false)}
-                    className="px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="px-4 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirmBatchDelete}
-                    className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-full bg-[#DC2626] hover:bg-red-700 text-white text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Sí, Anular y Guardar en Historial</span>

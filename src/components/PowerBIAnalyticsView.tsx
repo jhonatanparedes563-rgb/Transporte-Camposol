@@ -564,76 +564,74 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
     !!tableSearch;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-20">
+    <div className="space-y-4 pb-16 text-[#1B3A57]">
       {/* ------------------------------------------------------------- */}
       {/* 1. HEADER EJECUTIVO & ACCIONES GLOBALES                       */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
-        {/* Subtle accent bar on top */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#00843D] via-[#059669] to-[#173B56]" />
-
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2.5 text-xs">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#00843D] font-bold text-[11px] border border-emerald-200/70">
-              <span className="w-2 h-2 rounded-full bg-[#00843D] animate-pulse" />
-              CAMPOSOL • DATOS OPERATIVOS REALES
+      <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EAF7E4] text-[#2F7D18] font-semibold text-[11px] border border-[#C6E9B4]">
+              <span className="w-2 h-2 rounded-full bg-[#55A529]" />
+              Datos operativos reales
             </span>
-            <span className="text-slate-400">·</span>
-            <span className="text-slate-500 font-semibold text-[11px]">
+            <span className="text-slate-300">·</span>
+            <span className="text-slate-500 font-medium text-[11px]">
               {distinctReqs} requerimientos activos
             </span>
-            <span className="text-slate-400">·</span>
-            <span className="text-slate-500 font-semibold text-[11px]">
+            <span className="text-slate-300">·</span>
+            <span className="text-slate-500 font-medium text-[11px]">
               {totalPersonal.toLocaleString()} colaboradores en tránsito
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#173B56] tracking-tight">
-            Reportes & Analítica
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl font-normal">
-            Demanda de pasajeros, cálculo de flota y distribución territorial.
+          <h2 className="text-lg font-bold text-[#1B3A57] tracking-tight">
+            Reportes & Analítica Operativa
+          </h2>
+          <p className="text-xs text-slate-500 font-normal">
+            Demanda de pasajeros, distribución territorial y trazabilidad de paraderos.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
           <button
             onClick={handleExportExcelDetailed}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#173B56] hover:bg-[#122e44] active:bg-[#0d2232] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer group"
+            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
             title="Exportar archivo Excel oficial para gerencia"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-            <span>Descargar Excel (.xlsx)</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="text-[10px] font-medium">Excel</span>
           </button>
 
           <button
             onClick={handleExportPowerBIDataset}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#00843D] hover:bg-[#007034] active:bg-[#005c2b] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer group"
+            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
             title="Descargar dataset estructurado para Power BI Desktop"
           >
-            <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span>Dataset Power BI (CSV)</span>
+            <Download className="w-4 h-4" />
+            <span className="text-[10px] font-medium">Power BI</span>
           </button>
 
           <button
             onClick={refreshData}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-[#173B56] rounded-xl transition-all cursor-pointer"
+            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
             title="Refrescar datos operativos"
           >
             <RefreshCw className="w-4 h-4" />
+            <span className="text-[10px] font-medium">Actualizar</span>
           </button>
         </div>
       </div>
 
       {exportSuccess && (
-        <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-xl text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+        <div className="bg-[#EAF7E4] border border-[#C6E9B4] text-[#2F7D18] px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#00843D] shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[#2F7D18] shrink-0" />
             <span>{exportSuccess}</span>
           </div>
           <button
             onClick={() => setExportSuccess('')}
-            className="text-emerald-700 hover:text-emerald-900 text-xs cursor-pointer font-medium"
+            className="text-[#2F7D18] hover:opacity-75 text-xs cursor-pointer font-medium"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -643,124 +641,119 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       {/* ------------------------------------------------------------- */}
       {/* 2. PANEL DE FILTROS MULTIDIMENSIONALES                        */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
+      <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
               <SlidersHorizontal className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800 tracking-tight">
-                Filtros
+              <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
+                Filtros de análisis
               </h3>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Quick date presets segmented buttons */}
-            <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/60">
-              <button
-                type="button"
-                onClick={() => {
-                  const today = getTodayStr();
-                  setFilterFechaDesde(today);
-                  setFilterFechaHasta(today);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
-                    ? 'bg-white text-[#00843D] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Hoy
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const y = getYesterdayStr();
-                  setFilterFechaDesde(y);
-                  setFilterFechaHasta(y);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr()
-                    ? 'bg-white text-[#00843D] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Ayer
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const t = getTomorrowStr();
-                  setFilterFechaDesde(t);
-                  setFilterFechaHasta(t);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr()
-                    ? 'bg-white text-[#00843D] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Mañana
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilterFechaDesde('');
-                  setFilterFechaHasta('');
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  !filterFechaDesde && !filterFechaHasta
-                    ? 'bg-white text-[#00843D] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Historial Completo
-              </button>
-            </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                const today = getTodayStr();
+                setFilterFechaDesde(today);
+                setFilterFechaHasta(today);
+              }}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
+                  ? 'bg-[#22A846] text-white border-[#22A846]'
+                  : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+              }`}
+            >
+              Hoy
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const y = getYesterdayStr();
+                setFilterFechaDesde(y);
+                setFilterFechaHasta(y);
+              }}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr()
+                  ? 'bg-[#22A846] text-white border-[#22A846]'
+                  : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+              }`}
+            >
+              Ayer
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const t = getTomorrowStr();
+                setFilterFechaDesde(t);
+                setFilterFechaHasta(t);
+              }}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr()
+                  ? 'bg-[#22A846] text-white border-[#22A846]'
+                  : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+              }`}
+            >
+              Mañana
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFilterFechaDesde('');
+                setFilterFechaHasta('');
+              }}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                !filterFechaDesde && !filterFechaHasta
+                  ? 'bg-[#1B3A57] text-white border-[#1B3A57]'
+                  : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+              }`}
+            >
+              Historial completo
+            </button>
 
             {hasActiveFilters && (
               <button
                 onClick={clearAllFilters}
-                className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors border border-red-200 flex items-center gap-1 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>Limpiar</span>
+                <span>Restablecer</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Form controls grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
-          {/* Zona */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Zona Operativa
+        {/* Form controls grid con píldoras y etiqueta flotante */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs pt-1">
+          <div className="relative">
+            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+              Zona operativa
             </label>
             <select
               value={filterZona}
               onChange={(e) => setFilterZona(e.target.value)}
-              className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00843D]/20 focus:border-[#00843D] transition-all cursor-pointer"
+              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
             >
-              <option value="TODAS">Todas las Zonas</option>
+              <option value="TODAS">Todas las zonas</option>
               <option value="SUR">Zona Sur</option>
               <option value="NORTE">Zona Norte</option>
             </select>
           </div>
 
-          {/* Fundo */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Fundo Destino
+          <div className="relative">
+            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+              Fundo destino
             </label>
             <select
               value={filterFundo}
               onChange={(e) => setFilterFundo(e.target.value)}
-              className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00843D]/20 focus:border-[#00843D] transition-all cursor-pointer"
+              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
             >
-              <option value="TODOS">Todos los Fundos</option>
+              <option value="TODOS">Todos los fundos</option>
               {availableFundos.map((f) => (
                 <option key={f} value={f}>
                   {f}
@@ -769,17 +762,16 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          {/* Área */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Área Solicitante
+          <div className="relative">
+            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+              Área solicitante
             </label>
             <select
               value={filterArea}
               onChange={(e) => setFilterArea(e.target.value)}
-              className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00843D]/20 focus:border-[#00843D] transition-all cursor-pointer"
+              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
             >
-              <option value="TODAS">Todas las Áreas</option>
+              <option value="TODAS">Todas las áreas</option>
               {availableAreas.map((a) => (
                 <option key={a} value={a}>
                   {a}
@@ -788,17 +780,16 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          {/* Cultivo */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+          <div className="relative">
+            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
               Cultivo
             </label>
             <select
               value={filterCultivo}
               onChange={(e) => setFilterCultivo(e.target.value)}
-              className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00843D]/20 focus:border-[#00843D] transition-all cursor-pointer"
+              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
             >
-              <option value="TODOS">Todos los Cultivos</option>
+              <option value="TODOS">Todos los cultivos</option>
               {availableCultivos.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -807,15 +798,14 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          {/* Movimiento */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+          <div className="relative">
+            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
               Movimiento
             </label>
             <select
               value={filterMovimiento}
               onChange={(e) => setFilterMovimiento(e.target.value)}
-              className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00843D]/20 focus:border-[#00843D] transition-all cursor-pointer"
+              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
             >
               <option value="TODOS">Todos (Ingreso/Salida)</option>
               <option value="INGRESO">Ingreso (A Fundos)</option>
@@ -823,29 +813,27 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          {/* Fecha Desde */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Fecha Desde
+          <div className="relative">
+            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+              Fecha desde
             </label>
             <input
               type="date"
               value={filterFechaDesde}
               onChange={(e) => setFilterFechaDesde(e.target.value)}
-              className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00843D]/20 focus:border-[#00843D] transition-all cursor-pointer text-xs"
+              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
             />
           </div>
 
-          {/* Fecha Hasta */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Fecha Hasta
+          <div className="relative">
+            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+              Fecha hasta
             </label>
             <input
               type="date"
               value={filterFechaHasta}
               onChange={(e) => setFilterFechaHasta(e.target.value)}
-              className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00843D]/20 focus:border-[#00843D] transition-all cursor-pointer text-xs"
+              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
             />
           </div>
         </div>
@@ -853,20 +841,20 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         {/* Results summary bar */}
         <div className="flex items-center justify-between pt-2 text-xs border-t border-slate-100 text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-700">
+            <span className="font-medium text-slate-600">
               Registros filtrados:
             </span>
-            <span className="font-bold text-[#173B56]">
+            <span className="font-semibold text-[#1B3A57]">
               {filteredRows.length} asignaciones
             </span>
             <span>·</span>
-            <span className="font-bold text-[#00843D]">
+            <span className="font-semibold text-[#2F7D18]">
               {totalPersonal.toLocaleString()} pasajeros
             </span>
           </div>
 
           {hasActiveFilters && (
-            <span className="text-[11px] text-amber-700 font-medium bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">
+            <span className="text-[10px] text-[#B45309] font-semibold bg-[#FFF6E0] px-2.5 py-0.5 rounded-full border border-[#FDE68A]">
               Filtro activo
             </span>
           )}
@@ -876,35 +864,35 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       {/* ------------------------------------------------------------- */}
       {/* 3. ROW DE 5 KPIS GERENCIALES                                  */}
       {/* ------------------------------------------------------------- */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {/* KPI 1: Personas Totales */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-[#55A529] shadow-2xs space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-slate-500">
               Personal Total
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#00843D] tracking-tight tabular-nums">
+            <div className="text-2xl font-bold text-[#2F7D18] tracking-tight tabular-nums">
               {totalPersonal.toLocaleString()}
             </div>
             <div className="mt-2 space-y-1">
               <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
                 <div
-                  className="h-full bg-[#00843D]"
+                  className="h-full bg-[#55A529]"
                   style={{ width: `${pctIngreso}%` }}
                   title={`Ingreso: ${pctIngreso}%`}
                 />
                 <div
-                  className="h-full bg-sky-500"
+                  className="h-full bg-[#0082B3]"
                   style={{ width: `${pctSalida}%` }}
                   title={`Salida: ${pctSalida}%`}
                 />
               </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-0.5">
+              <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium pt-0.5">
                 <span>{pctIngreso}% Ingreso</span>
                 <span>{pctSalida}% Salida</span>
               </div>
@@ -913,85 +901,85 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         </div>
 
         {/* KPI 2: Requerimientos */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-slate-500">
               Requerimientos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 text-[#173B56] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#F1F5F9] text-[#1B3A57] flex items-center justify-center">
               <Layers className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#173B56] tracking-tight tabular-nums">
+            <div className="text-2xl font-bold text-[#1B3A57] tracking-tight tabular-nums">
               {distinctReqs}
             </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1.5">
+            <div className="text-[11px] font-medium text-slate-500 mt-1.5">
               {filteredRows.length} paraderos activos
             </div>
           </div>
         </div>
 
         {/* KPI 3: Fundos Activos */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-slate-500">
               Fundos Activos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center">
               <Building className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight tabular-nums">
+            <div className="text-2xl font-bold text-[#1B3A57] tracking-tight tabular-nums">
               {distinctFundos}
             </div>
-            <div className="text-xs font-semibold text-slate-600 mt-1.5 truncate" title={fundosRanking[0]?.fundo}>
-              Top: <span className="text-[#00843D] font-bold">{fundosRanking[0]?.fundo || 'N/A'}</span>
+            <div className="text-[11px] font-medium text-slate-500 mt-1.5 truncate" title={fundosRanking[0]?.fundo}>
+              Top: <span className="text-[#2F7D18] font-semibold">{fundosRanking[0]?.fundo || 'N/A'}</span>
             </div>
           </div>
         </div>
 
-        {/* KPI 5: Paraderos con Demanda */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
+        {/* KPI 4: Paraderos con Demanda */}
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-[#0082B3] shadow-2xs space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-slate-500">
               Paraderos Activos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center">
               <MapPin className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-sky-700 tracking-tight tabular-nums">
+            <div className="text-2xl font-bold text-[#0082B3] tracking-tight tabular-nums">
               {distinctParaderos}
             </div>
-            <div className="text-xs font-semibold text-slate-600 mt-1.5 truncate" title={paraderosRanking[0]?.paradero}>
-              Top: <span className="text-sky-700 font-bold">{paraderosRanking[0]?.paradero || 'N/A'}</span>
+            <div className="text-[11px] font-medium text-slate-500 mt-1.5 truncate" title={paraderosRanking[0]?.paradero}>
+              Top: <span className="text-[#0082B3] font-semibold">{paraderosRanking[0]?.paradero || 'N/A'}</span>
             </div>
           </div>
         </div>
 
-        {/* KPI 6: Balance Zonal */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all space-y-2 flex flex-col justify-between">
+        {/* KPI 5: Balance Zonal */}
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-slate-500">
               Balance Zonal
             </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center">
               <Compass className="w-4 h-4" />
             </div>
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-indigo-700">Norte: {totalZonaNorte}</span>
-              <span className="text-amber-700">Sur: {totalZonaSur}</span>
+            <div className="flex items-center justify-between text-[11px] font-semibold">
+              <span className="text-[#0082B3]">Norte: {totalZonaNorte}</span>
+              <span className="text-[#B45309]">Sur: {totalZonaSur}</span>
             </div>
             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
-              <div className="h-full bg-indigo-600" style={{ width: `${pctNorte}%` }} title={`Norte: ${pctNorte}%`} />
+              <div className="h-full bg-[#0082B3]" style={{ width: `${pctNorte}%` }} title={`Norte: ${pctNorte}%`} />
               <div className="h-full bg-amber-500" style={{ width: `${pctSur}%` }} title={`Sur: ${pctSur}%`} />
             </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-0.5">
+            <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium pt-0.5">
               <span>{pctNorte}%</span>
               <span>{pctSur}%</span>
             </div>
@@ -1009,16 +997,16 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                  <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                     Evolución Diaria
                   </h3>
                 </div>
               </div>
-              <span className="text-xs font-bold text-[#00843D] bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
+              <span className="text-xs font-semibold text-[#2F7D18] bg-[#EAF7E4] px-3 py-1 rounded-full border border-[#C6E9B4]">
                 {timelineData.length} fechas
               </span>
             </div>
@@ -1030,7 +1018,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             ) : (
               <div className="space-y-3 pt-2">
                 {/* Visual Chart with horizontal guides and slender bars */}
-                <div className="h-56 flex items-end gap-3 sm:gap-6 px-4 pt-6 pb-2 border-b border-slate-200/80 relative">
+                <div className="h-56 flex items-end gap-3 sm:gap-6 px-4 pt-6 pb-2 border-b border-[#E5ECF2] relative">
                   {/* Dotted horizontal guides */}
                   <div className="absolute inset-x-0 top-6 border-b border-dashed border-slate-200/70 pointer-events-none" />
                   <div className="absolute inset-x-0 top-1/2 border-b border-dashed border-slate-200/70 pointer-events-none" />
@@ -1045,14 +1033,14 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                         className="flex-1 flex flex-col items-center h-full justify-end group relative max-w-[80px] mx-auto"
                       >
                         {/* Hover Tooltip */}
-                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-all transform group-hover:-translate-y-1 bg-[#173B56] text-white text-[11px] py-1.5 px-3 rounded-lg pointer-events-none whitespace-nowrap z-20 shadow-lg border border-slate-700">
+                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-all transform group-hover:-translate-y-1 bg-[#1B3A57] text-white text-[11px] py-1.5 px-3 rounded-lg pointer-events-none whitespace-nowrap z-20 shadow-lg border border-slate-700">
                           <div className="font-bold">{dateMeta.dayName ? `${dateMeta.dayName}, ` : ''}{d.date}</div>
-                          <div className="text-emerald-300 font-extrabold">{d.personal} personas ({d.reqs} req.)</div>
+                          <div className="text-[#8CE062] font-extrabold">{d.personal} personas ({d.reqs} req.)</div>
                         </div>
 
                         {/* Top count pill */}
                         <div className="mb-1.5 transition-transform group-hover:scale-110">
-                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black text-[#00843D] bg-emerald-50 border border-emerald-200/60 shadow-2xs">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold text-[#2F7D18] bg-[#EAF7E4] border border-[#C6E9B4] shadow-2xs">
                             {d.personal}
                           </span>
                         </div>
@@ -1060,7 +1048,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                         {/* Bar column with background track */}
                         <div className="w-full bg-slate-100 rounded-t-xl overflow-hidden flex items-end h-full">
                           <div
-                            className="w-full bg-gradient-to-t from-[#00843D] via-[#059669] to-[#10B981] rounded-t-xl transition-all duration-500 group-hover:brightness-110 shadow-xs"
+                            className="w-full bg-gradient-to-t from-[#22A846] via-[#55A529] to-[#74C043] rounded-t-xl transition-all duration-500 group-hover:brightness-110 shadow-xs"
                             style={{ height: `${heightPct}%` }}
                           />
                         </div>
@@ -1078,7 +1066,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           {dateMeta.dayName || 'Día'}
                         </div>
-                        <div className="text-xs font-bold text-slate-700">
+                        <div className="text-xs font-bold text-[#1B3A57]">
                           {dateMeta.dayMonth}
                         </div>
                       </div>
@@ -1090,19 +1078,19 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           </div>
 
           {/* Gráfico 2: Picos por Franja Horaria */}
-          <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-[#E5ECF2] shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-[#FFF6E0] text-[#B45309] flex items-center justify-center font-bold">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                  <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                     Demanda por Horario
                   </h3>
                 </div>
               </div>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-semibold text-slate-600 bg-[#F1F5F9] px-3 py-1 rounded-full">
                 {totalPersonal} personas
               </span>
             </div>
@@ -1114,23 +1102,23 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
 
                 // Distinct colors for shifts
                 const colors = [
-                  { bar: 'from-amber-500 to-amber-600', badge: 'text-amber-700 bg-amber-50' },
-                  { bar: 'from-emerald-500 to-emerald-600', badge: 'text-emerald-700 bg-emerald-50' },
+                  { bar: 'from-amber-500 to-amber-600', badge: 'text-[#B45309] bg-[#FFF6E0]' },
+                  { bar: 'from-[#22A846] to-[#55A529]', badge: 'text-[#2F7D18] bg-[#EAF7E4]' },
                   { bar: 'from-orange-500 to-orange-600', badge: 'text-orange-700 bg-orange-50' },
-                  { bar: 'from-sky-500 to-blue-600', badge: 'text-blue-700 bg-blue-50' },
-                  { bar: 'from-indigo-500 to-indigo-700', badge: 'text-indigo-700 bg-indigo-50' },
+                  { bar: 'from-sky-500 to-[#0082B3]', badge: 'text-[#0082B3] bg-[#E6F3FB]' },
+                  { bar: 'from-[#1B3A57] to-[#2B5278]', badge: 'text-[#1B3A57] bg-[#EDF2FA]' },
                 ];
                 const theme = colors[index % colors.length];
 
                 return (
-                  <div key={slot.name} className={`p-2.5 rounded-xl hover:bg-slate-50 transition-colors space-y-1.5 ${slot.count === 0 ? 'opacity-40' : ''}`}>
+                  <div key={slot.name} className={`p-2.5 rounded-xl hover:bg-[#F7FBFE] transition-colors space-y-1.5 ${slot.count === 0 ? 'opacity-40' : ''}`}>
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800">{slot.name}</span>
+                        <span className="font-bold text-[#1B3A57]">{slot.name}</span>
                       </div>
                       <div className="flex items-center gap-2 font-mono">
                         <span className="text-slate-400 text-[11px]">{pct}%</span>
-                        <span className="text-slate-900 font-black">{slot.count} pers.</span>
+                        <span className="text-[#1B3A57] font-bold">{slot.count} pers.</span>
                       </div>
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -1149,19 +1137,19 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         {/* FILA B: FUNDOS DESTINO + ÁREAS SOLICITANTES + CULTIVOS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Gráfico 3: Demanda por Fundo */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3.5">
+          <div className="bg-white p-5 rounded-2xl border border-[#E5ECF2] shadow-xs space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
                   <Building className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                  <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                     Demanda por Fundo
                   </h3>
                 </div>
               </div>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-semibold text-slate-600 bg-[#F1F5F9] px-3 py-1 rounded-full">
                 {fundosRanking.length} fundos
               </span>
             </div>
@@ -1170,21 +1158,21 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               {fundosRanking.map((f, idx) => (
                 <div key={f.fundo} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-800 truncate pr-2 flex items-center gap-2">
-                      <span className={`w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold font-mono ${
-                        idx === 0 ? 'bg-[#00843D] text-white' : 'bg-slate-100 text-slate-600'
+                    <span className="text-[#1B3A57] truncate pr-2 flex items-center gap-2">
+                      <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold font-mono ${
+                        idx === 0 ? 'bg-[#55A529] text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
                         {idx + 1}
                       </span>
                       <span>{f.fundo}</span>
                     </span>
-                    <span className="text-[#00843D] font-black shrink-0 font-mono">
+                    <span className="text-[#2F7D18] font-bold shrink-0 font-mono">
                       {f.count} <span className="text-[11px] font-normal text-slate-400">({f.pct}%)</span>
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#00843D] to-[#10B981] rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-[#22A846] to-[#74C043] rounded-full transition-all duration-500"
                       style={{ width: `${Math.round((f.count / maxFundoVal) * 100)}%` }}
                     />
                   </div>
@@ -1194,19 +1182,19 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           </div>
 
           {/* Gráfico 4: Demanda por Área */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3.5">
+          <div className="bg-white p-5 rounded-2xl border border-[#E5ECF2] shadow-xs space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center font-bold">
                   <Briefcase className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                  <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                     Demanda por Área
                   </h3>
                 </div>
               </div>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-semibold text-slate-600 bg-[#F1F5F9] px-3 py-1 rounded-full">
                 {areasRanking.length} áreas
               </span>
             </div>
@@ -1215,21 +1203,21 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               {areasRanking.map((a, idx) => (
                 <div key={a.area} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-800 truncate pr-2 flex items-center gap-2">
-                      <span className={`w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold font-mono ${
-                        idx === 0 ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600'
+                    <span className="text-[#1B3A57] truncate pr-2 flex items-center gap-2">
+                      <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold font-mono ${
+                        idx === 0 ? 'bg-[#0082B3] text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
                         {idx + 1}
                       </span>
                       <span>{a.area}</span>
                     </span>
-                    <span className="text-sky-700 font-black shrink-0 font-mono">
+                    <span className="text-[#0082B3] font-bold shrink-0 font-mono">
                       {a.count} <span className="text-[11px] font-normal text-slate-400">({a.pct}%)</span>
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-sky-500 to-blue-600 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-[#0EA5E9] to-[#0082B3] rounded-full transition-all duration-500"
                       style={{ width: `${Math.round((a.count / maxAreaVal) * 100)}%` }}
                     />
                   </div>
@@ -1239,19 +1227,19 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           </div>
 
           {/* Gráfico 5: Distribución por Cultivo */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3.5">
+          <div className="bg-white p-5 rounded-2xl border border-[#E5ECF2] shadow-xs space-y-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-[#EDF2FA] text-[#1B3A57] flex items-center justify-center font-bold">
                   <Sprout className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                  <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                     Demanda por Cultivo
                   </h3>
                 </div>
               </div>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-semibold text-slate-600 bg-[#F1F5F9] px-3 py-1 rounded-full">
                 {cultivosRanking.length} cultivos
               </span>
             </div>
@@ -1260,21 +1248,21 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               {cultivosRanking.map((c, idx) => (
                 <div key={c.cultivo} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-800 truncate pr-2 flex items-center gap-2">
-                      <span className={`w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold font-mono ${
-                        idx === 0 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                    <span className="text-[#1B3A57] truncate pr-2 flex items-center gap-2">
+                      <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold font-mono ${
+                        idx === 0 ? 'bg-[#1B3A57] text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
                         {idx + 1}
                       </span>
                       <span>{c.cultivo}</span>
                     </span>
-                    <span className="text-indigo-700 font-black shrink-0 font-mono">
+                    <span className="text-[#1B3A57] font-bold shrink-0 font-mono">
                       {c.count} <span className="text-[11px] font-normal text-slate-400">({c.pct}%)</span>
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-[#3B82F6] to-[#1B3A57] rounded-full transition-all duration-500"
                       style={{ width: `${Math.round((c.count / maxCultivoVal) * 100)}%` }}
                     />
                   </div>
@@ -1287,13 +1275,13 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         {/* FILA C: DISTRIBUCIÓN ZONAL (DONUT) + MOVIMIENTO INGRESO/SALIDA + COMEDORES */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Gráfico 6: Distribución Zonal (Donut Sur vs Norte) */}
-          <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-[#E5ECF2] shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
                 <PieChart className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                   Distribución por Zona
                 </h3>
               </div>
@@ -1305,11 +1293,11 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                 <div
                   className="absolute inset-0 rounded-full transition-all duration-700"
                   style={{
-                    background: `conic-gradient(#D97706 0% ${pctSur}%, #0284C7 ${pctSur}% 100%)`,
+                    background: `conic-gradient(#D97706 0% ${pctSur}%, #0082B3 ${pctSur}% 100%)`,
                   }}
                 />
-                <div className="w-26 h-26 rounded-full bg-white flex flex-col items-center justify-center z-10 shadow-xs border border-slate-100">
-                  <span className="text-2xl font-black text-[#173B56] tabular-nums">{totalPersonal}</span>
+                <div className="w-26 h-26 rounded-full bg-white flex flex-col items-center justify-center z-10 shadow-xs border border-[#E5ECF2]">
+                  <span className="text-2xl font-bold text-[#1B3A57] tabular-nums">{totalPersonal}</span>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pasajeros</span>
                 </div>
               </div>
@@ -1317,38 +1305,38 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
 
             {/* Legend & Breakdown cards */}
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-amber-50/80 p-3 rounded-xl border border-amber-200/70 space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-900 font-bold">
+              <div className="bg-[#FFF6E0] p-3 rounded-xl border border-[#FDE68A] space-y-1">
+                <div className="flex items-center gap-1.5 text-[#B45309] font-bold">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0" />
                   <span>Zona Sur</span>
                 </div>
-                <div className="text-lg font-black text-amber-950 font-mono">
+                <div className="text-lg font-bold text-[#92400E] font-mono">
                   {totalZonaSur}{' '}
-                  <span className="text-xs font-normal text-amber-700">({pctSur}%)</span>
+                  <span className="text-xs font-normal text-[#B45309]">({pctSur}%)</span>
                 </div>
               </div>
 
-              <div className="bg-sky-50/80 p-3 rounded-xl border border-sky-200/70 space-y-1">
-                <div className="flex items-center gap-1.5 text-sky-900 font-bold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-600 shrink-0" />
+              <div className="bg-[#E6F3FB] p-3 rounded-xl border border-[#D4E9F7] space-y-1">
+                <div className="flex items-center gap-1.5 text-[#0082B3] font-bold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#0082B3] shrink-0" />
                   <span>Zona Norte</span>
                 </div>
-                <div className="text-lg font-black text-sky-950 font-mono">
+                <div className="text-lg font-bold text-[#1B3A57] font-mono">
                   {totalZonaNorte}{' '}
-                  <span className="text-xs font-normal text-sky-700">({pctNorte}%)</span>
+                  <span className="text-xs font-normal text-[#0082B3]">({pctNorte}%)</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Gráfico 7: Movimiento (Ingreso vs Salida) */}
-          <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-[#E5ECF2] shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-[#EDF2FA] text-[#1B3A57] flex items-center justify-center font-bold">
                 <Activity className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                   Flujo de Movimiento
                 </h3>
               </div>
@@ -1356,57 +1344,57 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
 
             <div className="space-y-3.5 py-1">
               {/* Ingreso Card */}
-              <div className="p-3.5 bg-emerald-50/80 rounded-xl border border-emerald-200/70 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-emerald-950">
+              <div className="p-3.5 bg-[#EAF7E4]/70 rounded-xl border border-[#C6E9B4] space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[#1B3A57]">
                   <span className="flex items-center gap-1.5">
-                    <ArrowUpRight className="w-4 h-4 text-[#00843D]" />
+                    <ArrowUpRight className="w-4 h-4 text-[#2F7D18]" />
                     <span>Ingreso</span>
                   </span>
-                  <span className="text-base font-black text-[#00843D] font-mono">
-                    {totalIngreso} <span className="text-xs font-normal text-emerald-700">({pctIngreso}%)</span>
+                  <span className="text-base font-bold text-[#2F7D18] font-mono">
+                    {totalIngreso} <span className="text-xs font-normal text-[#55A529]">({pctIngreso}%)</span>
                   </span>
                 </div>
-                <div className="w-full h-2 bg-emerald-200/70 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#00843D] rounded-full" style={{ width: `${pctIngreso}%` }} />
+                <div className="w-full h-2 bg-[#C6E9B4]/60 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#55A529] rounded-full" style={{ width: `${pctIngreso}%` }} />
                 </div>
               </div>
 
               {/* Salida Card */}
-              <div className="p-3.5 bg-sky-50/80 rounded-xl border border-sky-200/70 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-sky-950">
+              <div className="p-3.5 bg-[#E6F3FB]/70 rounded-xl border border-[#D4E9F7] space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[#1B3A57]">
                   <span className="flex items-center gap-1.5">
-                    <ArrowDownLeft className="w-4 h-4 text-sky-700" />
+                    <ArrowDownLeft className="w-4 h-4 text-[#0082B3]" />
                     <span>Salida</span>
                   </span>
-                  <span className="text-base font-black text-sky-800 font-mono">
-                    {totalSalida} <span className="text-xs font-normal text-sky-700">({pctSalida}%)</span>
+                  <span className="text-base font-bold text-[#0082B3] font-mono">
+                    {totalSalida} <span className="text-xs font-normal text-[#0082B3]/80">({pctSalida}%)</span>
                   </span>
                 </div>
-                <div className="w-full h-2 bg-sky-200/70 rounded-full overflow-hidden">
-                  <div className="h-full bg-sky-600 rounded-full" style={{ width: `${pctSalida}%` }} />
+                <div className="w-full h-2 bg-[#D4E9F7] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#0082B3] rounded-full" style={{ width: `${pctSalida}%` }} />
                 </div>
               </div>
             </div>
 
-            <div className="text-xs font-bold text-slate-700 bg-slate-50 p-2.5 rounded-xl text-center border border-slate-100">
-              Total: <span className="text-[#00843D] font-extrabold">{totalPersonal}</span> personas
+            <div className="text-xs font-bold text-[#1B3A57] bg-[#F8FAFC] p-2.5 rounded-xl text-center border border-[#E5ECF2]">
+              Total: <span className="text-[#2F7D18] font-extrabold">{totalPersonal}</span> personas
             </div>
           </div>
 
           {/* Gráfico 8: Demanda por Comedor / Garita */}
-          <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-[#E5ECF2] shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-[#FFF6E0] text-[#B45309] flex items-center justify-center font-bold">
                   <Utensils className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                  <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                     Demanda por Comedor
                   </h3>
                 </div>
               </div>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-semibold text-slate-600 bg-[#F1F5F9] px-3 py-1 rounded-full">
                 {comedoresRanking.length} comedores
               </span>
             </div>
@@ -1415,16 +1403,16 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               {comedoresRanking.map((c) => (
                 <div key={c.comedor} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-slate-800 truncate pr-2 font-mono">
+                    <span className="text-[#1B3A57] truncate pr-2 font-mono">
                       Comedor {c.comedor}
                     </span>
-                    <span className="text-orange-700 font-black shrink-0 font-mono">
+                    <span className="text-[#B45309] font-bold shrink-0 font-mono">
                       {c.count} <span className="text-[11px] font-normal text-slate-400">({c.pct}%)</span>
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
                       style={{ width: `${Math.round((c.count / maxComedorVal) * 100)}%` }}
                     />
                   </div>
@@ -1439,19 +1427,19 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         </div>
 
         {/* FILA D: TOP 15 PARADEROS CRÍTICOS */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E5ECF2] shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
                 <BarChart3 className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
                   Top Paraderos
                 </h3>
               </div>
             </div>
-            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+            <span className="text-xs font-semibold text-slate-600 bg-[#F1F5F9] px-3 py-1 rounded-full">
               Top {Math.min(paraderosRanking.length, 15)} de {distinctParaderos}
             </span>
           </div>
@@ -1462,20 +1450,20 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               return (
                 <div
                   key={p.paradero}
-                  className="bg-slate-50/70 hover:bg-emerald-50/40 p-3.5 rounded-xl border border-slate-200/70 transition-all space-y-2 group"
+                  className="bg-[#F8FAFC] hover:bg-[#F3F8F0] p-3.5 rounded-xl border border-[#E5ECF2] transition-all space-y-2 group"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-900 truncate pr-2 flex items-center gap-1.5" title={p.paradero}>
-                      <span className="w-4 h-4 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+                    <span className="font-bold text-[#1B3A57] truncate pr-2 flex items-center gap-1.5" title={p.paradero}>
+                      <span className="w-4 h-4 rounded-full text-[10px] font-mono font-bold bg-[#E5ECF2] text-[#1B3A57] flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
                       <span className="truncate">{p.paradero}</span>
                     </span>
                     <span
-                      className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md shrink-0 ${
+                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border shrink-0 ${
                         p.zona === 'SUR'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-sky-100 text-sky-800'
+                          ? 'bg-[#FFF6E0] text-[#B45309] border-[#FDE68A]'
+                          : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7]'
                       }`}
                     >
                       {p.zona}
@@ -1483,7 +1471,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                   </div>
 
                   <div className="flex items-baseline justify-between text-xs">
-                    <span className="text-base font-extrabold text-[#00843D] font-mono">
+                    <span className="text-base font-bold text-[#2F7D18] font-mono">
                       {p.count}{' '}
                       <span className="text-[10px] font-normal text-slate-400">pasajeros</span>
                     </span>
@@ -1493,7 +1481,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                   <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        p.zona === 'SUR' ? 'bg-amber-500' : 'bg-[#00843D]'
+                        p.zona === 'SUR' ? 'bg-amber-500' : 'bg-[#55A529]'
                       }`}
                       style={{ width: `${widthPct}%` }}
                     />
@@ -1508,15 +1496,15 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       {/* ------------------------------------------------------------- */}
       {/* 5. TABLA RELACIONAL DETALLADA                                 */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
+        <div className="px-5 pt-4 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#00843D] flex items-center justify-center font-bold">
-              <Table className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
+              <Table className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                Estructura de Datos Normalizada (Dataset Fino)
+              <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
+                Estructura de datos normalizada
               </h3>
               <p className="text-[11px] text-slate-500 font-normal">
                 Registros individuales preparados para auditoría o exportación a Power BI
@@ -1524,10 +1512,9 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Input de Búsqueda */}
+          <div className="flex items-center gap-2.5">
+            {/* Input de Búsqueda píldora */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={tableSearch}
@@ -1535,121 +1522,118 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                   setTableSearch(e.target.value);
                   setTablePage(1);
                 }}
-                placeholder="Buscar por paradero, fundo, área..."
-                className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00843D]/20 focus:border-[#00843D] w-56 sm:w-72 transition-all"
+                placeholder="Buscar paradero, fundo, área..."
+                className="pl-4 pr-9 h-9 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#55A529] w-56 sm:w-64 transition-colors"
               />
+              <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            <span className="text-xs font-bold text-[#00843D] bg-emerald-50 px-3 py-1.5 rounded-xl shrink-0 border border-emerald-200/60">
+            <span className="text-[11px] font-semibold text-[#2F7D18] bg-[#EAF7E4] px-3 py-1 rounded-full shrink-0 border border-[#C6E9B4]">
               {tableFilteredRows.length} registros
             </span>
           </div>
         </div>
 
-        {/* Tabla Responsive */}
-        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead>
-                <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[11px] uppercase tracking-wider">
-                  <th className="py-3 px-3">N° Req</th>
-                  <th className="py-3 px-3">Fecha</th>
-                  <th className="py-3 px-3">Hora</th>
-                  <th className="py-3 px-3">Área</th>
-                  <th className="py-3 px-3">Fundo</th>
-                  <th className="py-3 px-3">Cultivo</th>
-                  <th className="py-3 px-3">Mov.</th>
-                  <th className="py-3 px-3">Zona</th>
-                  <th className="py-3 px-3">Paradero</th>
-                  <th className="py-3 px-3">Comedor</th>
-                  <th className="py-3 px-3">Solicitante</th>
-                  <th className="py-3 px-3 text-right">Cantidad</th>
+        {/* Tabla Responsive con cabecera celeste corporativa */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px] text-left">
+            <thead>
+              <tr className="bg-[#E6F3FB] text-[#0082B3] font-semibold border-y border-[#D4E9F7] text-[11px]">
+                <th className="py-2.5 px-3 whitespace-nowrap">N° Req</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Fecha</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Hora</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Área</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Fundo</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Cultivo</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Mov.</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Zona</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Paradero</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Comedor</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Solicitante</th>
+                <th className="py-2.5 px-3 text-right whitespace-nowrap">Cantidad</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-100 text-slate-700">
+              {pagedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={12} className="text-center py-12 text-slate-400 italic">
+                    No hay registros para mostrar con los filtros aplicados
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {pagedRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={12} className="text-center py-12 text-slate-400 italic">
-                      No hay registros para mostrar con los filtros aplicados
+              ) : (
+                pagedRows.map((row, idx) => (
+                  <tr
+                    key={row.id || idx}
+                    className="hover:bg-[#F7FBFE] transition-colors"
+                  >
+                    <td className="py-2.5 px-3 font-mono font-semibold text-[#1B3A57]">
+                      {row.numeroRequerimiento}
+                    </td>
+                    <td className="py-2.5 px-3 font-medium text-slate-700">{row.fecha}</td>
+                    <td className="py-2.5 px-3 font-semibold text-[#1B3A57]">{row.hora}</td>
+                    <td className="py-2.5 px-3 font-medium text-slate-700">{row.area}</td>
+                    <td className="py-2.5 px-3 font-semibold text-[#1B3A57]">{row.fundo}</td>
+                    <td className="py-2.5 px-3 font-semibold text-[#2F7D18]">{row.cultivo}</td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                          row.movimiento === 'INGRESO'
+                            ? 'bg-[#EAF7E4] text-[#2F7D18] border-[#C6E9B4]'
+                            : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7]'
+                        }`}
+                      >
+                        {row.movimiento}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                          row.zona === 'SUR'
+                            ? 'bg-[#FFF6E0] text-[#B45309] border-[#FDE68A]'
+                            : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7]'
+                        }`}
+                      >
+                        {row.zona}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-semibold text-[#1B3A57]">{row.paradero}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-600 font-medium">{row.parcela}</td>
+                    <td className="py-2.5 px-3 text-slate-600 truncate max-w-[120px]">
+                      {row.usuario}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-bold text-xs text-[#2F7D18] font-mono">
+                      {row.cantidad}
                     </td>
                   </tr>
-                ) : (
-                  pagedRows.map((row, idx) => (
-                    <tr
-                      key={row.id || idx}
-                      className={`${
-                        idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
-                      } hover:bg-emerald-50/40 transition-colors`}
-                    >
-                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
-                        {row.numeroRequerimiento}
-                      </td>
-                      <td className="py-2.5 px-3 font-medium text-slate-700">{row.fecha}</td>
-                      <td className="py-2.5 px-3 font-bold text-slate-900">{row.hora}</td>
-                      <td className="py-2.5 px-3 font-medium text-slate-700">{row.area}</td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-900">{row.fundo}</td>
-                      <td className="py-2.5 px-3 font-bold text-[#00843D]">{row.cultivo}</td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                            row.movimiento === 'INGRESO'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {row.movimiento}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                            row.zona === 'SUR'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-sky-100 text-sky-800'
-                          }`}
-                        >
-                          {row.zona}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 font-bold text-slate-900">{row.paradero}</td>
-                      <td className="py-2.5 px-3 font-mono text-slate-600 font-medium">{row.parcela}</td>
-                      <td className="py-2.5 px-3 text-slate-600 truncate max-w-[120px]">
-                        {row.usuario}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-black text-sm text-[#00843D] font-mono">
-                        {row.cantidad}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-              <tfoot>
-                <tr className="bg-slate-50 font-bold text-xs text-slate-800 border-t-2 border-slate-200">
-                  <td colSpan={11} className="py-3 px-3 uppercase tracking-tight font-black">
-                    TOTAL PERSONAL CONSOLIDADO (FILTRADO)
-                  </td>
-                  <td className="py-3 px-3 text-right text-base font-black text-[#00843D] font-mono">
-                    {totalPersonal.toLocaleString()}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="bg-[#F8FAFC] font-bold text-xs text-[#1B3A57] border-t border-[#E5ECF2]">
+                <td colSpan={11} className="py-2.5 px-3">
+                  Total personal consolidado (filtrado)
+                </td>
+                <td className="py-2.5 px-3 text-right text-sm font-bold text-[#2F7D18] font-mono">
+                  {totalPersonal.toLocaleString()}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
 
         {/* Paginación de Tabla */}
         {tableFilteredRows.length > pageSize && (
-          <div className="flex items-center justify-between pt-2 text-xs">
+          <div className="px-5 py-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-500 font-medium">
-              Página <strong className="text-slate-900">{tablePage}</strong> de{' '}
-              <strong className="text-slate-900">{totalPages}</strong> ({tableFilteredRows.length} registros totales)
+              Página <strong className="text-[#1B3A57]">{tablePage}</strong> de{' '}
+              <strong className="text-[#1B3A57]">{totalPages}</strong> ({tableFilteredRows.length} registros)
             </span>
 
             <div className="flex items-center gap-1.5">
               <button
                 disabled={tablePage === 1}
                 onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-bold text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3 py-1 bg-white border border-[#D8E2EA] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-full font-medium text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Anterior</span>
@@ -1657,7 +1641,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               <button
                 disabled={tablePage >= totalPages}
                 onClick={() => setTablePage((p) => Math.min(totalPages, p + 1))}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-bold text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3 py-1 bg-white border border-[#D8E2EA] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-full font-medium text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <span>Siguiente</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -1671,51 +1655,51 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       {/* 6. PILARES OPERATIVOS DE CAMPOSOL                             */}
       {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-[#00843D] uppercase tracking-wider block">
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-[#55A529] uppercase tracking-wider block">
             Datos en Tiempo Real
           </span>
-          <p className="text-xs font-bold text-slate-900">Captura Móvil 100%</p>
+          <p className="text-xs font-bold text-[#1B3A57]">Captura Móvil 100%</p>
           <span className="text-[11px] text-slate-400 block">
             Registrado por supervisores desde campo
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-[#00843D] uppercase tracking-wider block">
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-[#55A529] uppercase tracking-wider block">
             Información Normalizada
           </span>
-          <p className="text-xs font-bold text-slate-900">Sin duplicidad</p>
+          <p className="text-xs font-bold text-[#1B3A57]">Sin duplicidad</p>
           <span className="text-[11px] text-slate-400 block">
             Esquema relacional limpio para BI
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-[#00843D] uppercase tracking-wider block">
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-[#55A529] uppercase tracking-wider block">
             Compatibilidad Power BI
           </span>
-          <p className="text-xs font-bold text-slate-900">Conexión Directa</p>
+          <p className="text-xs font-bold text-[#1B3A57]">Conexión Directa</p>
           <span className="text-[11px] text-slate-400 block">
             Exporta CSV estructurado UTF-8
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-[#00843D] uppercase tracking-wider block">
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-[#55A529] uppercase tracking-wider block">
             Demanda Operativa
           </span>
-          <p className="text-xs font-bold text-slate-900">Total Pasajeros</p>
+          <p className="text-xs font-bold text-[#1B3A57]">Total Pasajeros</p>
           <span className="text-[11px] text-slate-400 block">
             Consolidado exacto por turno y paradero
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-[#00843D] uppercase tracking-wider block">
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-[#55A529] uppercase tracking-wider block">
             Auditoría Inmediata
           </span>
-          <p className="text-xs font-bold text-slate-900">Reportes Excel</p>
+          <p className="text-xs font-bold text-[#1B3A57]">Reportes Excel</p>
           <span className="text-[11px] text-slate-400 block">
             Consolidados listos para gerencia
           </span>

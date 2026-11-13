@@ -143,26 +143,26 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
     <div className="space-y-4 w-full max-w-7xl mx-auto pb-24 px-3 sm:px-6 lg:px-8 py-4">
       {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed top-4 right-4 z-50 bg-[#173B56] text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold animate-in fade-in slide-in-from-top duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="fixed top-4 right-4 z-50 bg-[#1B3A57] text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold animate-in fade-in slide-in-from-top duration-200">
+          <CheckCircle2 className="w-4 h-4 text-[#8CE062]" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* Top Banner with Counter & New Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-[#E5ECF2] shadow-xs">
         <div>
-          <h2 className="text-lg sm:text-xl font-black text-[#173B56] uppercase tracking-tight">
+          <h2 className="text-lg sm:text-xl font-bold text-[#1B3A57] uppercase tracking-tight">
             {isAdmin ? 'Bandeja de Recepción (Admin)' : 'Mis Requerimientos de Bus'}
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             {reqsActivos.length} activos en curso • {reqsHistorial.length} en historial de trazabilidad
           </p>
         </div>
 
         <button
           onClick={onNewRequirement}
-          className="bg-[#00843D] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-[#006e33] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xs shrink-0"
+          className="bg-[#22A846] text-white px-4 py-2 rounded-full text-xs sm:text-sm font-semibold hover:bg-[#1C8E3A] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xs shrink-0 cursor-pointer"
         >
           <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
           <span>Nuevo Requerimiento</span>
@@ -170,23 +170,23 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
       </div>
 
       {/* APARTADOS: Selector de Pestañas Activos vs Historial */}
-      <div className="grid grid-cols-2 gap-2 p-1.5 bg-gray-200/80 rounded-2xl">
+      <div className="grid grid-cols-2 gap-2 p-1.5 bg-[#E5ECF2] rounded-2xl">
         <button
           type="button"
           onClick={() => {
             setApartadoTab('activos');
             setSelectedEstadoFilter('TODOS');
           }}
-          className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 ${
+          className={`py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
             apartadoTab === 'activos'
-              ? 'bg-white text-[#00843D] shadow-sm scale-[1.01]'
-              : 'text-gray-600 hover:text-[#173B56]'
+              ? 'bg-white text-[#2F7D18] shadow-xs'
+              : 'text-slate-600 hover:text-[#1B3A57]'
           }`}
         >
           <Clock className="w-4 h-4" />
           <span>Requerimientos Activos</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-            apartadoTab === 'activos' ? 'bg-emerald-100 text-[#00843D]' : 'bg-gray-300/70 text-gray-700'
+          <span className={`text-[10px] px-2 py-0.2 rounded-full font-bold ${
+            apartadoTab === 'activos' ? 'bg-[#EAF7E4] text-[#2F7D18]' : 'bg-white/70 text-slate-600'
           }`}>
             {reqsActivos.length}
           </span>
@@ -198,16 +198,16 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
             setApartadoTab('historial');
             setSelectedEstadoFilter('TODOS');
           }}
-          className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 ${
+          className={`py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
             apartadoTab === 'historial'
-              ? 'bg-white text-[#173B56] shadow-sm scale-[1.01]'
-              : 'text-gray-600 hover:text-[#173B56]'
+              ? 'bg-white text-[#1B3A57] shadow-xs'
+              : 'text-slate-600 hover:text-[#1B3A57]'
           }`}
         >
-          <History className="w-4 h-4 text-rose-600" />
+          <History className="w-4 h-4 text-[#DC2626]" />
           <span>Historial & Anulados</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-            apartadoTab === 'historial' ? 'bg-rose-100 text-rose-700' : 'bg-gray-300/70 text-gray-700'
+          <span className={`text-[10px] px-2 py-0.2 rounded-full font-bold ${
+            apartadoTab === 'historial' ? 'bg-[#FDECEC] text-[#DC2626]' : 'bg-white/70 text-slate-600'
           }`}>
             {reqsHistorial.length}
           </span>
@@ -216,11 +216,11 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
 
       {/* Mensaje informativo cuando está en el apartado de Historial */}
       {apartadoTab === 'historial' && (
-        <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 p-3 rounded-2xl text-xs text-rose-900">
-          <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 bg-[#FDECEC] border border-[#FECACA] p-3 rounded-2xl text-xs text-[#DC2626]">
+          <ShieldCheck className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
           <div>
             <span className="font-bold block">Apartado de Historial & Trazabilidad</span>
-            <p className="text-[11px] text-rose-800 leading-tight">
+            <p className="text-[11px] text-[#DC2626]/90 leading-tight">
               Aquí se almacenan los requerimientos borrados o cancelados. Los datos de personas y paraderos permanecen guardados para trazabilidad histórica. Si borraste uno por error, puedes restaurarlo.
             </p>
           </div>
@@ -228,21 +228,21 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
       )}
 
       {/* Search & Filter Bar */}
-      <div className="space-y-3 bg-white p-3.5 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs">
+      <div className="space-y-3 bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E5ECF2] shadow-xs">
         {/* Search Input */}
         <div className="relative">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#55A529] absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Buscar por código, área, fundo o fecha..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-9 py-2 bg-gray-50/70 hover:bg-gray-50 focus:bg-white border border-gray-200/90 rounded-xl text-xs sm:text-sm text-[#173B56] focus:outline-none focus:ring-2 focus:ring-[#00843D] shadow-2xs transition-colors"
+            className="w-full pl-10 pr-9 h-10 bg-white border border-[#D8E2EA] rounded-full text-xs sm:text-sm text-[#1B3A57] focus:outline-none focus:border-[#55A529] transition-colors"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600 p-1"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
             >
               ✕
             </button>
@@ -263,16 +263,16 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                 <button
                   key={st}
                   onClick={() => setSelectedEstadoFilter(st)}
-                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 border ${
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 border cursor-pointer ${
                     isSelected
-                      ? 'bg-[#00843D] text-white border-[#00843D] shadow-xs'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      ? 'bg-[#22A846] text-white border-[#22A846] shadow-xs'
+                      : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-[#F3F8F0]'
                   }`}
                 >
                   <span>{st}</span>
                   <span
-                    className={`text-[9px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                      isSelected ? 'bg-white text-[#00843D]' : 'bg-gray-100 text-gray-500'
+                    className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isSelected ? 'bg-white text-[#22A846]' : 'bg-[#F1F5F9] text-slate-500'
                     }`}
                   >
                     {count}
@@ -286,20 +286,20 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
 
       {/* REQUIREMENTS LIST: Responsive Grid */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl p-10 border border-gray-200 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-[#E8F5EF] text-[#00843D] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl p-10 border border-[#E5ECF2] text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center mx-auto">
             {apartadoTab === 'historial' ? (
-              <History className="w-6 h-6 text-rose-500" />
+              <History className="w-6 h-6 text-[#DC2626]" />
             ) : (
               <Filter className="w-6 h-6" />
             )}
           </div>
-          <h3 className="text-base font-bold text-[#173B56]">
+          <h3 className="text-base font-bold text-[#1B3A57]">
             {apartadoTab === 'historial'
               ? 'No hay requerimientos en el historial'
               : 'No hay requerimientos activos con estos filtros'}
           </h3>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
             {apartadoTab === 'historial'
               ? 'Cuando un requerimiento sea anulado o borrado, quedará almacenado en este apartado con su trazabilidad completa.'
               : 'Intenta cambiar los filtros seleccionados o registra una nueva solicitud de transporte.'}
@@ -317,16 +317,16 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                 onClick={() => onSelectRequirement(req)}
                 className={`group bg-white rounded-2xl p-4 border transition-all cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between ${
                   isAnulado
-                    ? 'border-rose-200 hover:border-rose-400 bg-rose-50/10'
-                    : 'border-gray-200/90 hover:border-[#00843D]/50'
+                    ? 'border-[#FECACA] hover:border-rose-400 bg-[#FDECEC]/15'
+                    : 'border-[#E5ECF2] hover:border-[#55A529]'
                 }`}
               >
                 <div>
                   {/* Card Header: Requerimiento Code & Status Badge */}
-                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-gray-100">
+                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${statusStyle.dot}`} />
-                      <span className="font-extrabold text-sm text-[#173B56] group-hover:text-[#00843D] transition-colors">
+                      <span className="font-bold text-sm text-[#1B3A57] group-hover:text-[#55A529] transition-colors">
                         {req.numeroRequerimiento}
                       </span>
                     </div>
@@ -342,61 +342,61 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                   {/* Card Body: Info Fields */}
                   <div className="pt-3 space-y-2 text-xs">
                     {/* Fecha de Servicio */}
-                    <div className="flex items-center justify-between text-gray-600">
-                      <span className="flex items-center gap-1.5 text-gray-500 font-medium">
-                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
                         <span>Fecha Servicio:</span>
                       </span>
-                      <span className="font-bold text-[#173B56]">
+                      <span className="font-bold text-[#1B3A57]">
                         {formatDisplayDate(req.fecha)}
                       </span>
                     </div>
 
                     {/* Fundo & Área */}
-                    <div className="flex items-center justify-between text-gray-600">
-                      <span className="flex items-center gap-1.5 text-gray-500 font-medium">
-                        <Building className="w-3.5 h-3.5 text-gray-400" />
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                        <Building className="w-3.5 h-3.5 text-slate-400" />
                         <span>Fundo / Área:</span>
                       </span>
-                      <span className="font-bold text-[#173B56] truncate max-w-[170px]">
+                      <span className="font-bold text-[#1B3A57] truncate max-w-[170px]">
                         {req.fundo} ({req.area})
                       </span>
                     </div>
 
                     {/* Horarios */}
-                    <div className="flex items-center justify-between text-gray-600">
-                      <span className="flex items-center gap-1.5 text-gray-500 font-medium">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
                         <span>Horarios:</span>
                       </span>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-slate-700">
                         {getHorarioDisplay(req).textoHorario}
                       </span>
                     </div>
 
                     {/* Personal Total */}
-                    <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-                      <span className="flex items-center gap-1.5 text-gray-500 font-medium">
-                        <Users className="w-3.5 h-3.5 text-gray-400" />
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                        <Users className="w-3.5 h-3.5 text-slate-400" />
                         <span>Total Personas:</span>
                       </span>
-                      <span className="font-extrabold text-sm text-[#00843D]">
+                      <span className="font-bold text-sm text-[#2F7D18]">
                         {req.totalPersonas} pax
                       </span>
                     </div>
 
                     {/* Si está anulado, mostrar información de trazabilidad */}
                     {isAnulado && (
-                      <div className="mt-2 p-2 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-800 space-y-1">
+                      <div className="mt-2 p-2 rounded-xl bg-[#FDECEC] border border-[#FECACA] text-[11px] text-[#DC2626] space-y-1">
                         <div className="flex items-center justify-between font-bold">
                           <span>Guardado en Historial</span>
                           {req.fechaAnulacion && (
-                            <span className="font-normal text-[10px] text-rose-600">
+                            <span className="font-normal text-[10px] text-[#DC2626]/80">
                               {new Date(req.fechaAnulacion).toLocaleDateString('es-PE')}
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-rose-700 italic truncate">
+                        <p className="text-[10px] text-[#DC2626]/90 italic truncate">
                           Motivo: {req.motivoAnulacion || 'Anulado de la programación diaria.'}
                         </p>
                       </div>
@@ -405,24 +405,24 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                 </div>
 
                 {/* Card Footer: Action button */}
-                <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between">
+                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
                   {isAnulado ? (
                     <button
                       type="button"
                       onClick={(e) => handleRestore(req, e)}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                      className="px-3 py-1 rounded-full bg-[#EAF7E4] text-[#2F7D18] hover:bg-emerald-100 border border-[#C6E9B4] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
                       title="Restaurar este requerimiento a la bandeja activa"
                     >
                       <RotateCcw className="w-3 h-3" />
                       <span>Restaurar</span>
                     </button>
                   ) : (
-                    <span className="text-[11px] text-gray-400 font-medium">
+                    <span className="text-[11px] text-slate-400 font-medium">
                       {req.usuario}
                     </span>
                   )}
 
-                  <span className="text-xs font-bold text-[#00843D] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  <span className="text-xs font-semibold text-[#2F7D18] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                     <span>Ver detalle</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </span>

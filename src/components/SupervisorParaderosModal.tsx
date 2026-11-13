@@ -103,10 +103,10 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
-      <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto border border-gray-100 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1B3A57]/40 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto border border-[#E5ECF2] flex flex-col max-h-[90vh]">
         {/* Header Limpio */}
-        <div className="bg-[#173B56] text-white px-5 py-4 relative shrink-0">
+        <div className="bg-[#1B3A57] text-white px-5 py-4 relative shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-1.5 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
@@ -116,15 +116,15 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#00843D] flex items-center justify-center text-white shrink-0 font-black text-sm shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-[#55A529] flex items-center justify-center text-white shrink-0 font-bold text-sm shadow-sm">
               {(requerimiento.usuario || 'S').slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0 pr-8">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black tracking-tight leading-tight truncate">
+                <h2 className="text-lg font-bold tracking-tight leading-tight truncate">
                   {requerimiento.usuario || 'Supervisor Solicitante'}
                 </h2>
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/15 text-emerald-200 shrink-0">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/15 text-[#A3E47D] shrink-0">
                   {requerimiento.numeroRequerimiento}
                 </span>
               </div>
@@ -138,53 +138,53 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
         {/* 3 Tarjetas KPI Limpias (Solo Pasajeros y Paraderos) */}
         <div className="px-5 pt-3.5 pb-2 grid grid-cols-3 gap-2.5 shrink-0">
           {/* Total */}
-          <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-2.5 text-center">
-            <div className="text-2xl sm:text-3xl font-black text-[#00843D] leading-none">
+          <div className="bg-[#EAF7E4]/70 border border-[#C6E9B4] rounded-2xl p-2.5 text-center">
+            <div className="text-2xl sm:text-3xl font-bold text-[#2F7D18] leading-none">
               {totalPersonas}
             </div>
-            <div className="text-[11px] font-bold text-gray-700 mt-1">
+            <div className="text-[11px] font-bold text-[#1B3A57] mt-1">
               Total Pasajeros
             </div>
-            <div className="text-[10px] text-emerald-800 font-semibold">
+            <div className="text-[10px] text-[#2F7D18] font-semibold">
               {paraderosAgrupados.length} paraderos
             </div>
           </div>
 
           {/* Sur */}
-          <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-2.5 text-center flex flex-col justify-between">
+          <div className="bg-[#FFF6E0] border border-[#FDE68A] rounded-2xl p-2.5 text-center flex flex-col justify-between">
             <div>
-              <div className="text-2xl sm:text-3xl font-black text-amber-900 leading-none">
+              <div className="text-2xl sm:text-3xl font-bold text-[#B45309] leading-none">
                 {totalZonaSur}
               </div>
-              <div className="text-[11px] font-bold text-amber-900 mt-1">
+              <div className="text-[11px] font-bold text-[#B45309] mt-1">
                 Zona Sur
               </div>
-              <div className="text-[10px] text-amber-800 font-semibold">
+              <div className="text-[10px] text-[#B45309]/80 font-semibold">
                 {paraderosSur.length} paraderos
               </div>
             </div>
             {horario.isIngreso && horario.horaSur && (
-              <div className="mt-1 text-[10px] font-black text-amber-950 bg-amber-100/90 py-0.5 px-1.5 rounded-md border border-amber-300/70 shadow-2xs mx-auto">
+              <div className="mt-1 text-[10px] font-bold text-[#92400E] bg-white/80 py-0.5 px-2 rounded-full border border-[#FDE68A] shadow-2xs mx-auto">
                 Hora: {horario.horaSur}
               </div>
             )}
           </div>
 
           {/* Norte */}
-          <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-2.5 text-center flex flex-col justify-between">
+          <div className="bg-[#E6F3FB] border border-[#D4E9F7] rounded-2xl p-2.5 text-center flex flex-col justify-between">
             <div>
-              <div className="text-2xl sm:text-3xl font-black text-indigo-900 leading-none">
+              <div className="text-2xl sm:text-3xl font-bold text-[#0082B3] leading-none">
                 {totalZonaNorte}
               </div>
-              <div className="text-[11px] font-bold text-indigo-900 mt-1">
+              <div className="text-[11px] font-bold text-[#0082B3] mt-1">
                 Zona Norte
               </div>
-              <div className="text-[10px] text-indigo-800 font-semibold">
+              <div className="text-[10px] text-[#0082B3]/80 font-semibold">
                 {paraderosNorte.length} paraderos
               </div>
             </div>
             {horario.isIngreso && horario.horaNorte && (
-              <div className="mt-1 text-[10px] font-black text-indigo-950 bg-indigo-100/90 py-0.5 px-1.5 rounded-md border border-indigo-300/70 shadow-2xs mx-auto">
+              <div className="mt-1 text-[10px] font-bold text-[#1B3A57] bg-white/80 py-0.5 px-2 rounded-full border border-[#D4E9F7] shadow-2xs mx-auto">
                 Hora: {horario.horaNorte}
               </div>
             )}
@@ -195,19 +195,19 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
         <div className="px-5 py-2 overflow-y-auto flex-1 space-y-2">
           {/* Selector de Vista Minimalista */}
           <div className="flex items-center justify-between gap-2 pt-1">
-            <span className="text-xs font-bold text-gray-500">
+            <span className="text-xs font-semibold text-slate-500">
               {paraderosAgrupados.length} paraderos solicitados
             </span>
 
-            <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-xl text-xs">
+            <div className="flex items-center gap-1 bg-[#F1F5F9] p-0.5 rounded-full text-xs">
               <button
                 type="button"
                 id="btn-view-agrupado"
                 onClick={() => setViewMode('AGRUPADO')}
-                className={`px-2.5 py-1 font-bold rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1 font-semibold rounded-full transition-all cursor-pointer ${
                   viewMode === 'AGRUPADO'
-                    ? 'bg-white text-gray-900 shadow-2xs font-black'
-                    : 'text-gray-500 hover:text-gray-800'
+                    ? 'bg-white text-[#1B3A57] shadow-2xs font-bold'
+                    : 'text-slate-500 hover:text-[#1B3A57]'
                 }`}
               >
                 Por Zonas
@@ -216,10 +216,10 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                 type="button"
                 id="btn-view-todos"
                 onClick={() => setViewMode('TODOS')}
-                className={`px-2.5 py-1 font-bold rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1 font-semibold rounded-full transition-all cursor-pointer ${
                   viewMode === 'TODOS'
-                    ? 'bg-white text-gray-900 shadow-2xs font-black'
-                    : 'text-gray-500 hover:text-gray-800'
+                    ? 'bg-white text-[#1B3A57] shadow-2xs font-bold'
+                    : 'text-slate-500 hover:text-[#1B3A57]'
                 }`}
               >
                 Todos
@@ -228,10 +228,10 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                 type="button"
                 id="btn-view-sur"
                 onClick={() => setViewMode('SUR')}
-                className={`px-2 py-1 font-bold rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 font-semibold rounded-full transition-all cursor-pointer ${
                   viewMode === 'SUR'
-                    ? 'bg-amber-600 text-white shadow-2xs font-black'
-                    : 'text-amber-800 hover:bg-amber-100/60'
+                    ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                    : 'text-[#B45309] hover:bg-[#FFF6E0]'
                 }`}
               >
                 Sur ({totalZonaSur})
@@ -240,10 +240,10 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                 type="button"
                 id="btn-view-norte"
                 onClick={() => setViewMode('NORTE')}
-                className={`px-2 py-1 font-bold rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 font-semibold rounded-full transition-all cursor-pointer ${
                   viewMode === 'NORTE'
-                    ? 'bg-indigo-600 text-white shadow-2xs font-black'
-                    : 'text-indigo-800 hover:bg-indigo-100/60'
+                    ? 'bg-[#0082B3] text-white shadow-2xs font-bold'
+                    : 'text-[#0082B3] hover:bg-[#E6F3FB]'
                 }`}
               >
                 Norte ({totalZonaNorte})
@@ -252,13 +252,13 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
           </div>
 
           {paraderosAgrupados.length === 0 ? (
-            <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-200 text-gray-400 text-xs">
+            <div className="p-8 text-center bg-[#F8FAFC] rounded-2xl border border-[#E5ECF2] text-slate-400 text-xs">
               No se registraron paraderos para este requerimiento.
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-2xs">
+            <div className="border border-[#E5ECF2] rounded-2xl overflow-hidden shadow-2xs">
               <table className="w-full text-left text-xs">
-                <thead className="bg-gray-50 text-gray-600 font-bold text-[11px] border-b border-gray-200">
+                <thead className="bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-b border-[#D4E9F7]">
                   <tr>
                     <th className="py-2 px-3 w-8">#</th>
                     <th className="py-2 px-3">Paradero</th>
@@ -270,35 +270,35 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
 
                 {viewMode === 'AGRUPADO' ? (
                   /* Modo Agrupado: Cabeceras de Zona limpias */
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-slate-100">
                     {/* SECCIÓN ZONA SUR */}
                     {paraderosSur.length > 0 && (
                       <>
-                        <tr className="bg-amber-50/80 border-y border-amber-200">
+                        <tr className="bg-[#FFF6E0] border-y border-[#FDE68A]">
                           <td colSpan={4} className="py-1.5 px-3">
-                            <div className="flex items-center justify-between text-xs font-black text-amber-900">
+                            <div className="flex items-center justify-between text-xs font-bold text-[#B45309]">
                               <span className="flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-amber-500" />
                                 <span>Zona Sur</span>
                               </span>
-                              <span className="font-mono text-amber-950 font-black">
+                              <span className="font-mono text-[#92400E] font-bold">
                                 {totalZonaSur} pasajeros ({paraderosSur.length} paraderos)
                               </span>
                             </div>
                           </td>
                         </tr>
                         {paraderosSur.map((item, idx) => (
-                          <tr key={`sur-${idx}`} className="hover:bg-amber-50/30 transition-colors">
-                            <td className="py-2 px-3 font-semibold text-gray-400 text-[11px]">{idx + 1}</td>
-                            <td className="py-2 px-3 font-bold text-gray-800">{item.paradero}</td>
+                          <tr key={`sur-${idx}`} className="hover:bg-[#F7FBFE] transition-colors">
+                            <td className="py-2 px-3 font-semibold text-slate-400 text-[11px]">{idx + 1}</td>
+                            <td className="py-2 px-3 font-semibold text-[#1B3A57]">{item.paradero}</td>
                             <td className="py-2 px-3 text-right">
-                              <span className="font-mono font-black text-sm text-[#00843D]">{item.totalPersonas}</span>
+                              <span className="font-mono font-bold text-sm text-[#2F7D18]">{item.totalPersonas}</span>
                             </td>
-                            <td className="py-2 px-3 text-[11px] text-gray-500">
+                            <td className="py-2 px-3 text-[11px] text-slate-500">
                               {item.comedoresDetalle.map((c, cIdx) => (
                                 <span
                                   key={cIdx}
-                                  className="inline-block bg-gray-100 px-1.5 py-0.5 rounded mr-1 text-[10px] text-gray-700 font-medium"
+                                  className="inline-block bg-[#F1F5F9] px-2 py-0.5 rounded-full mr-1 text-[10px] text-slate-700 font-medium"
                                 >
                                   {c.comedor}: <strong>{c.cantidad}</strong>
                                 </span>
@@ -312,31 +312,31 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                     {/* SECCIÓN ZONA NORTE */}
                     {paraderosNorte.length > 0 && (
                       <>
-                        <tr className="bg-indigo-50/80 border-y border-indigo-200">
+                        <tr className="bg-[#E6F3FB]/70 border-y border-[#D4E9F7]">
                           <td colSpan={4} className="py-1.5 px-3">
-                            <div className="flex items-center justify-between text-xs font-black text-indigo-900">
+                            <div className="flex items-center justify-between text-xs font-bold text-[#0082B3]">
                               <span className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                <span className="w-2 h-2 rounded-full bg-[#0082B3]" />
                                 <span>Zona Norte</span>
                               </span>
-                              <span className="font-mono text-indigo-950 font-black">
+                              <span className="font-mono text-[#1B3A57] font-bold">
                                 {totalZonaNorte} pasajeros ({paraderosNorte.length} paraderos)
                               </span>
                             </div>
                           </td>
                         </tr>
                         {paraderosNorte.map((item, idx) => (
-                          <tr key={`norte-${idx}`} className="hover:bg-indigo-50/30 transition-colors">
-                            <td className="py-2 px-3 font-semibold text-gray-400 text-[11px]">{idx + 1}</td>
-                            <td className="py-2 px-3 font-bold text-gray-800">{item.paradero}</td>
+                          <tr key={`norte-${idx}`} className="hover:bg-[#F7FBFE] transition-colors">
+                            <td className="py-2 px-3 font-semibold text-slate-400 text-[11px]">{idx + 1}</td>
+                            <td className="py-2 px-3 font-semibold text-[#1B3A57]">{item.paradero}</td>
                             <td className="py-2 px-3 text-right">
-                              <span className="font-mono font-black text-sm text-[#00843D]">{item.totalPersonas}</span>
+                              <span className="font-mono font-bold text-sm text-[#2F7D18]">{item.totalPersonas}</span>
                             </td>
-                            <td className="py-2 px-3 text-[11px] text-gray-500">
+                            <td className="py-2 px-3 text-[11px] text-slate-500">
                               {item.comedoresDetalle.map((c, cIdx) => (
                                 <span
                                   key={cIdx}
-                                  className="inline-block bg-gray-100 px-1.5 py-0.5 rounded mr-1 text-[10px] text-gray-700 font-medium"
+                                  className="inline-block bg-[#F1F5F9] px-2 py-0.5 rounded-full mr-1 text-[10px] text-slate-700 font-medium"
                                 >
                                   {c.comedor}: <strong>{c.cantidad}</strong>
                                 </span>
@@ -349,18 +349,18 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                   </tbody>
                 ) : (
                   /* Modo Filtrado / Plano */
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-slate-100">
                     {paraderosFiltrados.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-2 px-3 font-semibold text-gray-400 text-[11px]">{idx + 1}</td>
-                        <td className="py-2 px-3 font-bold text-gray-800">{item.paradero}</td>
+                      <tr key={idx} className="hover:bg-[#F7FBFE] transition-colors">
+                        <td className="py-2 px-3 font-semibold text-slate-400 text-[11px]">{idx + 1}</td>
+                        <td className="py-2 px-3 font-semibold text-[#1B3A57]">{item.paradero}</td>
                         {viewMode === 'TODOS' && (
                           <td className="py-2 px-2 text-center">
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${
                                 item.zona === 'SUR'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-indigo-100 text-indigo-800'
+                                  ? 'bg-[#FFF6E0] text-[#B45309] border-[#FDE68A]'
+                                  : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7]'
                               }`}
                             >
                               {item.zona}
@@ -368,13 +368,13 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                           </td>
                         )}
                         <td className="py-2 px-3 text-right">
-                          <span className="font-mono font-black text-sm text-[#00843D]">{item.totalPersonas}</span>
+                          <span className="font-mono font-bold text-sm text-[#2F7D18]">{item.totalPersonas}</span>
                         </td>
-                        <td className="py-2 px-3 text-[11px] text-gray-500">
+                        <td className="py-2 px-3 text-[11px] text-slate-500">
                           {item.comedoresDetalle.map((c, cIdx) => (
                             <span
                               key={cIdx}
-                              className="inline-block bg-gray-100 px-1.5 py-0.5 rounded mr-1 text-[10px] text-gray-700 font-medium"
+                              className="inline-block bg-[#F1F5F9] px-2 py-0.5 rounded-full mr-1 text-[10px] text-slate-700 font-medium"
                             >
                               {c.comedor}: <strong>{c.cantidad}</strong>
                             </span>
@@ -386,19 +386,19 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                 )}
 
                 {/* Fila Total Limpia */}
-                <tfoot className="bg-gray-100/90 font-bold border-t border-gray-200 text-gray-800">
+                <tfoot className="bg-[#F8FAFC] font-bold border-t border-[#E5ECF2] text-[#1B3A57]">
                   <tr>
-                    <td colSpan={viewMode === 'TODOS' ? 3 : 2} className="py-2.5 px-3 font-black text-xs">
+                    <td colSpan={viewMode === 'TODOS' ? 3 : 2} className="py-2.5 px-3 font-bold text-xs">
                       Total:
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-base font-black text-[#00843D]">
+                    <td className="py-2.5 px-3 text-right font-mono text-base font-bold text-[#2F7D18]">
                       {viewMode === 'SUR'
                         ? totalZonaSur
                         : viewMode === 'NORTE'
                         ? totalZonaNorte
                         : totalPersonas}
                     </td>
-                    <td className="py-2.5 px-3 text-xs text-gray-600 font-semibold">
+                    <td className="py-2.5 px-3 text-xs text-slate-600 font-semibold">
                       pasajeros
                     </td>
                   </tr>
@@ -408,27 +408,27 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
           )}
 
           {requerimiento.observaciones && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs text-gray-600">
-              <strong className="text-gray-700">Nota:</strong> {requerimiento.observaciones}
+            <div className="bg-[#F8FAFC] border border-[#E5ECF2] rounded-xl p-2.5 text-xs text-slate-600">
+              <strong className="text-[#1B3A57]">Nota:</strong> {requerimiento.observaciones}
             </div>
           )}
         </div>
 
         {/* Botones de Acción Limpios */}
-        <div className="bg-gray-50 border-t border-gray-200 px-5 py-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div className="bg-[#F8FAFC] border-t border-[#E5ECF2] px-5 py-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopySummary}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
                 copied
-                  ? 'bg-[#173B56] text-white'
-                  : 'bg-emerald-100 hover:bg-emerald-200 text-[#00843D]'
+                  ? 'bg-[#1B3A57] text-white'
+                  : 'bg-[#EAF7E4] hover:bg-emerald-100 text-[#2F7D18] border border-[#C6E9B4]'
               }`}
               title="Copiar resumen para WhatsApp"
             >
               {copied ? (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#8CE062]" />
                   <span>¡Copiado!</span>
                 </>
               ) : (
@@ -441,10 +441,10 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
 
             <button
               onClick={handleDownloadExcel}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-emerald-50 text-[#00843D] border border-emerald-300 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white hover:bg-[#F3F8F0] text-[#2F7D18] border border-[#C6E9B4] flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
               title="Descargar este requerimiento a Excel"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-[#00843D]" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#2F7D18]" />
               <span>Descargar en Excel</span>
             </button>
           </div>
@@ -456,7 +456,7 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
                   onClose();
                   onOpenFullDetail(requerimiento);
                 }}
-                className="px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:text-[#173B56] hover:bg-gray-100 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#1B3A57] hover:bg-[#F1F5F9] rounded-full transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <span>Detalle Completo</span>
                 <ExternalLink className="w-3 h-3" />
@@ -465,7 +465,7 @@ export const SupervisorParaderosModal: React.FC<SupervisorParaderosModalProps> =
 
             <button
               onClick={onClose}
-              className="px-4 py-1.5 bg-[#173B56] hover:bg-[#122e43] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              className="px-4 py-1.5 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold transition-colors cursor-pointer"
             >
               Cerrar
             </button>

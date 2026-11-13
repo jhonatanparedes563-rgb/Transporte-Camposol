@@ -32,23 +32,23 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
   const totalReqs = requerimientos.length;
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#F5F8F7] lg:bg-slate-200/70 lg:py-4 lg:px-4 flex items-stretch lg:items-center justify-center font-sans antialiased text-[#173B56]">
+    <div className="min-h-[100dvh] w-full bg-[#EEF3F7] lg:py-4 lg:px-4 flex items-stretch lg:items-center justify-center font-sans antialiased text-[#1B3A57]">
       {/* Mobile App Container: Full-bleed edge-to-edge on phones/tablets, centered frame only on wide desktop */}
-      <div className="w-full lg:max-w-lg bg-[#F5F8F7] min-h-[100dvh] h-[100dvh] lg:h-[844px] lg:max-h-[calc(100vh-2rem)] lg:rounded-[32px] lg:shadow-2xl lg:border lg:border-gray-300/80 flex flex-col relative overflow-hidden">
+      <div className="w-full lg:max-w-lg bg-[#EEF3F7] min-h-[100dvh] h-[100dvh] lg:h-[844px] lg:max-h-[calc(100vh-2rem)] lg:rounded-[32px] lg:shadow-2xl lg:border lg:border-[#D8E2EA] flex flex-col relative overflow-hidden">
         {/* Mobile App Header */}
-        <header className="sticky top-0 z-40 bg-[#00843D] text-white px-4 py-3 shadow-md flex items-center justify-between shrink-0">
+        <header className="sticky top-0 z-40 bg-[#55A529] text-white px-4 py-3 shadow-xs flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             {currentScreen !== 'home' ? (
               <button
                 id="btn-mobile-back"
                 onClick={() => onNavigate('home')}
-                className="p-1.5 -ml-1.5 rounded-xl hover:bg-[#006e33] active:bg-[#005728] transition-colors focus:outline-none cursor-pointer shrink-0"
+                className="p-1.5 -ml-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors focus:outline-none cursor-pointer shrink-0"
                 aria-label="Volver al inicio"
               >
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
             ) : (
-              <div className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/60 bg-[#58A33E] flex items-center justify-center p-0.5">
+              <div className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/70 bg-[#55A529] flex items-center justify-center p-0.5">
                 <img
                   src={getPublicAssetUrl('camposol-emblem.png')}
                   onError={(e) => {
@@ -66,12 +66,12 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-black tracking-wider text-sm text-white">CAMPOSOL</span>
-                <span className="text-[9px] uppercase font-black tracking-widest bg-white/20 text-white px-1.5 py-0.5 rounded-md">
+                <span className="font-bold tracking-wider text-sm text-white">CAMPOSOL</span>
+                <span className="text-[9px] uppercase font-bold tracking-widest bg-white/20 text-white px-2 py-0.5 rounded-full">
                   SOLICITANTE
                 </span>
               </div>
-              <div className="text-[11px] text-emerald-100 font-medium truncate">
+              <div className="text-[11px] text-[#EAF7E4] font-medium truncate">
                 {currentScreen === 'new-request'
                   ? 'Nuevo Requerimiento'
                   : currentScreen === 'my-requests'
@@ -87,11 +87,11 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               <button
                 id="btn-mobile-logout"
                 onClick={onLogout}
-                className="flex items-center gap-1.5 bg-black/20 hover:bg-black/35 active:scale-95 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border border-white/15 cursor-pointer"
+                className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-full text-xs font-semibold transition-all border border-white/25 cursor-pointer"
                 title="Cerrar sesión"
               >
-                <LogOut className="w-3.5 h-3.5 text-emerald-100" />
-                <span className="text-[11px] font-bold text-white">Salir</span>
+                <LogOut className="w-3.5 h-3.5 text-[#EAF7E4]" />
+                <span className="text-[11px] font-semibold text-white">Salir</span>
               </button>
             )}
           </div>
@@ -139,15 +139,15 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
 
         {/* Sticky Mobile Bottom Navigation Bar (Oculta durante la creación del requerimiento para dar espacio al wizard) */}
         {currentScreen !== 'new-request' && (
-          <nav className="sticky bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200/90 py-1.5 px-4 flex items-center justify-around shadow-lg shrink-0">
+          <nav className="sticky bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E2E8F0] py-1.5 px-4 flex items-center justify-around shadow-lg shrink-0">
             {/* Tab 1: INICIO */}
             <button
               id="nav-mobile-home"
               onClick={() => onNavigate('home')}
               className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
                 currentScreen === 'home'
-                  ? 'text-[#00843D] font-black'
-                  : 'text-gray-400 hover:text-gray-600 font-medium'
+                  ? 'text-[#55A529] font-bold'
+                  : 'text-slate-400 hover:text-slate-600 font-medium'
               }`}
             >
               <Home className="w-5 h-5" />
@@ -164,13 +164,13 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 ${
                   currentScreen === 'new-request'
-                    ? 'bg-[#173B56] text-white ring-4 ring-emerald-100'
-                    : 'bg-[#00843D] text-white group-hover:bg-[#006e33]'
+                    ? 'bg-[#1B3A57] text-white ring-4 ring-[#EAF7E4]'
+                    : 'bg-[#22A846] text-white group-hover:bg-[#1C8E3A]'
                 }`}
               >
                 <PlusCircle className="w-7 h-7" />
               </div>
-              <span className="text-[10px] mt-1 font-extrabold text-[#00843D]">Nuevo</span>
+              <span className="text-[10px] mt-1 font-bold text-[#2F7D18]">Nuevo</span>
             </button>
 
             {/* Tab 3: MIS REQUERIMIENTOS */}
@@ -179,14 +179,14 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               onClick={() => onNavigate('my-requests')}
               className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all relative ${
                 currentScreen === 'my-requests'
-                  ? 'text-[#00843D] font-black'
-                  : 'text-gray-400 hover:text-gray-600 font-medium'
+                  ? 'text-[#55A529] font-bold'
+                  : 'text-slate-400 hover:text-slate-600 font-medium'
               }`}
             >
               <div className="relative">
                 <ClipboardList className="w-5 h-5" />
                 {totalReqs > 0 && (
-                  <span className="absolute -top-1 -right-2 px-1.5 py-0.2 text-[9px] font-black bg-[#00843D] text-white rounded-full">
+                  <span className="absolute -top-1 -right-2 px-1.5 py-0.2 text-[9px] font-bold bg-[#55A529] text-white rounded-full">
                     {totalReqs}
                   </span>
                 )}

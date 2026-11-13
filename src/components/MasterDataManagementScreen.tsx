@@ -841,27 +841,37 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
   };
 
   return (
-    <div className="flex flex-col flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24">
+    <div className="flex flex-col flex-1 w-full max-w-7xl mx-auto space-y-4 pb-16 text-[#1B3A57]">
       {/* Toast feedback */}
       {toastMessage && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#173B56] text-white px-4 py-2.5 rounded-full shadow-lg text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-3">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#1B3A57] text-white px-4 py-2.5 rounded-full shadow-lg text-xs font-semibold flex items-center gap-2 border border-[#55A529]/50 animate-in fade-in slide-in-from-top-3">
+          <CheckCircle2 className="w-4 h-4 text-[#7BD44B]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Screen Title & Top Actions */}
-      <div className="flex items-center justify-between">
-        <button
-          id="btn-back-to-home"
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#00843D] bg-[#E8F5EF] hover:bg-[#d5eee0] active:scale-95 px-3.5 py-2 rounded-xl transition-all"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Volver al Inicio</span>
-        </button>
+      {/* Top Toolbar Card matching corporate reference */}
+      <div className="bg-white rounded-2xl px-5 py-3.5 border border-[#E5ECF2] shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            id="btn-back-to-home"
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#2F7D18] bg-[#EAF7E4] hover:bg-[#d8f1cc] border border-[#C6E9B4] px-3.5 py-2 rounded-full transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Volver</span>
+          </button>
+          <div>
+            <h2 className="text-sm font-bold text-[#1B3A57] leading-tight">
+              Datos maestros del sistema
+            </h2>
+            <p className="text-[11px] text-slate-500">
+              Administra paraderos, fundos, áreas y flota de buses en tiempo real
+            </p>
+          </div>
+        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Hidden file input for Excel upload */}
           <input
             ref={fileInputRef}
@@ -874,70 +884,70 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           <button
             id="btn-upload-master-excel"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#00843D] hover:bg-[#006e33] active:scale-95 px-3 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
+            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
             title="Subir archivo Excel (.xlsx, .xls, .csv) con paraderos, fundos y áreas"
           >
             <Upload className="w-4 h-4" />
-            <span>Subir Excel</span>
+            <span className="text-[10px] font-medium">Subir Excel</span>
           </button>
 
           <button
             id="btn-download-master-template"
             onClick={handleDownloadTemplate}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 active:scale-95 px-3 py-2 rounded-xl transition-all cursor-pointer"
+            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
             title="Descargar plantilla Excel con formato oficial para Paraderos, Fundos y Áreas"
           >
-            <FileSpreadsheet className="w-4 h-4 text-[#00843D]" />
-            <span className="hidden sm:inline">Plantilla Excel</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="text-[10px] font-medium">Plantilla</span>
           </button>
 
           <button
             id="btn-export-master-csv"
             onClick={handleExportCurrentMaster}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 px-3 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
+            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
             title="Exportar a CSV"
           >
-            <Download className="w-4 h-4 text-[#00843D]" />
-            <span className="hidden sm:inline">Exportar CSV</span>
+            <Download className="w-4 h-4" />
+            <span className="text-[10px] font-medium">Descarga CSV</span>
           </button>
 
           <button
             id="btn-reset-masters"
             onClick={() => setShowResetConfirm(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 active:scale-95 px-3 py-2 rounded-xl transition-all cursor-pointer"
+            className="px-4 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Restablecer a valores iniciales"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
             <span>Restablecer</span>
           </button>
         </div>
       </div>
 
       {/* Responsive Grid: 2 columns on desktop, 1 on mobile */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left Column (Desktop: 5 cols): Category & Add Item */}
         <div className="lg:col-span-5 space-y-4">
           {/* Hero card explaining the section */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs">
+          <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-[#E8F5EF] flex items-center justify-center text-[#00843D] shrink-0 shadow-xs">
-                <MapPin className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-2xl bg-[#EAF7E4] border border-[#C6E9B4] flex items-center justify-center text-[#2F7D18] shrink-0">
+                <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-extrabold tracking-widest text-[#00843D] uppercase">
-                  ADMINISTRACIÓN OPERATIVA
+                <span className="text-[10px] font-semibold tracking-wider text-[#55A529] uppercase">
+                  Administración operativa
                 </span>
-                <h1 className="text-xl font-black text-[#173B56] leading-tight uppercase">
-                  Mis Maestros y Paraderos
+                <h1 className="text-lg font-bold text-[#1B3A57] leading-tight">
+                  Maestros y Paraderos
                 </h1>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Personaliza tus paraderos, fundos y áreas de servicio en tiempo real o mediante Excel.
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Personaliza paraderos, fundos, áreas y flota de servicio.
                 </p>
               </div>
             </div>
 
             {/* Quick KPI Count Summary - 4 items */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t border-slate-100">
               {tabsConfig.map((t) => {
                 const Icon = t.icon;
                 const isCurrent = activeTab === t.id;
@@ -951,19 +961,19 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                       setFormError(null);
                       cancelEditing();
                     }}
-                    className={`p-2.5 rounded-xl text-center transition-all ${
+                    className={`p-2.5 rounded-xl text-center transition-all cursor-pointer border ${
                       isCurrent
-                        ? 'bg-[#00843D] text-white shadow-xs font-bold'
-                        : 'bg-[#F5F8F7] hover:bg-gray-100 text-[#173B56]'
+                        ? 'bg-[#55A529] text-white border-[#55A529] shadow-xs font-semibold'
+                        : 'bg-[#F8FAFC] hover:bg-[#F3F8F0] text-[#1B3A57] border-[#E5ECF2]'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 mx-auto mb-1 ${isCurrent ? 'text-white' : 'text-[#00843D]'}`} />
-                    <div className="text-sm font-black leading-none">{t.count}</div>
-                    <div className={`text-[10px] font-medium leading-tight mt-1 truncate ${isCurrent ? 'text-emerald-100' : 'text-gray-500'}`}>
+                    <Icon className={`w-4 h-4 mx-auto mb-1 ${isCurrent ? 'text-white' : 'text-[#55A529]'}`} />
+                    <div className="text-sm font-bold leading-none tabular-nums">{t.count}</div>
+                    <div className={`text-[10px] font-medium leading-tight mt-1 truncate ${isCurrent ? 'text-white/90' : 'text-slate-500'}`}>
                       {t.label}
                     </div>
                     {t.id === 'paraderos' && (
-                      <div className={`text-[9px] font-bold mt-1 tracking-tight ${isCurrent ? 'text-white/90' : 'text-gray-400'}`}>
+                      <div className={`text-[9px] font-semibold mt-1 tracking-tight ${isCurrent ? 'text-white/90' : 'text-slate-400'}`}>
                         {countNorte}N • {countSur}S
                       </div>
                     )}
@@ -974,18 +984,18 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           </div>
 
           {/* Add New Item Card */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs space-y-3.5">
+          <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F5EF] flex items-center justify-center text-[#00843D]">
-                  <Plus className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] flex items-center justify-center text-[#2F7D18]">
+                  <Plus className="w-4 h-4" />
                 </div>
-                <h2 className="text-sm font-black text-[#173B56] uppercase">
-                  Agregar Nuevo {currentTabInfo.singular}
+                <h2 className="text-sm font-bold text-[#1B3A57]">
+                  Agregar nuevo {currentTabInfo.singular.toLowerCase()}
                 </h2>
               </div>
-              <span className="text-[10px] font-bold text-[#00843D] bg-[#E8F5EF] px-2.5 py-0.5 rounded-full">
-                Disponible al instante
+              <span className="text-[10px] font-semibold text-[#2F7D18] bg-[#EAF7E4] border border-[#C6E9B4] px-2.5 py-0.5 rounded-full">
+                Tiempo real
               </span>
             </div>
 
@@ -1004,12 +1014,12 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     if (formError) setFormError(null);
                   }}
                   placeholder={currentTabInfo.placeholder}
-                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#00843D] focus:border-transparent placeholder:text-gray-400"
+                  className="flex-1 h-10 px-4 rounded-full border border-[#D8E2EA] text-xs text-slate-700 focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
                 />
                 <button
                   type="submit"
                   id="btn-submit-add-item"
-                  className="bg-[#00843D] hover:bg-[#006e33] active:bg-[#005728] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all shrink-0"
+                  className="bg-[#22A846] hover:bg-[#1C8E3A] text-white px-4 h-10 rounded-full font-semibold text-xs flex items-center gap-1.5 shadow-2xs transition-all shrink-0 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Agregar</span>
@@ -1018,9 +1028,9 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
               {/* Capacidad selector when adding a new Bus */}
               {activeTab === 'buses' && (
-                <div className="flex items-center justify-between bg-[#F5F8F7] px-3 py-2 rounded-xl border border-gray-200/80">
-                  <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                    <Bus className="w-3.5 h-3.5 text-[#00843D]" />
+                <div className="flex items-center justify-between bg-[#F8FAFC] px-3.5 py-2 rounded-xl border border-[#E5ECF2]">
+                  <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Bus className="w-3.5 h-3.5 text-[#55A529]" />
                     <span>Capacidad (Pasajeros):</span>
                   </span>
                   <input
@@ -1029,16 +1039,16 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     max="100"
                     value={newUnidadCapacidad}
                     onChange={(e) => setNewUnidadCapacidad(Number(e.target.value) || 0)}
-                    className="w-24 p-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-[#173B56] text-right focus:outline-none focus:ring-1 focus:ring-[#00843D]"
+                    className="w-24 p-1.5 bg-white border border-[#D8E2EA] rounded-full text-xs font-semibold text-[#1B3A57] text-right focus:outline-none focus:border-[#55A529]"
                   />
                 </div>
               )}
 
               {/* Zona selector when adding a new Paradero */}
               {activeTab === 'paraderos' && (
-                <div className="flex items-center justify-between bg-[#F5F8F7] px-3 py-2 rounded-xl border border-gray-200/80">
-                  <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-[#00843D]" />
+                <div className="flex items-center justify-between bg-[#F8FAFC] px-3.5 py-2 rounded-xl border border-[#E5ECF2]">
+                  <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Compass className="w-3.5 h-3.5 text-[#55A529]" />
                     <span>Zona asignada:</span>
                   </span>
                   <div className="flex items-center gap-1.5">
@@ -1046,34 +1056,34 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                       type="button"
                       id="btn-select-new-norte"
                       onClick={() => setNewParaderoZona('NORTE')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer border ${
                         newParaderoZona === 'NORTE'
-                          ? 'bg-indigo-600 text-white shadow-2xs'
-                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                          ? 'bg-[#0082B3] text-white border-[#0082B3]'
+                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
                       }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${newParaderoZona === 'NORTE' ? 'bg-indigo-300' : 'bg-indigo-500'}`} />
-                      <span>Zona Norte</span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${newParaderoZona === 'NORTE' ? 'bg-white' : 'bg-[#0082B3]'}`} />
+                      <span>Norte</span>
                     </button>
                     <button
                       type="button"
                       id="btn-select-new-sur"
                       onClick={() => setNewParaderoZona('SUR')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer border ${
                         newParaderoZona === 'SUR'
-                          ? 'bg-amber-600 text-white shadow-2xs'
-                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                          ? 'bg-amber-600 text-white border-amber-600'
+                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
                       }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${newParaderoZona === 'SUR' ? 'bg-amber-300' : 'bg-amber-500'}`} />
-                      <span>Zona Sur</span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${newParaderoZona === 'SUR' ? 'bg-white' : 'bg-amber-500'}`} />
+                      <span>Sur</span>
                     </button>
                   </div>
                 </div>
               )}
 
               {formError && (
-                <p className="text-xs text-red-600 font-medium flex items-center gap-1">
+                <p className="text-xs text-[#DC2626] font-medium flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   {formError}
                 </p>
@@ -1083,12 +1093,12 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
           {/* Quick link to create a new requirement with the updated master */}
           {onNavigateToNewRequest && (
-            <div className="pt-2">
+            <div className="pt-1">
               <button
                 onClick={onNavigateToNewRequest}
-                className="w-full py-3.5 bg-[#00843D] text-white rounded-2xl font-black text-sm uppercase shadow-md hover:bg-[#006e33] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full font-semibold text-xs shadow-2xs active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Crear Requerimiento con estos datos</span>
+                <span>Crear requerimiento con estos datos</span>
               </button>
             </div>
           )}
@@ -1097,7 +1107,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         {/* Right Column (Desktop: 7 cols): Tabs, Search & List */}
         <div className="lg:col-span-7 space-y-4">
           {/* Main Tabs Navigation */}
-          <div className="flex bg-gray-200/70 p-1.5 rounded-2xl gap-1 overflow-x-auto">
+          <div className="flex bg-white p-1.5 rounded-full border border-[#E5ECF2] shadow-2xs gap-1 overflow-x-auto">
             {tabsConfig.map((t) => {
               const isCurrent = activeTab === t.id;
               return (
@@ -1110,10 +1120,10 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     setFormError(null);
                     cancelEditing();
                   }}
-                  className={`flex-1 min-w-[70px] py-2 px-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                  className={`flex-1 min-w-[70px] py-2 px-3 text-xs font-semibold rounded-full transition-all whitespace-nowrap cursor-pointer ${
                     isCurrent
-                      ? 'bg-white text-[#00843D] shadow-xs'
-                      : 'text-gray-600 hover:text-[#173B56]'
+                      ? 'bg-[#55A529] text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-[#2F7D18] hover:bg-[#F3F8F0]'
                   }`}
                 >
                   {t.label} ({t.count})
@@ -1124,33 +1134,33 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
           {/* Quick Zone Distribution & Filter when on Paraderos */}
           {activeTab === 'paraderos' && (
-            <div className="bg-white rounded-2xl p-3 border border-gray-200/80 shadow-xs flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F5EF] text-[#00843D] flex items-center justify-center font-bold shrink-0">
+            <div className="bg-white rounded-2xl p-3.5 border border-[#E5ECF2] shadow-xs flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold shrink-0">
                   <Compass className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-black text-[#173B56] uppercase tracking-wide">
-                    Distribución por Zona
+                  <div className="text-xs font-bold text-[#1B3A57]">
+                    Distribución por zona
                   </div>
-                  <div className="text-[11px] text-gray-500">
-                    Total: <strong className="text-gray-800">{paraderos.length}</strong> • Zona Norte:{' '}
-                    <strong className="text-indigo-700 font-bold">{countNorte}</strong> • Zona Sur:{' '}
-                    <strong className="text-amber-700 font-bold">{countSur}</strong>
+                  <div className="text-[11px] text-slate-500">
+                    Total: <strong className="text-[#1B3A57]">{paraderos.length}</strong> • Norte:{' '}
+                    <strong className="text-[#0082B3] font-semibold">{countNorte}</strong> • Sur:{' '}
+                    <strong className="text-[#B45309] font-semibold">{countSur}</strong>
                   </div>
                 </div>
               </div>
 
               {/* Quick Filter Buttons */}
-              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   id="filter-zona-todos"
                   onClick={() => setSelectedZonaFilter('TODOS')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors cursor-pointer border ${
                     selectedZonaFilter === 'TODOS'
-                      ? 'bg-white text-gray-800 shadow-2xs font-black'
-                      : 'text-gray-500 hover:text-gray-800'
+                      ? 'bg-[#22A846] text-white border-[#22A846]'
+                      : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
                   }`}
                 >
                   Todos ({paraderos.length})
@@ -1159,26 +1169,24 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   type="button"
                   id="filter-zona-norte"
                   onClick={() => setSelectedZonaFilter('NORTE')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors flex items-center gap-1 cursor-pointer border ${
                     selectedZonaFilter === 'NORTE'
-                      ? 'bg-indigo-600 text-white shadow-2xs font-black'
-                      : 'text-indigo-700 hover:bg-indigo-50'
+                      ? 'bg-[#0082B3] text-white border-[#0082B3]'
+                      : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7] hover:bg-[#d5ecfa]'
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
                   <span>Norte ({countNorte})</span>
                 </button>
                 <button
                   type="button"
                   id="filter-zona-sur"
                   onClick={() => setSelectedZonaFilter('SUR')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors flex items-center gap-1 cursor-pointer border ${
                     selectedZonaFilter === 'SUR'
-                      ? 'bg-amber-600 text-white shadow-2xs font-black'
-                      : 'text-amber-700 hover:bg-amber-50'
+                      ? 'bg-amber-600 text-white border-amber-600'
+                      : 'bg-[#FFF6E0] text-[#B45309] border-[#FDE68A] hover:bg-[#fef0cc]'
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
                   <span>Sur ({countSur})</span>
                 </button>
               </div>
@@ -1188,43 +1196,46 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           {/* Search and List Header */}
           <div className="space-y-2">
             <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 id="input-search-master-items"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={`Buscar ${currentTabInfo.label.toLowerCase()}...`}
-                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00843D] placeholder:text-gray-400 shadow-xs"
+                className="w-full h-10 pl-4 pr-10 rounded-full bg-white border border-[#D8E2EA] text-xs text-slate-700 focus:outline-none focus:border-[#55A529] placeholder:text-slate-400 shadow-2xs"
               />
-              {searchQuery && (
+              {searchQuery ? (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
+              ) : (
+                <Search className="w-4 h-4 text-[#55A529] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 px-1 gap-1">
+            <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 px-1 gap-1">
               <span>
-                Mostrando <strong>
+                Mostrando <strong className="text-[#1B3A57]">
                   {activeTab === 'paraderos'
                     ? filteredParaderos.length
                     : activeTab === 'fundos'
                     ? filteredFundos.length
-                    : filteredAreas.length}
+                    : activeTab === 'areas'
+                    ? filteredAreas.length
+                    : filteredBuses.length}
                 </strong> {currentTabInfo.label.toLowerCase()}
                 {activeTab === 'paraderos' && (
-                  <span className="ml-1 text-[11px] text-gray-600">
-                    (<strong className="text-indigo-700">{countNorte} Norte</strong>,{' '}
-                    <strong className="text-amber-700">{countSur} Sur</strong>)
+                  <span className="ml-1 text-[11px] text-slate-500">
+                    (<strong className="text-[#0082B3]">{countNorte} Norte</strong>,{' '}
+                    <strong className="text-[#B45309]">{countSur} Sur</strong>)
                   </span>
                 )}
               </span>
               {searchQuery && (
-                <span className="text-[#00843D] font-semibold">
+                <span className="text-[#2F7D18] font-semibold">
                   Filtro: "{searchQuery}"
                 </span>
               )}
@@ -1346,10 +1357,10 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   return (
                     <div
                       key={item.id}
-                      className="bg-white rounded-2xl p-3 border border-gray-200/80 shadow-xs flex items-center justify-between gap-3 hover:border-[#00843D]/30 transition-colors"
+                      className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between gap-3 hover:border-[#55A529]/50 transition-colors"
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="w-7 h-7 rounded-lg bg-[#E8F5EF] text-[#00843D] text-xs font-black flex items-center justify-center shrink-0">
+                        <span className="w-7 h-7 rounded-lg bg-[#EAF7E4] text-[#2F7D18] text-xs font-bold flex items-center justify-center shrink-0 border border-[#C6E9B4]">
                           {index + 1}
                         </span>
 
@@ -1361,33 +1372,33 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                               onChange={(e) => setEditingName(e.target.value)}
                               autoFocus
                               placeholder="Nombre de unidad..."
-                              className="flex-1 min-w-[120px] px-2.5 py-1.5 rounded-lg border border-[#00843D] text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#00843D]"
+                              className="flex-1 min-w-[120px] px-3 py-1.5 rounded-full border border-[#55A529] text-xs font-semibold focus:outline-none"
                             />
-                            <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
-                              <span className="text-[10px] text-gray-500 font-bold">Cap:</span>
+                            <div className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-full border border-[#D8E2EA]">
+                              <span className="text-[10px] text-slate-500 font-semibold">Cap:</span>
                               <input
                                 type="number"
                                 min="1"
                                 max="100"
                                 value={editingCapacidad}
                                 onChange={(e) => setEditingCapacidad(Number(e.target.value) || 0)}
-                                className="w-14 text-xs font-bold text-right bg-white border border-gray-300 rounded px-1"
+                                className="w-12 text-xs font-semibold text-right bg-white border border-[#D8E2EA] rounded px-1"
                               />
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 onClick={() => saveEditing(item.id)}
-                                className="p-1.5 bg-[#00843D] text-white rounded-lg hover:bg-[#006e33] transition-colors cursor-pointer"
+                                className="p-1.5 bg-[#22A846] text-white rounded-full hover:bg-[#1C8E3A] transition-colors cursor-pointer"
                                 title="Guardar cambios"
                               >
-                                <Check className="w-4 h-4" />
+                                <Check className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={cancelEditing}
-                                className="p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                                className="p-1.5 bg-[#F1F5F9] text-slate-600 rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
                                 title="Cancelar"
                               >
-                                <X className="w-4 h-4" />
+                                <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
@@ -1395,14 +1406,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                           <div className="flex-1 min-w-0 flex items-center justify-between gap-2 pr-1">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-black text-[#173B56]">
+                                <span className="text-xs font-bold text-[#1B3A57]">
                                   {item.nombre}
                                 </span>
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-[#00843D]/30 text-[10px] font-black text-[#00843D]">
+                                <span className="px-2 py-0.5 rounded-full bg-[#EAF7E4] border border-[#C6E9B4] text-[10px] font-semibold text-[#2F7D18]">
                                   {item.capacidad} PAX
                                 </span>
                               </div>
-                              <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+                              <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                                 {item.descripcion || `Capacidad ${item.capacidad} pasajeros`}
                               </div>
                             </div>
@@ -1410,14 +1421,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                             <button
                               type="button"
                               onClick={() => handleToggleUnidadActivo(item.id)}
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-black transition-all cursor-pointer ${
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer border ${
                                 item.activo
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-gray-100 text-gray-500'
+                                  ? 'bg-[#EAF7E4] text-[#2F7D18] border-[#C6E9B4]'
+                                  : 'bg-[#F1F5F9] text-slate-500 border-slate-200'
                               }`}
                               title={item.activo ? 'Unidad activa para optimización' : 'Unidad inactiva'}
                             >
-                              {item.activo ? 'ACTIVO' : 'INACTIVO'}
+                              {item.activo ? 'Activo' : 'Inactivo'}
                             </button>
                           </div>
                         )}
@@ -1430,14 +1441,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                               startEditing(item.id, item.nombre);
                               setEditingCapacidad(item.capacidad);
                             }}
-                            className="p-1.5 text-gray-400 hover:text-[#00843D] hover:bg-[#E8F5EF] rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-[#3D8B1C] hover:bg-[#EAF7E4] rounded-full transition-colors cursor-pointer"
                             title="Editar nombre y capacidad"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setItemToDelete({ id: item.id, name: item.nombre })}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] rounded-full transition-colors cursor-pointer"
                             title="Eliminar unidad"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1455,16 +1466,16 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       {/* Delete Confirmation Modal */}
       {itemToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl animate-in fade-in zoom-in duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-[#E5ECF2] animate-in fade-in zoom-in duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-[#FDECEC] text-[#DC2626] border border-[#FECACA] flex items-center justify-center mx-auto mb-3">
               <Trash2 className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-black text-center text-[#173B56] uppercase">
+            <h3 className="text-base font-bold text-center text-[#1B3A57] uppercase">
               ¿Eliminar {currentTabInfo.singular}?
             </h3>
-            <p className="text-xs text-gray-500 text-center mt-1">
+            <p className="text-xs text-slate-500 text-center mt-1">
               Estás a punto de quitar{' '}
-              <strong className="text-gray-800">"{itemToDelete.name}"</strong> del maestro. Esta
+              <strong className="text-slate-800">"{itemToDelete.name}"</strong> del maestro. Esta
               acción no afectará requerimientos ya guardados históricamente.
             </p>
 
@@ -1472,14 +1483,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               <button
                 type="button"
                 onClick={() => setItemToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100"
+                className="flex-1 py-2.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={confirmDelete}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 font-bold text-xs text-white shadow-sm"
+                className="flex-1 py-2.5 rounded-full bg-[#DC2626] hover:bg-red-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
               >
                 Sí, Eliminar
               </button>
@@ -1491,14 +1502,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       {/* Reset Confirmation Modal */}
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl animate-in fade-in zoom-in duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-3">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-[#E5ECF2] animate-in fade-in zoom-in duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-[#FFF6E0] text-[#B45309] border border-[#FDE68A] flex items-center justify-center mx-auto mb-3">
               <AlertTriangle className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-black text-center text-[#173B56] uppercase">
+            <h3 className="text-base font-bold text-center text-[#1B3A57] uppercase">
               ¿Restablecer Maestros?
             </h3>
-            <p className="text-xs text-gray-500 text-center mt-1">
+            <p className="text-xs text-slate-500 text-center mt-1">
               Se restablecerán todos los paraderos, fundos y áreas a la lista oficial
               inicial de CAMPOSOL.
             </p>
@@ -1507,14 +1518,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100"
+                className="flex-1 py-2.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleResetDefaults}
-                className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 font-bold text-xs text-white shadow-sm"
+                className="flex-1 py-2.5 rounded-full bg-amber-600 hover:bg-amber-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
               >
                 Sí, Restablecer
               </button>
@@ -1526,17 +1537,17 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       {/* Excel Import Modal */}
       {showImportModal && importData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in duration-150 max-h-[90vh] flex flex-col">
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-[#00843D] flex items-center justify-center shrink-0">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-[#E5ECF2] animate-in fade-in zoom-in duration-150 max-h-[90vh] flex flex-col">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] flex items-center justify-center shrink-0">
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-black text-[#173B56] uppercase leading-tight truncate">
+                <h3 className="text-base font-bold text-[#1B3A57] uppercase leading-tight truncate">
                   Importar Datos desde Excel
                 </h3>
-                <p className="text-xs text-gray-500 truncate">
-                  Archivo: <span className="font-semibold text-gray-700">{importFileName}</span>
+                <p className="text-xs text-slate-500 truncate">
+                  Archivo: <span className="font-semibold text-slate-700">{importFileName}</span>
                 </p>
               </div>
             </div>
@@ -1544,28 +1555,28 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             {/* Content summary */}
             <div className="py-4 space-y-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-3 gap-2.5">
-                <div className="bg-[#E8F5EF] p-3 rounded-xl text-center border border-emerald-200/60">
-                  <div className="text-xl font-black text-[#00843D]">{importData.paraderos.length}</div>
-                  <div className="text-[11px] font-bold text-gray-700 mt-0.5">Paraderos</div>
-                  <div className="text-[9px] text-gray-500 mt-0.5">
+                <div className="bg-[#EAF7E4] p-3 rounded-xl text-center border border-[#C6E9B4]">
+                  <div className="text-xl font-bold text-[#2F7D18]">{importData.paraderos.length}</div>
+                  <div className="text-[11px] font-semibold text-[#1B3A57] mt-0.5">Paraderos</div>
+                  <div className="text-[9px] text-slate-500 mt-0.5">
                     {importData.paraderos.filter(p => p.zona === 'NORTE').length} Norte • {importData.paraderos.filter(p => p.zona === 'SUR').length} Sur
                   </div>
                 </div>
 
-                <div className="bg-sky-50 p-3 rounded-xl text-center border border-sky-200/60">
-                  <div className="text-xl font-black text-sky-800">{importData.fundos.length}</div>
-                  <div className="text-[11px] font-bold text-gray-700 mt-0.5">Fundos</div>
+                <div className="bg-[#E6F3FB] p-3 rounded-xl text-center border border-[#D4E9F7]">
+                  <div className="text-xl font-bold text-[#0082B3]">{importData.fundos.length}</div>
+                  <div className="text-[11px] font-semibold text-[#1B3A57] mt-0.5">Fundos</div>
                 </div>
 
-                <div className="bg-amber-50 p-3 rounded-xl text-center border border-amber-200/60">
-                  <div className="text-xl font-black text-amber-800">{importData.areas.length}</div>
-                  <div className="text-[11px] font-bold text-gray-700 mt-0.5">Áreas</div>
+                <div className="bg-[#FFF6E0] p-3 rounded-xl text-center border border-[#FDE68A]">
+                  <div className="text-xl font-bold text-[#B45309]">{importData.areas.length}</div>
+                  <div className="text-[11px] font-semibold text-[#1B3A57] mt-0.5">Áreas</div>
                 </div>
               </div>
 
               {/* Mode Selection */}
               <div className="space-y-2 pt-1">
-                <label className="text-xs font-black text-[#173B56] uppercase tracking-wide">
+                <label className="text-xs font-bold text-[#1B3A57] uppercase tracking-wide">
                   Modo de Importación:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1574,15 +1585,15 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     onClick={() => setImportMode('merge')}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       importMode === 'merge'
-                        ? 'border-[#00843D] bg-emerald-50/70 ring-1 ring-[#00843D]'
-                        : 'border-gray-200 hover:bg-gray-50'
+                        ? 'border-[#55A529] bg-[#F3F8F0] ring-1 ring-[#55A529]'
+                        : 'border-[#E5ECF2] hover:bg-slate-50'
                     }`}
                   >
-                    <div className="text-xs font-black text-[#173B56] flex items-center justify-between">
+                    <div className="text-xs font-bold text-[#1B3A57] flex items-center justify-between">
                       <span>Combinar / Agregar</span>
-                      {importMode === 'merge' && <Check className="w-4 h-4 text-[#00843D]" />}
+                      {importMode === 'merge' && <Check className="w-4 h-4 text-[#55A529]" />}
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-1 leading-snug">
+                    <div className="text-[10px] text-slate-500 mt-1 leading-snug">
                       Agrega nuevos registros sin tocar los ya existentes y evitando duplicados. (Recomendado)
                     </div>
                   </button>
@@ -1592,15 +1603,15 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     onClick={() => setImportMode('replace')}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       importMode === 'replace'
-                        ? 'border-amber-500 bg-amber-50/70 ring-1 ring-amber-500'
-                        : 'border-gray-200 hover:bg-gray-50'
+                        ? 'border-amber-500 bg-[#FFF6E0] ring-1 ring-amber-500'
+                        : 'border-[#E5ECF2] hover:bg-slate-50'
                     }`}
                   >
-                    <div className="text-xs font-black text-[#173B56] flex items-center justify-between">
+                    <div className="text-xs font-bold text-[#1B3A57] flex items-center justify-between">
                       <span>Reemplazar Lista</span>
-                      {importMode === 'replace' && <Check className="w-4 h-4 text-amber-600" />}
+                      {importMode === 'replace' && <Check className="w-4 h-4 text-[#B45309]" />}
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-1 leading-snug">
+                    <div className="text-[10px] text-slate-500 mt-1 leading-snug">
                       Sustituye completamente la lista de las categorías presentes en el Excel.
                     </div>
                   </button>
@@ -1609,14 +1620,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
               {/* Preview samples */}
               <div className="space-y-1.5 pt-1">
-                <div className="text-[11px] font-bold text-gray-600 uppercase">
+                <div className="text-[11px] font-semibold text-slate-600 uppercase">
                   Vista previa de datos detectados:
                 </div>
-                <div className="max-h-36 overflow-y-auto bg-gray-50 rounded-xl p-2.5 border border-gray-200/80 text-xs space-y-1">
+                <div className="max-h-36 overflow-y-auto bg-[#EEF3F7] rounded-xl p-2.5 border border-[#E5ECF2] text-xs space-y-1">
                   {importData.paraderos.length > 0 && (
                     <div className="text-[11px]">
-                      <strong className="text-[#00843D]">Paraderos ({importData.paraderos.length}):</strong>{' '}
-                      <span className="text-gray-600">
+                      <strong className="text-[#2F7D18]">Paraderos ({importData.paraderos.length}):</strong>{' '}
+                      <span className="text-slate-600">
                         {importData.paraderos.slice(0, 5).map(p => `${p.codigo ? `[${p.codigo}] ` : ''}${p.paradero} (${p.zona}${p.macrozona ? ` - ${p.macrozona}` : ''})`).join(', ')}
                         {importData.paraderos.length > 5 ? ` y ${importData.paraderos.length - 5} más...` : ''}
                       </span>
@@ -1624,8 +1635,8 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   )}
                   {importData.fundos.length > 0 && (
                     <div className="text-[11px]">
-                      <strong className="text-sky-800">Fundos ({importData.fundos.length}):</strong>{' '}
-                      <span className="text-gray-600">
+                      <strong className="text-[#0082B3]">Fundos ({importData.fundos.length}):</strong>{' '}
+                      <span className="text-slate-600">
                         {importData.fundos.slice(0, 5).map(f => f.fundo).join(', ')}
                         {importData.fundos.length > 5 ? ` y ${importData.fundos.length - 5} más...` : ''}
                       </span>
@@ -1633,8 +1644,8 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   )}
                   {importData.areas.length > 0 && (
                     <div className="text-[11px]">
-                      <strong className="text-amber-800">Áreas ({importData.areas.length}):</strong>{' '}
-                      <span className="text-gray-600">
+                      <strong className="text-[#B45309]">Áreas ({importData.areas.length}):</strong>{' '}
+                      <span className="text-slate-600">
                         {importData.areas.slice(0, 5).map(a => a.area).join(', ')}
                         {importData.areas.length > 5 ? ` y ${importData.areas.length - 5} más...` : ''}
                       </span>
@@ -1645,21 +1656,21 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             </div>
 
             {/* Modal Actions */}
-            <div className="flex gap-2.5 pt-3 border-t border-gray-100">
+            <div className="flex gap-2.5 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => {
                   setShowImportModal(false);
                   setImportData(null);
                 }}
-                className="flex-1 py-2.5 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleExecuteImport}
-                className="flex-1 py-2.5 rounded-xl bg-[#00843D] hover:bg-[#006e33] font-bold text-xs text-white shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                className="flex-1 py-2.5 rounded-full bg-[#22A846] hover:bg-[#1C8E3A] font-semibold text-xs text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>Confirmar e Importar</span>
@@ -1720,10 +1731,10 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
   return (
     <div
       id={`item-card-${id}`}
-      className="bg-white rounded-2xl p-3 border border-gray-200/80 shadow-xs flex items-center justify-between gap-3 hover:border-[#00843D]/30 transition-colors"
+      className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between gap-3 hover:border-[#55A529]/50 transition-colors"
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <span className="w-7 h-7 rounded-lg bg-[#E8F5EF] text-[#00843D] text-xs font-black flex items-center justify-center shrink-0">
+        <span className="w-7 h-7 rounded-lg bg-[#EAF7E4] text-[#2F7D18] text-xs font-bold flex items-center justify-center shrink-0 border border-[#C6E9B4]">
           {index}
         </span>
 
@@ -1734,17 +1745,17 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
               value={editingValue}
               onChange={(e) => onChangeEdit(e.target.value)}
               autoFocus
-              className="flex-1 min-w-[120px] px-3 py-1.5 rounded-lg border border-[#00843D] text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00843D]"
+              className="flex-1 min-w-[120px] px-3 py-1.5 rounded-full border border-[#55A529] text-xs font-semibold focus:outline-none"
             />
             {editingZona && onChangeEditingZona && (
-              <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200 shrink-0">
+              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-full border border-[#D8E2EA] shrink-0">
                 <button
                   type="button"
                   onClick={() => onChangeEditingZona('NORTE')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase transition-colors cursor-pointer ${
                     editingZona === 'NORTE'
-                      ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'text-gray-500 hover:text-gray-800'
+                      ? 'bg-[#0082B3] text-white'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Norte
@@ -1752,10 +1763,10 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
                 <button
                   type="button"
                   onClick={() => onChangeEditingZona('SUR')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase transition-colors cursor-pointer ${
                     editingZona === 'SUR'
-                      ? 'bg-amber-600 text-white shadow-2xs'
-                      : 'text-gray-500 hover:text-gray-800'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Sur
@@ -1765,17 +1776,17 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={onSaveEdit}
-                className="p-1.5 bg-[#00843D] text-white rounded-lg hover:bg-[#006e33] transition-colors cursor-pointer"
+                className="p-1.5 bg-[#22A846] text-white rounded-full hover:bg-[#1C8E3A] transition-colors cursor-pointer"
                 title="Guardar cambios"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={onCancelEdit}
-                className="p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                className="p-1.5 bg-[#F1F5F9] text-slate-600 rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
                 title="Cancelar"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -1784,17 +1795,17 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {codigo && (
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[10px] font-mono font-bold text-[#00843D]">
+                  <span className="px-1.5 py-0.5 rounded bg-[#EAF7E4] border border-[#C6E9B4] text-[10px] font-mono font-semibold text-[#2F7D18]">
                     {codigo}
                   </span>
                 )}
-                <span className="text-sm font-bold text-[#173B56] break-words leading-snug" title={name}>
+                <span className="text-xs font-bold text-[#1B3A57] break-words leading-snug" title={name}>
                   {name}
                 </span>
               </div>
               {(macrozona || (zonaEspecifica && zonaEspecifica !== zona) || (referencia && referencia !== '.' && referencia !== '-')) && (
-                <div className="text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap mt-0.5">
-                  {macrozona && <span className="font-semibold text-gray-700">{macrozona}</span>}
+                <div className="text-[10px] text-slate-500 flex items-center gap-1.5 flex-wrap mt-0.5">
+                  {macrozona && <span className="font-semibold text-slate-700">{macrozona}</span>}
                   {zonaEspecifica && zonaEspecifica !== zona && <span>• {zonaEspecifica}</span>}
                   {referencia && referencia !== '.' && referencia !== '-' && <span>• Ref: {referencia}</span>}
                 </div>
@@ -1808,14 +1819,14 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
                   e.stopPropagation();
                   onToggleZona?.();
                 }}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 shrink-0 transition-all border shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1 shrink-0 transition-all border hover:scale-105 active:scale-95 cursor-pointer ${
                   zona === 'SUR'
-                    ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
-                    : 'bg-indigo-100 text-indigo-900 border-indigo-300 hover:bg-indigo-200'
+                    ? 'bg-[#FFF6E0] text-[#B45309] border-[#FDE68A]'
+                    : 'bg-[#E6F3FB] text-[#0082B3] border-[#D4E9F7]'
                 }`}
                 title={`Zona: ${zona}. Haz clic para cambiar a ${zona === 'SUR' ? 'NORTE' : 'SUR'}`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${zona === 'SUR' ? 'bg-amber-600' : 'bg-indigo-600'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${zona === 'SUR' ? 'bg-amber-500' : 'bg-[#0082B3]'}`} />
                 <span>{zona}</span>
                 <ArrowLeftRight className="w-2.5 h-2.5 opacity-60 ml-0.5" />
               </button>
@@ -1829,18 +1840,18 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
           <button
             id={`btn-edit-${id}`}
             onClick={onStartEdit}
-            className="p-2 text-gray-500 hover:text-[#00843D] hover:bg-[#E8F5EF] rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 text-[#3D8B1C] hover:bg-[#EAF7E4] rounded-full transition-colors cursor-pointer"
             title="Editar nombre"
           >
-            <Edit2 className="w-4 h-4" />
+            <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             id={`btn-delete-${id}`}
             onClick={onDelete}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] rounded-full transition-colors cursor-pointer"
             title="Eliminar"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
@@ -1855,14 +1866,14 @@ const EmptyMasterState: React.FC<{
   singular: string;
 }> = ({ searchQuery, onClearSearch, singular }) => {
   return (
-    <div className="bg-white rounded-2xl p-8 border border-gray-200/80 text-center space-y-2">
-      <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mx-auto">
+    <div className="bg-white rounded-2xl p-8 border border-[#E5ECF2] text-center space-y-2">
+      <div className="w-12 h-12 rounded-2xl bg-[#EEF3F7] text-slate-400 flex items-center justify-center mx-auto">
         <Search className="w-6 h-6" />
       </div>
-      <div className="text-sm font-bold text-[#173B56]">
+      <div className="text-sm font-bold text-[#1B3A57]">
         {searchQuery ? `Sin resultados para "${searchQuery}"` : `No hay ${singular.toLowerCase()}s registrados`}
       </div>
-      <p className="text-xs text-gray-400 max-w-xs mx-auto">
+      <p className="text-xs text-slate-400 max-w-xs mx-auto">
         {searchQuery
           ? 'Intenta con otro término o limpia el buscador.'
           : `Utiliza el formulario superior para registrar el primer ${singular.toLowerCase()}.`}
@@ -1870,7 +1881,7 @@ const EmptyMasterState: React.FC<{
       {searchQuery && (
         <button
           onClick={onClearSearch}
-          className="text-xs font-bold text-[#00843D] hover:underline pt-1"
+          className="text-xs font-semibold text-[#2F7D18] hover:underline pt-1 cursor-pointer"
         >
           Limpiar búsqueda
         </button>

@@ -418,25 +418,25 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     <div className="w-full max-w-lg mx-auto flex flex-col space-y-3 pb-8">
       {/* Search Input Only */}
       <div className="relative w-full">
-        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           placeholder="Buscar paradero..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm text-[#173B56] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00843D] shadow-2xs"
+          className="w-full pl-9 pr-4 py-2 bg-white border border-[#D8E2EA] rounded-full text-xs sm:text-sm text-[#1B3A57] placeholder-slate-400 focus:outline-none focus:border-[#55A529] shadow-2xs"
         />
       </div>
 
       {/* TABLE MATCHING USER IMAGE EXACTLY */}
-      <div className="bg-white rounded-2xl border border-sky-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs select-none">
             {/* Table Header: Paradero | [Comedores Editables] | [+] | Total */}
             <thead>
-              <tr className="bg-[#EBF3F9] text-[#173B56] border-b border-sky-200/70">
+              <tr className="bg-[#E6F3FB] text-[#0082B3] border-b border-[#D4E9F7]">
                 {/* Fixed Paradero Header */}
-                <th className="sticky left-0 bg-[#EBF3F9] py-2.5 px-3 text-left font-bold text-xs sm:text-sm tracking-tight w-2/5 min-w-[120px] z-20 border-r border-sky-100">
+                <th className="sticky left-0 bg-[#E6F3FB] py-2.5 px-3 text-left font-semibold text-xs sm:text-sm tracking-tight w-2/5 min-w-[120px] z-20 border-r border-[#D4E9F7]">
                   Paradero
                 </th>
 
@@ -507,10 +507,10 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                             type="button"
                             onClick={() => handleStartRename(col)}
                             title="Clic para editar nombre del comedor"
-                            className="text-[#173B56] font-extrabold text-xs sm:text-sm hover:text-[#00843D] hover:underline cursor-pointer flex items-center gap-0.5 py-0.5 px-1 rounded transition-colors group-hover:scale-105"
+                            className="text-[#0082B3] font-bold text-xs sm:text-sm hover:text-[#1B3A57] hover:underline cursor-pointer flex items-center gap-0.5 py-0.5 px-1 rounded transition-colors group-hover:scale-105"
                           >
                             <span>{col}</span>
-                            <Edit2 className="w-2.5 h-2.5 text-gray-400 group-hover:text-[#00843D] transition-colors" />
+                            <Edit2 className="w-2.5 h-2.5 text-[#0082B3]/70 group-hover:text-[#1B3A57] transition-colors" />
                           </button>
 
                           <button
@@ -520,7 +520,7 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                               handlePromptDelete(col);
                             }}
                             title={`Eliminar comedor ${col}`}
-                            className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-[#DC2626] hover:bg-[#FDECEC] rounded-full transition-colors"
                           >
                             <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           </button>
@@ -537,10 +537,10 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                       type="button"
                       onClick={() => setIsAddingColumn((prev) => !prev)}
                       title="Añadir comedor"
-                      className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center mx-auto shadow-2xs group cursor-pointer ${
+                      className={`w-7 h-7 rounded-full transition-all flex items-center justify-center mx-auto shadow-2xs group cursor-pointer ${
                         isAddingColumn
-                          ? 'bg-[#00843D] text-white ring-2 ring-emerald-300'
-                          : 'bg-white/90 hover:bg-[#00843D] text-[#00843D] hover:text-white border border-[#00843D]/30 hover:border-transparent'
+                          ? 'bg-[#22A846] text-white ring-2 ring-[#C6E9B4]'
+                          : 'bg-white hover:bg-[#22A846] text-[#2F7D18] hover:text-white border border-[#C6E9B4] hover:border-transparent'
                       }`}
                     >
                       <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -668,18 +668,18 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                       <td
                         className={`sticky left-0 ${
                           isRowActive
-                            ? 'bg-[#f4fbf7]'
+                            ? 'bg-[#F3F8F0]'
                             : isChao && isCanonical
-                            ? 'bg-[#fffdf7]'
+                            ? 'bg-[#FFFDF7]'
                             : 'bg-white'
-                        } py-2 px-2.5 font-semibold text-[#173B56] text-xs sm:text-[13px] leading-tight z-10 border-r border-gray-100`}
+                        } py-2 px-2.5 font-semibold text-[#1B3A57] text-xs sm:text-[13px] leading-tight z-10 border-r border-slate-100`}
                       >
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded text-center shrink-0 min-w-[22px] ${
+                            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-center shrink-0 min-w-[22px] ${
                               isChao
-                                ? 'bg-amber-100/80 text-amber-900 border border-amber-200/60'
-                                : 'bg-sky-100/80 text-sky-900 border border-sky-200/60'
+                                ? 'bg-[#FFF6E0] text-[#B45309] border border-[#FDE68A]'
+                                : 'bg-[#E6F3FB] text-[#0082B3] border border-[#D4E9F7]'
                             }`}
                             title={isChao ? 'Ruta Chao (Zona Sur)' : 'Ruta Virú (Zona Norte)'}
                           >
@@ -733,10 +733,10 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                                     handleCellChange(item.paradero, col, '');
                                   }
                                 }}
-                                className={`w-9 h-7 sm:w-10 sm:h-8 rounded-md border text-center font-bold text-xs sm:text-sm text-[#173B56] transition-all focus:outline-none focus:ring-2 focus:ring-[#00843D] focus:border-[#00843D] ${
+                                className={`w-9 h-7 sm:w-10 sm:h-8 rounded-lg border text-center font-bold text-xs sm:text-sm text-[#1B3A57] transition-all focus:outline-none focus:border-[#55A529] ${
                                   displayVal !== ''
-                                    ? 'border-emerald-500 bg-emerald-50/20 font-black shadow-2xs'
-                                    : 'border-gray-200/90 bg-white hover:border-gray-300'
+                                    ? 'border-[#55A529] bg-[#EAF7E4]/40 font-bold shadow-2xs'
+                                    : 'border-[#D8E2EA] bg-white hover:border-slate-300'
                                 }`}
                               />
                               {displayVal !== '' && (
@@ -796,8 +796,8 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
 
             {/* Table Footer: Total General */}
             <tfoot>
-              <tr className="bg-[#E0F2FE] text-[#173B56] border-t-2 border-sky-300/60">
-                <td className="sticky left-0 bg-[#E0F2FE] py-2.5 px-3 font-extrabold text-xs sm:text-sm text-left tracking-tight z-20 border-r border-sky-200">
+              <tr className="bg-[#E6F3FB] text-[#1B3A57] border-t border-[#D4E9F7]">
+                <td className="sticky left-0 bg-[#E6F3FB] py-2.5 px-3 font-bold text-xs sm:text-sm text-left tracking-tight z-20 border-r border-[#D4E9F7]">
                   Total
                 </td>
                 {columns.map((col) => {
@@ -805,17 +805,17 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                   return (
                     <td
                       key={col}
-                      className="py-2.5 px-1 text-center font-extrabold text-xs sm:text-sm text-[#173B56]"
+                      className="py-2.5 px-1 text-center font-bold text-xs sm:text-sm text-[#1B3A57]"
                     >
                       {colSum}
                     </td>
                   );
                 })}
                 {/* Empty cell under [+] */}
-                <td className="py-2.5 px-1 text-center font-bold text-xs text-sky-400">
+                <td className="py-2.5 px-1 text-center font-bold text-xs text-[#0082B3]/60">
                   •
                 </td>
-                <td className="py-2.5 px-2 text-center font-extrabold text-xs sm:text-sm text-[#173B56]">
+                <td className="py-2.5 px-2 text-center font-bold text-xs sm:text-sm text-[#2F7D18]">
                   {grandTotal}
                 </td>
               </tr>
@@ -830,9 +830,9 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
           type="button"
           id="btn-paraderos-atras"
           onClick={onPrev}
-          className="flex-1 py-3 px-4 bg-[#EBF2F7] hover:bg-[#dfeaf2] active:bg-[#d0dfeb] text-[#173B56] font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-2xs"
+          className="flex-1 py-3 px-4 bg-[#F1F5F9] hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-full transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 text-[#173B56]" />
+          <ArrowLeft className="w-4 h-4 text-slate-600" />
           <span>Atrás</span>
         </button>
 
@@ -843,7 +843,7 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
             syncToDraft(matrix, columns);
             onNext();
           }}
-          className="flex-1 py-3 px-4 bg-[#00843D] hover:bg-[#007034] active:bg-[#005c2b] text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+          className="flex-1 py-3 px-4 bg-[#22A846] hover:bg-[#1C8E3A] text-white font-semibold text-sm rounded-full shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <span>Siguiente</span>
           <ArrowRight className="w-4 h-4" />
@@ -853,24 +853,24 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
       {/* Modal de Confirmación para Eliminar Comedor */}
       {colToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-gray-100 space-y-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-[#E5ECF2] space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[#FDECEC] text-[#DC2626] border border-[#FECACA] flex items-center justify-center shrink-0">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-black text-[#173B56]">
+                <h3 className="text-sm sm:text-base font-bold text-[#1B3A57]">
                   ¿Eliminar comedor "{colToDelete.name}"?
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Esta acción quitará el comedor de la tabla.
                 </p>
               </div>
             </div>
 
             {colToDelete.totalPersonas > 0 && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="p-3 bg-[#FFF6E0] border border-[#FDE68A] rounded-xl text-xs text-[#B45309] flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" />
                 <div>
                   Este comedor tiene <strong>{colToDelete.totalPersonas} personas</strong> registradas. Al eliminarlo, se descontarán del total del requerimiento.
                 </div>
@@ -881,14 +881,14 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
               <button
                 type="button"
                 onClick={() => setColToDelete(null)}
-                className="px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-[#F1F5F9] hover:bg-slate-200 rounded-full transition-all cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => executeRemoveColumn(colToDelete.name)}
-                className="px-4 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-semibold text-white bg-[#DC2626] hover:bg-red-700 rounded-full shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Sí, eliminar comedor</span>
