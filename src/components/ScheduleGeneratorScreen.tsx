@@ -107,6 +107,27 @@ interface SavedAssignmentOverlay {
 
 const ASSIGNMENTS_STORAGE_KEY = 'camposol_generador_asignaciones_v1';
 
+const getPrimaryReqCode = (reqCodes: string[]): string => {
+  if (!reqCodes || reqCodes.length === 0) return 'ZZZ-999999';
+  return [...reqCodes].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  )[0];
+};
+
+const compareScheduleRowsByReq = (a: ScheduleRow, b: ScheduleRow): number => {
+  const cmpFecha = b.fecha.localeCompare(a.fecha);
+  if (cmpFecha !== 0) return cmpFecha;
+  const reqA = getPrimaryReqCode(a.reqCodes);
+  const reqB = getPrimaryReqCode(b.reqCodes);
+  const cmpReq = reqA.localeCompare(reqB, undefined, { numeric: true, sensitivity: 'base' });
+  if (cmpReq !== 0) return cmpReq;
+  const cmpTime = a.time.localeCompare(b.time);
+  if (cmpTime !== 0) return cmpTime;
+  const cmpZone = a.zone.localeCompare(b.zone);
+  if (cmpZone !== 0) return cmpZone;
+  return b.cap - a.cap;
+};
+
 const loadSavedAssignments = (): Record<string, SavedAssignmentOverlay> => {
   try {
     const raw = localStorage.getItem(ASSIGNMENTS_STORAGE_KEY);
@@ -345,13 +366,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         };
       });
 
-      generatedRows.sort((a, b) => {
-        const cmpFecha = b.fecha.localeCompare(a.fecha);
-        if (cmpFecha !== 0) return cmpFecha;
-        const cmpTime = a.time.localeCompare(b.time);
-        if (cmpTime !== 0) return cmpTime;
-        return a.zone.localeCompare(b.zone);
-      });
+      generatedRows.sort(compareScheduleRowsByReq);
 
       setRows(generatedRows);
     },
@@ -729,10 +744,12 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         unidadId: updatedRow.unidadId,
         observaciones: updatedRow.observaciones,
       });
-      setRows((prev) => prev.map((r) => (r.id === updatedRow.id ? updatedRow : r)));
+      setRows((prev) =>
+        prev.map((r) => (r.id === updatedRow.id ? updatedRow : r)).sort(compareScheduleRowsByReq)
+      );
       showToast('Recorrido guardado correctamente.');
     } else {
-      setRows((prev) => [...prev, updatedRow]);
+      setRows((prev) => [...prev, updatedRow].sort(compareScheduleRowsByReq));
       showToast('Unidad agregada a la programación.');
     }
 

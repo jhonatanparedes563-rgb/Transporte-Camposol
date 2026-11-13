@@ -551,7 +551,9 @@ export function generateCorridorSchedule(params: {
   const sortedItems = [...allDemandItems].sort((a, b) => {
     const cmpDate = a.fecha.localeCompare(b.fecha);
     if (cmpDate !== 0) return cmpDate;
-    return parseMinutesFromTime(a.horaDisplay) - parseMinutesFromTime(b.horaDisplay);
+    const cmpMins = parseMinutesFromTime(a.horaDisplay) - parseMinutesFromTime(b.horaDisplay);
+    if (cmpMins !== 0) return cmpMins;
+    return a.reqCode.localeCompare(b.reqCode, undefined, { numeric: true, sensitivity: 'base' });
   });
 
   for (const item of sortedItems) {
