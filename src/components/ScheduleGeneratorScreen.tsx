@@ -117,6 +117,39 @@ const resolveZonaFromLastParadero = (
   paradas: Array<{ paradero: string }>,
   fallbackZone: ZonaParadero | 'LÍNEA AZUL'
 ): string => {
+  let hasCalleLima = false;
+  let hasVictorRaul = false;
+
+  for (const stop of paradas) {
+    const pName = (stop?.paradero || '').trim();
+    if (!pName) continue;
+    const normStop = pName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .trim();
+    if (
+      normStop.includes('CALLE LIMA') ||
+      normStop.includes('LIMA-VIRU') ||
+      normStop.includes('LIMA - VIRU')
+    ) {
+      hasCalleLima = true;
+    }
+    const info = getParaderoZonaInfo(pName);
+    const zNorm = (info.zonaEspecifica || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .trim();
+    if (zNorm.includes('VICTOR RAUL') || zNorm.includes('V. RAUL')) {
+      hasVictorRaul = true;
+    }
+  }
+
+  if (hasCalleLima && hasVictorRaul) {
+    return 'VICTOR RAUL, VIRU';
+  }
+
   for (let i = paradas.length - 1; i >= 0; i--) {
     const pName = (paradas[i]?.paradero || '').trim();
     if (!pName) continue;
