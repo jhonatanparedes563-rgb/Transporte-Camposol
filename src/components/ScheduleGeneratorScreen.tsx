@@ -807,7 +807,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
         <div className="bg-white rounded-xl px-4 py-3 border border-gray-200/90 border-l-4 border-l-[#009A44] shadow-2xs flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-gray-500">Ocupación</div>
+            <div className="text-[11px] font-semibold text-gray-500">Ocupabilidad</div>
             <div className="text-xl font-bold text-[#009A44] tabular-nums leading-tight mt-0.5">
               {zoneSummary.ocupacionGlobal}%
             </div>
