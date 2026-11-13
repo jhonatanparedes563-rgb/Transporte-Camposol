@@ -1301,7 +1301,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       : filteredBuses.length;
 
   return (
-    <div className="flex flex-col flex-1 w-full max-w-7xl mx-auto space-y-3.5 pb-14 text-[#1B3A57]">
+    <div className="flex flex-col flex-1 w-full space-y-3.5 pb-10 text-[#1B3A57]">
       {/* Toast feedback */}
       {toastMessage && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#1B3A57] text-white px-4 py-2 rounded-full shadow-lg text-xs font-semibold flex items-center gap-2 border border-[#55A529]/50 animate-in fade-in slide-in-from-top-3">
@@ -1424,8 +1424,8 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
 
       {/* Main Workspace Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* Left Column (4 cols): Clean Add Form */}
-        <div className="lg:col-span-4">
+        {/* Left Column: Clean Sticky Add Form */}
+        <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-4">
           <div className="bg-white rounded-2xl p-4 border border-[#E5ECF2] shadow-xs space-y-3">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-[#EAF7E4] flex items-center justify-center text-[#2F7D18] shrink-0">
@@ -1562,7 +1562,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                       value={newParaderoCodigo}
                       onChange={(e) => setNewParaderoCodigo(e.target.value)}
                       placeholder="Código"
-                      className="h-8 px-2.5 rounded-xl border border-[#D8E2EA] bg-[#F8FAFC] text-[11px] text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400 uppercase"
+                      className="h-8 px-2.5 rounded-xl border border-[#D8E2EA] bg-[#F8FAFC] text-[11px] text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400 placeholder:normal-case uppercase"
                     />
                     <input
                       type="text"
@@ -1631,8 +1631,8 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           </div>
         </div>
 
-        {/* Right Column (8 cols): Compact Filter Bar + Clean List */}
-        <div className="lg:col-span-8 space-y-3">
+        {/* Right Column: Compact Filter Bar + Clean List */}
+        <div className="lg:col-span-8 xl:col-span-9 space-y-3">
           {/* Unified Search + Filter Bar */}
           <div className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
@@ -1729,11 +1729,11 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           </div>
 
           {/* Master Items List */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {/* PARADEROS LIST */}
             {activeTab === 'paraderos' &&
               (filteredParaderos.length === 0 ? (
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <EmptyMasterState
                     searchQuery={searchQuery}
                     onClearSearch={() => {
@@ -1789,7 +1789,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             {/* ZONAS LIST */}
             {activeTab === 'zonas' &&
               (filteredZonas.length === 0 ? (
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <EmptyMasterState
                     searchQuery={searchQuery}
                     onClearSearch={() => setSearchQuery('')}
@@ -1822,7 +1822,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     <div
                       key={z.id}
                       id={`zona-card-${z.id}`}
-                      className="sm:col-span-2 bg-white rounded-2xl p-3.5 border border-[#E5ECF2] shadow-2xs hover:border-[#55A529]/50 transition-colors space-y-2.5"
+                      className="md:col-span-2 bg-white rounded-2xl p-3.5 border border-[#E5ECF2] shadow-2xs hover:border-[#55A529]/50 transition-colors space-y-2.5"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
@@ -2067,7 +2067,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             {/* FUNDOS LIST */}
             {activeTab === 'fundos' &&
               (filteredFundos.length === 0 ? (
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <EmptyMasterState
                     searchQuery={searchQuery}
                     onClearSearch={() => setSearchQuery('')}
@@ -2095,7 +2095,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             {/* AREAS LIST */}
             {activeTab === 'areas' &&
               (filteredAreas.length === 0 ? (
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <EmptyMasterState
                     searchQuery={searchQuery}
                     onClearSearch={() => setSearchQuery('')}
@@ -2123,7 +2123,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
             {/* BUSES LIST */}
             {activeTab === 'buses' &&
               (filteredBuses.length === 0 ? (
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <EmptyMasterState
                     searchQuery={searchQuery}
                     onClearSearch={() => setSearchQuery('')}
@@ -2554,12 +2554,12 @@ const MasterListItem: React.FC<MasterListItemProps> = ({
                     {codigo}
                   </span>
                 )}
-                <span className="text-xs font-bold text-[#1B3A57] truncate" title={name}>
+                <span className="text-xs font-bold text-[#1B3A57] leading-snug break-words" title={name}>
                   {name}
                 </span>
               </div>
               {metaText && (
-                <div className="text-[11px] text-slate-500 truncate mt-0.5" title={metaText}>
+                <div className="text-[11px] text-slate-500 leading-snug mt-0.5 truncate" title={metaText}>
                   {metaText}
                 </div>
               )}
