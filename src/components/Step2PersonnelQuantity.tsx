@@ -175,8 +175,11 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
         p.paradero.toLowerCase().includes(term)
       );
     }
-    // Ordenamiento estricto por la secuencia de ruta operativa (1 a 24)
+    // Ordenamiento estricto por zona (Norte -> Sur) y secuencia de ruta operativa
     return [...list].sort((a, b) => {
+      const zoneOrderA = a.zona === 'SUR' ? 1 : 0;
+      const zoneOrderB = b.zona === 'SUR' ? 1 : 0;
+      if (zoneOrderA !== zoneOrderB) return zoneOrderA - zoneOrderB;
       const idxA = getParaderoOrderIndex(a.paradero);
       const idxB = getParaderoOrderIndex(b.paradero);
       if (idxA !== idxB) return idxA - idxB;
@@ -648,7 +651,7 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
                   const isRowActive = rowTotal > 0;
                   const orderIdx = getParaderoOrderIndex(item.paradero);
                   const isCanonical = orderIdx < CANONICAL_PARADEROS_ORDER.length;
-                  const isChao = item.zona === 'SUR' || orderIdx >= 19;
+                  const isChao = item.zona === 'SUR' || (isCanonical && orderIdx >= 19);
 
                   return (
                     <tr

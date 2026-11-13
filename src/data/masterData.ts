@@ -111,7 +111,15 @@ export function normalizeParaderoKey(name: string): string {
   if (norm.includes('CHANQUIN') || norm.includes('CHANQUÍN')) return 'PUENTE CHANQUIN';
   if (norm === 'CALIFORNIA') return 'CALIFORNIA';
   if (norm.includes('CAÑAN') || norm.includes('CANAN')) return 'EL CAÑAN';
-  if (norm.includes('PRIMERA DE MAYO') || norm.includes('1 DE MAYO')) return 'PRIMERA DE MAYO';
+  if (
+    norm.includes('PRIMERA DE MAYO') ||
+    norm.includes('PRIMERO DE MAYO') ||
+    norm.includes('1 DE MAYO') ||
+    norm.includes('1RO DE MAYO') ||
+    norm.includes('1ERA DE MAYO')
+  ) {
+    return 'PRIMERA DE MAYO';
+  }
   if (norm.includes('REFUGIO')) return 'EL REFUGIO';
   if (norm.includes('PORTADA')) return 'LA PORTADA';
   if (norm.includes('CALLE LIMA') || norm.includes('LIMA-VIRU') || norm.includes('LIMA - VIRU')) return 'CALLE LIMA-VIRU';
@@ -119,11 +127,19 @@ export function normalizeParaderoKey(name: string): string {
   if (norm.includes('SAN LUIS')) return 'SAN LUIS';
   if (norm.includes('MENDOCILLA')) return 'MENDOCILLA';
   if (norm === 'LA 21' || norm === '21') return 'LA 21';
-  if (norm.includes('PLAZUELA') || norm.includes('SAN JOSE') || norm.includes('S. JOSE')) return 'LA PLAZUELA SAN JOSE';
+  if (norm.includes('HUACAPONGO')) return norm.includes('PLAZUELA') ? 'LA PLAZUELA HUACAPONGO' : norm;
+  if (
+    norm.includes('PLAZUELA SAN JOSE') ||
+    norm.includes('PLAZUELA DE SAN JOSE') ||
+    norm.includes('SAN JOSE') ||
+    norm.includes('S. JOSE')
+  ) {
+    return 'LA PLAZUELA SAN JOSE';
+  }
   if (norm.includes('SANTA CECILIA') || norm.includes('STA CECILIA') || norm.includes('STA. CECILIA')) return 'SANTA CECILIA';
   if (norm.includes('VIVIENDAS') || norm.includes('MAR VERDE') || norm.includes('VIVIENDAS MV') || norm === 'MV') return 'VIVIENDAS MAR VERDE';
   if (norm.includes('GRAN CHIMU') || norm.includes('GRIFO CHIMU') || norm.includes('CHIMÚ')) return 'GRIFO GRAN CHIMU';
-  if (norm.includes('28') || norm.includes('REST. 28')) return 'LA 28';
+  if (norm === 'LA 28' || norm === '28' || norm.includes('REST. 28') || norm.includes('LA 28')) return 'LA 28';
   if (norm.includes('BOTICA')) return 'LA BOTICA';
   if (norm.includes('SEGUNDO PARADERO') || norm.includes('2DO PARADERO') || norm.includes('2° PARADERO')) return 'SEGUNDO PARADERO';
 
