@@ -1648,7 +1648,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 {/* Supervisor / Solicitante */}
                 <div className="relative">
                   <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
-                    Supervisor
+                    Solicitante
                   </label>
                   <select
                     value={filterSupervisor}
@@ -1812,13 +1812,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       />
                     </th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Código Req.</th>
-                    <th className="py-2.5 px-3 whitespace-nowrap">Fecha & Turno</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Fecha</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Paraderos</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Área</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Fundo</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Movimiento</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Horas</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Personal</th>
-                    <th className="py-2.5 px-3 whitespace-nowrap">Supervisor</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Solicitante</th>
                     <th className="py-2.5 px-3 text-center whitespace-nowrap">Estado</th>
                     <th className="py-2.5 px-3 text-center whitespace-nowrap border-l border-[#D4E9F7]/70">Acciones</th>
                   </tr>
@@ -1826,7 +1827,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 <tbody className="bg-white divide-y divide-gray-100 text-gray-700">
                   {filteredRequerimientos.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="py-10 text-center text-gray-500">
+                      <td colSpan={12} className="py-10 text-center text-gray-500">
                         <Inbox className="w-8 h-8 mx-auto text-gray-300 mb-2" />
                         <span className="block font-semibold text-[#1E293B] text-xs">
                           {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
@@ -1898,12 +1899,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 {formatHoraSimple(req.fechaRegistro) ? ` • ${formatHoraSimple(req.fechaRegistro)}` : ''}
                               </div>
                             </td>
-                            <td className="py-2.5 px-3">
-                              <div className="text-[11px] text-slate-700 whitespace-nowrap">{req.fecha}</div>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span className="text-[11px] font-medium text-slate-700">{req.fecha}</span>
+                            </td>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() => toggleExpandReq(req.id)}
-                                className="text-[10px] font-medium text-[#3D8B1C] hover:underline flex items-center gap-0.5 mt-0.5 cursor-pointer whitespace-nowrap"
+                                className="text-[11px] font-semibold text-[#3D8B1C] hover:underline flex items-center gap-0.5 cursor-pointer whitespace-nowrap"
                                 title="Haz clic para desplegar el resumen de paraderos"
                               >
                                 <span>{paraderosCount} paradero{paraderosCount !== 1 ? 's' : ''}</span>
@@ -1912,6 +1915,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 ) : (
                                   <ChevronDown className="w-3 h-3 text-[#3D8B1C]" />
                                 )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSupervisorModalReq(req);
+                                }}
+                                className="text-[10px] text-[#0082B3] hover:underline flex items-center gap-0.5 mt-0.5 cursor-pointer whitespace-nowrap"
+                                title="Ver detalle completo de paraderos"
+                              >
+                                <span>Ver detalle</span>
+                                <ChevronRight className="w-2.5 h-2.5" />
                               </button>
                             </td>
                             <td className="py-2.5 px-3 whitespace-nowrap">
@@ -1954,27 +1969,16 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                               <span className="font-semibold text-[#1B3A57]">{req.totalPersonas}</span>{' '}
                               <span className="text-[10px] text-slate-500">pers.</span>
                             </td>
-                            <td className="py-2.5 px-3">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSupervisorModalReq(req);
-                                }}
-                                className="group text-left hover:text-[#2F7D18] transition-colors cursor-pointer"
-                                title="Haz clic para ver detalles del supervisor"
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span
+                                className="text-[11px] font-medium text-slate-700 block truncate max-w-[190px]"
+                                title={req.usuario || 'Solicitante'}
                               >
-                                <span className="text-[11px] text-slate-700 group-hover:text-[#2F7D18] block truncate max-w-[140px]">
-                                  {req.usuario || 'Supervisor'}
-                                </span>
-                                <span className="text-[10px] text-[#3D8B1C] flex items-center gap-0.5">
-                                  <span>Ver paraderos</span>
-                                  <ChevronRight className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
-                                </span>
-                              </button>
+                                {req.usuario || 'Solicitante'}
+                              </span>
                               {req.observaciones && (
                                 <span
-                                  className="text-[10px] text-slate-400 italic block truncate max-w-[140px] mt-0.5"
+                                  className="text-[10px] text-slate-400 italic block truncate max-w-[190px] mt-0.5"
                                   title={req.observaciones}
                                 >
                                   {req.observaciones}
@@ -2035,7 +2039,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                           {/* Fila expandible con resumen de paraderos para suma rápida */}
                           {expandedReqIds.includes(req.id) && (
                             <tr key={`expand-${req.id}`} className="bg-emerald-50/40 border-b-2 border-emerald-200 animate-in fade-in duration-150">
-                              <td colSpan={11} className="p-3 sm:p-4">
+                              <td colSpan={12} className="p-3 sm:p-4">
                                 <div className="bg-white rounded-2xl border border-emerald-200 shadow-xs p-4 space-y-3">
                                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
                                     <div className="flex items-center gap-2">

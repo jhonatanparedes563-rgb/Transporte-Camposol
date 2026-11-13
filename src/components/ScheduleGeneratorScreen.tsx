@@ -1197,7 +1197,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
             <thead className="sticky top-0 z-10 bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
               <tr>
                 <th className="py-2.5 px-3 w-10 whitespace-nowrap">#</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Zona / Ruta</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Cód. Req.</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Zona</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Ruta</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Área</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Fundo</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Paraderos del recorrido</th>
@@ -1215,7 +1217,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
             <tbody className="bg-white divide-y divide-slate-100 text-slate-700">
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-10 text-center text-slate-500">
+                  <td colSpan={14} className="py-10 text-center text-slate-500">
                     <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
                     <span className="block font-semibold text-[#1B3A57] text-xs">
                       {rows.length === 0
@@ -1243,6 +1245,15 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
                       <td className="py-2.5 px-3 whitespace-nowrap">
                         <span
+                          className="text-[11px] font-medium text-slate-500 block truncate max-w-[160px]"
+                          title={row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
+                        >
+                          {row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span
                           className={`text-[10px] font-semibold uppercase ${
                             row.zone === 'LÍNEA AZUL'
                               ? 'text-[#0082B3]'
@@ -1253,21 +1264,19 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         >
                           {row.zone}
                         </span>
-                        {(row.zonaDestinoFinal || (row.zonasEspecificas && row.zonasEspecificas.length > 0)) && (
-                          <div
-                            className="text-[9px] font-semibold text-[#1B3A57]/80 mt-0.5 truncate max-w-[140px]"
-                            title={
-                              row.zonasEspecificas && row.zonasEspecificas.length > 1
-                                ? `Última zona: ${row.zonaDestinoFinal} · Recorrido: ${row.zonasEspecificas.join(' → ')}`
-                                : row.zonaDestinoFinal || row.zonasEspecificas?.join(' · ')
-                            }
-                          >
-                            {row.zonaDestinoFinal || row.zonasEspecificas?.join(' · ')}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">
-                          {row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
-                        </div>
+                      </td>
+
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span
+                          className="text-[11px] font-semibold text-[#1B3A57] block truncate max-w-[160px]"
+                          title={
+                            row.zonasEspecificas && row.zonasEspecificas.length > 1
+                              ? `Última zona: ${row.zonaDestinoFinal} · Recorrido: ${row.zonasEspecificas.join(' → ')}`
+                              : row.zonaDestinoFinal || row.zonasEspecificas?.join(' · ') || '-'
+                          }
+                        >
+                          {row.zonaDestinoFinal || row.zonasEspecificas?.join(' · ') || '-'}
+                        </span>
                       </td>
 
                       <td className="py-2.5 px-3 whitespace-nowrap">
