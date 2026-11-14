@@ -152,7 +152,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       </div>
 
       {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Luminosa, viva, con logo visible arriba y 3 unidades completas) */}
-      <div className="lg:hidden relative w-full h-[43dvh] min-h-[290px] max-h-[385px] shrink-0 overflow-hidden bg-[#15803D]">
+      <div className="lg:hidden relative w-full h-[46dvh] min-h-[300px] max-h-[400px] shrink-0 overflow-hidden bg-[#15803D]">
         {!heroImgFailed ? (
           <img
             src={imgValleyFleetBg}
@@ -244,28 +244,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white rounded-t-[28px] lg:rounded-[24px] px-6 pt-6 pb-5 sm:p-7 shadow-[0_-10px_28px_rgba(15,23,42,0.14)] lg:shadow-2xl border-t-[3px] border-[#22A846] lg:border lg:border-white/80 lg:border-t-4 lg:border-t-[#22A846]">
             {/* VISTA: INICIAR SESIÓN */}
             {viewMode === 'login' && (
-              <>
+              <div className="my-auto py-2 space-y-5">
                 <div>
                   <h1 className="text-[26px] sm:text-[28px] font-extrabold text-[#111827] tracking-tight leading-tight">
                     Bienvenido(a)
                   </h1>
-                  <p className="text-[14.5px] font-normal text-slate-600 mt-0.5 leading-snug">
+                  <p className="text-[14.5px] font-normal text-slate-600 mt-1 leading-snug">
                     Inicie sesión en Transporte de Personal
                   </p>
                 </div>
 
-                <div className="my-auto py-4 lg:py-5 space-y-4">
-                  {errorMessage && (
-                    <div
-                      id="login-error-box"
-                      className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
-                    >
-                      <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
-                      <div className="font-bold leading-relaxed">{errorMessage}</div>
-                    </div>
-                  )}
+                {errorMessage && (
+                  <div
+                    id="login-error-box"
+                    className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
+                  >
+                    <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+                    <div className="font-bold leading-relaxed">{errorMessage}</div>
+                  </div>
+                )}
 
-                  <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                     {/* Campo: Usuario */}
                     <div className="relative pt-1.5">
                       <label
@@ -375,8 +374,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       )}
                     </button>
                   </form>
-                </div>
-              </>
+              </div>
             )}
 
             {/* VISTA: RECUPERAR CONTRASEÑA */}
