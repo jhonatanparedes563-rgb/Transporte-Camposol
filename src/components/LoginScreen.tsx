@@ -151,15 +151,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         />
       </div>
 
-      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades difuminando suavemente hacia blanco) */}
-      <div className="lg:hidden relative w-full h-[41dvh] min-h-[280px] max-h-[365px] shrink-0 overflow-hidden bg-white">
+      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades difuminando suavemente hacia blanco más abajo) */}
+      <div className="lg:hidden relative w-full h-[45dvh] min-h-[310px] max-h-[410px] shrink-0 overflow-hidden bg-white">
         {!heroImgFailed ? (
           <img
             src={imgValleyFleetBg}
             alt="Unidades de transporte CAMPOSOL en el valle"
             referrerPolicy="no-referrer"
             onError={() => setHeroImgFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover object-[52%_60%] pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-[52%_58%] pointer-events-none select-none"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-[#15803D] to-white flex items-center justify-center opacity-20 pointer-events-none">
@@ -173,10 +173,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#082412]/70 via-[#082412]/25 to-transparent pointer-events-none"
         />
 
-        {/* Difuminado suave inferior hacia blanco puro (sin corte ni línea brusca) */}
+        {/* Difuminado suave concentrado en el borde inferior hacia blanco puro */}
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.45)_45%,rgba(255,255,255,0.88)_78%,#FFFFFF_100%)] pointer-events-none"
+          className="absolute inset-x-0 bottom-0 h-18 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.22)_38%,rgba(255,255,255,0.72)_74%,#FFFFFF_100%)] pointer-events-none"
         />
 
         {/* Lockup oficial CAMPOSOL | Transporte de Personal en el espacio superior */}
@@ -247,15 +247,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         {/* Columna Derecha / Panel Blanco Móvil (Continuo sin línea de corte, campos amplios y proporcionados) */}
         <div className="w-full flex-1 lg:flex-none lg:col-span-5 lg:max-w-[440px] lg:justify-self-end flex flex-col">
-          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white lg:rounded-[26px] px-6 pt-1 pb-5 lg:p-8 lg:shadow-2xl lg:border lg:border-white/80">
+          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white lg:rounded-[26px] px-6 pt-1 pb-4 lg:p-8 lg:shadow-2xl lg:border lg:border-white/80">
             {/* VISTA: INICIAR SESIÓN */}
             {viewMode === 'login' && (
-              <div className="flex-1 lg:flex-none flex flex-col justify-evenly lg:justify-start py-2 lg:py-0 space-y-5">
+              <div className="flex-1 lg:flex-none flex flex-col justify-between lg:justify-start pt-1 pb-3 lg:py-0 gap-4 lg:gap-5">
                 <div>
-                  <h1 className="text-[32px] sm:text-[34px] font-extrabold text-[#111827] tracking-tight leading-tight">
+                  <h1 className="text-[38px] sm:text-[42px] lg:text-[36px] font-extrabold text-[#111827] tracking-tight leading-[1.08]">
                     Bienvenido(a)
                   </h1>
-                  <p className="text-[16px] font-normal text-slate-600 mt-1.5 leading-snug">
+                  <p className="text-[17px] sm:text-[18px] lg:text-[15.5px] font-normal text-slate-600 mt-1.5 leading-snug">
                     Inicie sesión en Transporte de Personal
                   </p>
                 </div>
