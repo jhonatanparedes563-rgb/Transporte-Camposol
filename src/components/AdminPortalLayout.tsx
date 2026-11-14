@@ -665,11 +665,11 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
       >
         <div>
           {/* Sidebar Top: Centered Corporate Logo & Collapse Icon */}
-          <div className={`relative flex items-center justify-center border-b border-[#F1F5F9] ${sidebarCollapsed ? 'h-16 px-2' : 'pt-5 pb-4 px-4'}`}>
+          <div className={`relative flex items-center justify-center border-b border-[#F1F5F9] ${sidebarCollapsed ? 'h-16 px-2' : 'pt-7 pb-6 px-4'}`}>
             <div
               className={`${
-                sidebarCollapsed ? 'w-10 h-10' : 'w-16 h-16'
-              } rounded-full overflow-hidden shadow-xs shrink-0 border-2 border-[#B89F67]/50 bg-[#55A529] flex items-center justify-center p-1 transition-all`}
+                sidebarCollapsed ? 'w-11 h-11' : 'w-28 h-28'
+              } rounded-full overflow-hidden shadow-xs shrink-0 border-2 border-[#B89F67]/50 bg-[#55A529] flex items-center justify-center transition-all`}
             >
               <img
                 src={getPublicAssetUrl('camposol-emblem.png')}
@@ -696,7 +696,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           </div>
 
           {/* Sidebar Navigation Items */}
-          <nav className="p-3 space-y-1 text-xs font-medium">
+          <nav className="px-3 pt-6 pb-3 space-y-1.5 text-xs font-medium">
             {/* + Nuevo Requerimiento */}
             <button
               id="menu-nuevo-requerimiento"
