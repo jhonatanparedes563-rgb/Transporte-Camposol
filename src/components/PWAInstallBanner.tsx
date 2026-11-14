@@ -21,7 +21,7 @@ export const PWAInstallBanner: React.FC = () => {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <img
-            src={getPublicAssetUrl('pwa-192x192.png')}
+            src={getPublicAssetUrl('app-icon-192-v2.png')}
             alt="Logo CAMPOSOL TDP"
             className="w-11 h-11 rounded-xl object-contain shrink-0 shadow-xs bg-white"
           />

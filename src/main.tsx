@@ -3,23 +3,14 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// Automatically detect and apply service worker updates
+// Check for service worker updates in background without forcing a double-reload during startup
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.ready.then((registration) => {
-    // Check for updates immediately when app loads
-    registration.update().catch(() => {});
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      reg?.update().catch(() => {});
+    });
   });
 
-  // When a new service worker takes over, reload once to ensure the user gets the latest build
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
-  });
-
-  // Re-check for updates whenever the tab gains focus or visibility
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       navigator.serviceWorker.getRegistration().then((reg) => {

@@ -3,15 +3,35 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { RequirementDetailModal } from './components/RequirementDetailModal';
-import { DatabaseManagementModal } from './components/DatabaseManagementModal';
-import { AdminPortalLayout } from './components/AdminPortalLayout';
-import { UserMobileLayout } from './components/UserMobileLayout';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { LoginScreen } from './components/LoginScreen';
+import { getPublicAssetUrl } from './components/CamposolLogo';
 import { Requerimiento, UserRole, AppUser } from './types';
 import { getStoredRequerimientos, subscribeToDataChanges } from './services/storageService';
 import { getCurrentSession, logoutSession } from './services/authService';
+
+const AdminPortalLayout = lazy(() =>
+  import('./components/AdminPortalLayout').then((m) => ({ default: m.AdminPortalLayout }))
+);
+const UserMobileLayout = lazy(() =>
+  import('./components/UserMobileLayout').then((m) => ({ default: m.UserMobileLayout }))
+);
+const RequirementDetailModal = lazy(() =>
+  import('./components/RequirementDetailModal').then((m) => ({ default: m.RequirementDetailModal }))
+);
+const DatabaseManagementModal = lazy(() =>
+  import('./components/DatabaseManagementModal').then((m) => ({ default: m.DatabaseManagementModal }))
+);
+
+const AppLoadingScreen: React.FC = () => (
+  <div className="min-h-[100dvh] w-full bg-white flex flex-col items-center justify-center gap-3 px-6">
+    <img
+      src={getPublicAssetUrl('app-icon-192-v2.png')}
+      alt="CAMPOSOL TDP Transporte de Personal"
+      className="w-24 h-24 object-contain animate-pulse"
+    />
+  </div>
+);
 
 export default function App() {
   // Authentication State: Si no hay sesión activa, pedir usuario y contraseña en LoginScreen
@@ -42,6 +62,16 @@ export default function App() {
       unsubscribe();
     };
   }, []);
+
+  // Prefetch ligero de la vista móvil en segundo plano mientras el usuario inicia sesión
+  useEffect(() => {
+    if (!currentUser) {
+      const timer = window.setTimeout(() => {
+        import('./components/UserMobileLayout').catch(() => {});
+      }, 250);
+      return () => window.clearTimeout(timer);
+    }
+  }, [currentUser]);
 
   const handleLoginSuccess = (user: AppUser) => {
     setCurrentUser(user);
@@ -95,53 +125,57 @@ export default function App() {
 
   return (
     <div className="w-full min-h-screen bg-[#F3F4F6] font-sans antialiased selection:bg-[#00843D] selection:text-white">
-      {/* ------------------------------------------------------------- */}
-      {/* 1. VISTA ADMINISTRADOR / RECEPTOR: SISTEMA WEB DE ESCRITORIO   */}
-      {/* ------------------------------------------------------------- */}
-      {isDesktopRole ? (
-        <AdminPortalLayout
-          requerimientos={visibleRequerimientos}
-          onRefreshData={loadData}
-          onOpenRequirementDetail={handleOpenDetail}
-          onOpenDatabaseModal={() => setIsDatabaseModalOpen(true)}
-          userRole={userRole}
-          currentUser={currentUser}
-          onLogout={handleLogout}
-        />
-      ) : (
-        /* ----------------------------------------------------------- */
-        /* 2. VISTA USUARIO (SOLICITANTE): DISEÑO TIPO APP MÓVIL       */
-        /* ----------------------------------------------------------- */
-        <UserMobileLayout
-          currentScreen={currentScreen}
-          onNavigate={(screen) => setCurrentScreen(screen)}
-          requerimientos={visibleRequerimientos}
-          onOpenRequirementDetail={handleOpenDetail}
-          onRequirementSaved={handleRequirementSaved}
-          userRole={userRole}
-          currentUser={currentUser}
-          onLogout={handleLogout}
-        />
-      )}
+      <Suspense fallback={<AppLoadingScreen />}>
+        {/* ------------------------------------------------------------- */}
+        {/* 1. VISTA ADMINISTRADOR / RECEPTOR: SISTEMA WEB DE ESCRITORIO   */}
+        {/* ------------------------------------------------------------- */}
+        {isDesktopRole ? (
+          <AdminPortalLayout
+            requerimientos={visibleRequerimientos}
+            onRefreshData={loadData}
+            onOpenRequirementDetail={handleOpenDetail}
+            onOpenDatabaseModal={() => setIsDatabaseModalOpen(true)}
+            userRole={userRole}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
+        ) : (
+          /* ----------------------------------------------------------- */
+          /* 2. VISTA USUARIO (SOLICITANTE): DISEÑO TIPO APP MÓVIL       */
+          /* ----------------------------------------------------------- */
+          <UserMobileLayout
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+            requerimientos={visibleRequerimientos}
+            onOpenRequirementDetail={handleOpenDetail}
+            onRequirementSaved={handleRequirementSaved}
+            userRole={userRole}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
+        )}
 
-      {/* ------------------------------------------------------------- */}
-      {/* SHARED MODALS (Requirement Detail, Database Management)        */}
-      {/* ------------------------------------------------------------- */}
-      {selectedRequirement && (
-        <RequirementDetailModal
-          requerimiento={selectedRequirement}
-          onClose={handleCloseDetail}
-          onStatusChange={loadData}
-          onDelete={loadData}
-          userRole={userRole}
-        />
-      )}
+        {/* ------------------------------------------------------------- */}
+        {/* SHARED MODALS (Requirement Detail, Database Management)        */}
+        {/* ------------------------------------------------------------- */}
+        {selectedRequirement && (
+          <RequirementDetailModal
+            requerimiento={selectedRequirement}
+            onClose={handleCloseDetail}
+            onStatusChange={loadData}
+            onDelete={loadData}
+            userRole={userRole}
+          />
+        )}
 
-      <DatabaseManagementModal
-        isOpen={isDatabaseModalOpen && userRole === 'admin'}
-        onClose={() => setIsDatabaseModalOpen(false)}
-        onDataImported={loadData}
-      />
+        {isDatabaseModalOpen && userRole === 'admin' && (
+          <DatabaseManagementModal
+            isOpen={true}
+            onClose={() => setIsDatabaseModalOpen(false)}
+            onDataImported={loadData}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }
