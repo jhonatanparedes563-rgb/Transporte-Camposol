@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Download, X, Smartphone, PlusSquare } from 'lucide-react';
+import { Download, X, PlusSquare } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { getPublicAssetUrl } from './CamposolLogo';
 
 export const PWAInstallBanner: React.FC = () => {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
@@ -19,9 +20,11 @@ export const PWAInstallBanner: React.FC = () => {
     <div className="bg-[#E8F5EF] border border-[#00843D]/20 rounded-2xl p-3.5 mx-4 mt-3 mb-1 shadow-xs transition-all">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-[#00843D] text-white flex items-center justify-center shrink-0 shadow-sm">
-            <Smartphone className="w-5 h-5" />
-          </div>
+          <img
+            src={getPublicAssetUrl('pwa-192x192.png')}
+            alt="Logo CAMPOSOL TDP"
+            className="w-11 h-11 rounded-xl object-contain shrink-0 shadow-xs bg-white"
+          />
           <div>
             <h4 className="text-xs font-bold text-[#00843D] uppercase tracking-wide">
               Instalar en Pantalla de Inicio
