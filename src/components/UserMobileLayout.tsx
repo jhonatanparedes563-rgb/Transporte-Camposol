@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Bus, Home, PlusCircle, ClipboardList, ArrowLeft, LogOut, User } from 'lucide-react';
 import { UserHomeScreen } from './UserHomeScreen';
-import { NewRequirementWizard } from './NewRequirementWizard';
-import { MyRequirementsScreen } from './MyRequirementsScreen';
 import { Requerimiento, UserRole, AppUser } from '../types';
 import { getPublicAssetUrl } from './CamposolLogo';
+
+const NewRequirementWizard = lazy(() =>
+  import('./NewRequirementWizard').then((m) => ({ default: m.NewRequirementWizard }))
+);
+const MyRequirementsScreen = lazy(() =>
+  import('./MyRequirementsScreen').then((m) => ({ default: m.MyRequirementsScreen }))
+);
 
 interface UserMobileLayoutProps {
   currentScreen: 'home' | 'new-request' | 'my-requests';
@@ -129,31 +134,41 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
             />
           )}
 
-          {currentScreen === 'new-request' && (
-            <div className="p-3 sm:p-4 w-full">
-              <NewRequirementWizard
-                onCancel={() => onNavigate('home')}
-                onSuccess={(saved) => {
-                  onRequirementSaved(saved);
-                }}
-                onViewRequirement={(req) => {
-                  onOpenRequirementDetail(req);
-                  onNavigate('my-requests');
-                }}
-                currentUser={currentUser}
-              />
-            </div>
-          )}
+          {currentScreen !== 'home' && (
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center py-16">
+                  <div className="w-7 h-7 rounded-full border-2 border-[#04443A]/20 border-t-[#04443A] animate-spin" />
+                </div>
+              }
+            >
+              {currentScreen === 'new-request' && (
+                <div className="p-3 sm:p-4 w-full">
+                  <NewRequirementWizard
+                    onCancel={() => onNavigate('home')}
+                    onSuccess={(saved) => {
+                      onRequirementSaved(saved);
+                    }}
+                    onViewRequirement={(req) => {
+                      onOpenRequirementDetail(req);
+                      onNavigate('my-requests');
+                    }}
+                    currentUser={currentUser}
+                  />
+                </div>
+              )}
 
-          {currentScreen === 'my-requests' && (
-            <div className="p-2 sm:p-3 w-full">
-              <MyRequirementsScreen
-                requerimientos={requerimientos}
-                onSelectRequirement={onOpenRequirementDetail}
-                onNewRequirement={() => onNavigate('new-request')}
-                userRole={userRole}
-              />
-            </div>
+              {currentScreen === 'my-requests' && (
+                <div className="p-2 sm:p-3 w-full">
+                  <MyRequirementsScreen
+                    requerimientos={requerimientos}
+                    onSelectRequirement={onOpenRequirementDetail}
+                    onNewRequirement={() => onNavigate('new-request')}
+                    userRole={userRole}
+                  />
+                </div>
+              )}
+            </Suspense>
           )}
         </main>
 
