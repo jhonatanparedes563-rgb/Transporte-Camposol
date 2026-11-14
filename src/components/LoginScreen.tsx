@@ -134,90 +134,90 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   return (
     <div className="min-h-[100dvh] w-full bg-white md:bg-[#EEF3F7] flex flex-col md:justify-center md:items-center md:p-6 font-sans antialiased text-[#1B3A57]">
       {/* Contenedor Principal: Edge-to-edge en celular, encuadrado elegante en escritorio */}
-      <div className="w-full flex-1 md:flex-none md:max-w-[430px] bg-white md:rounded-[28px] md:shadow-xl md:border md:border-[#E2E8F0] flex flex-col overflow-hidden">
-        {/* Mosaico Fotográfico Diagonal CAMPOSOL */}
-        <div className="relative w-full h-[270px] sm:h-[290px] bg-white overflow-hidden shrink-0">
-          {/* Cuadrícula rotada con separaciones blancas y fotos enderezadas */}
+      <div className="w-full flex-1 md:flex-none md:max-w-[440px] md:min-h-[780px] bg-white md:rounded-[28px] md:shadow-xl md:border md:border-[#E2E8F0] flex flex-col overflow-hidden">
+        {/* Mosaico Fotográfico Diagonal CAMPOSOL (~44% de la pantalla en móvil) */}
+        <div className="relative w-full h-[44dvh] min-h-[330px] max-h-[410px] md:h-[330px] bg-white overflow-hidden shrink-0">
+          {/* Cuadrícula rotada ocupando todo el ancho y alto del mosaico */}
           <div
             aria-hidden="true"
-            className="absolute inset-x-[-18%] inset-y-[-14%] grid grid-cols-3 gap-2.5 -rotate-[21deg] pointer-events-none select-none"
+            className="absolute inset-x-[-14%] inset-y-[-14%] grid grid-cols-3 grid-rows-3 gap-3 -rotate-[21deg] pointer-events-none select-none"
           >
             {/* Fila 1 */}
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-28">
+            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
               <img
                 src={imgBlueberry}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-top rotate-[21deg] scale-[1.38]"
+                className="w-full h-full object-cover object-[50%_22%] rotate-[21deg] scale-[1.28]"
               />
             </div>
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-28">
+            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
               <img
                 src={imgTeam}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-top rotate-[21deg] scale-[1.38]"
+                className="w-full h-full object-cover object-[50%_28%] rotate-[21deg] scale-[1.26]"
               />
             </div>
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-28">
+            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
               <img
                 src={imgCitrus}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-top rotate-[21deg] scale-[1.38]"
+                className="w-full h-full object-cover object-[50%_30%] rotate-[21deg] scale-[1.28]"
               />
             </div>
 
-            {/* Fila 2: Celda central blanca para el logo CAMPOSOL */}
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-32">
+            {/* Fila 2: Celda central blanca limpia para el logo CAMPOSOL */}
+            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
               <img
                 src={imgPacking}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-top rotate-[21deg] scale-[1.38]"
+                className="w-full h-full object-cover object-[58%_35%] rotate-[21deg] scale-[1.32]"
               />
             </div>
-            <div className="rounded-sm bg-white h-32" />
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-32">
+            <div className="rounded-sm bg-white h-full" />
+            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
               <img
                 src={imgCitrus}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-top rotate-[21deg] scale-[1.38]"
+                className="w-full h-full object-cover object-[42%_30%] rotate-[21deg] scale-[1.28]"
               />
             </div>
 
             {/* Fila 3 */}
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-28">
+            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
               <img
                 src={imgPacking}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-top rotate-[21deg] scale-[1.38]"
+                className="w-full h-full object-cover object-[50%_30%] rotate-[21deg] scale-[1.30]"
               />
             </div>
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-28">
+            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
               <img
                 src={imgTeam}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-top rotate-[21deg] scale-[1.38]"
+                className="w-full h-full object-cover object-[50%_22%] rotate-[21deg] scale-[1.28]"
               />
             </div>
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-28">
+            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
               <img
                 src={imgBlueberry}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-top rotate-[21deg] scale-[1.38]"
+                className="w-full h-full object-cover object-[50%_25%] rotate-[21deg] scale-[1.28]"
               />
             </div>
           </div>
 
-          {/* Emblema Central CAMPOSOL sobre apertura blanca */}
+          {/* Emblema Central CAMPOSOL integrado limpiamente en el espacio blanco central */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4">
-            <div className="bg-white/95 backdrop-blur-2xs rounded-2xl px-4 py-2.5 flex flex-col items-center shadow-2xs">
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-[#55A529] flex items-center justify-center shadow-sm">
+            <div className="flex flex-col items-center">
+              <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-[#55A529] flex items-center justify-center shadow-sm ring-4 ring-white">
                 <img
                   src={getPublicAssetUrl('camposol-emblem.png')}
                   onError={(e) => {
@@ -231,7 +231,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <span className="mt-1.5 text-[13px] font-extrabold text-[#38A126] tracking-tight whitespace-nowrap">
+              <span className="mt-1.5 px-2.5 py-0.5 rounded-full bg-white/95 text-[14px] font-extrabold text-[#38A126] tracking-tight whitespace-nowrap shadow-2xs">
                 Transporte de Personal
               </span>
             </div>
@@ -240,20 +240,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           {/* Corte inferior limpio hacia la superficie del formulario */}
           <div
             aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-5 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none"
+            className="absolute inset-x-0 bottom-0 h-5 bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none"
           />
         </div>
 
-        {/* Cuerpo del Formulario */}
-        <div className="flex-1 flex flex-col justify-between px-6 pt-3 pb-6 bg-white">
+        {/* Cuerpo del Formulario: centrado proporcionalmente en la mitad inferior */}
+        <div className="flex-1 flex flex-col justify-between px-6 pt-3 pb-5 bg-white">
           {/* VISTA: INICIAR SESIÓN */}
           {viewMode === 'login' && (
-            <div className="space-y-5">
+            <div className="my-auto py-2 space-y-5">
               <div>
-                <h1 className="text-[28px] font-extrabold text-[#111827] tracking-tight leading-tight">
+                <h1 className="text-[30px] font-extrabold text-[#111827] tracking-tight leading-tight">
                   Bienvenido(a)
                 </h1>
-                <p className="text-[15.5px] font-normal text-[#1F2937] mt-1 leading-snug">
+                <p className="text-[16px] font-normal text-[#1F2937] mt-1 leading-snug">
                   Inicie sesión en Transporte de Personal
                 </p>
               </div>
@@ -289,12 +289,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         autoCorrect="off"
                         autoComplete="username"
                         required
-                        className="w-full pl-4 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[14.5px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                        className="w-full pl-4 pr-11 py-4 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
                       />
                       <User className="w-5 h-5 text-slate-400 absolute right-3.5 pointer-events-none" />
                     </div>
                   </div>
-                  <p className="text-[11.5px] text-slate-500 mt-1.5 pl-1">
+                  <p className="text-[12px] text-slate-500 mt-1.5 pl-1">
                     Ingrese con su usuario asignado o número de DNI
                   </p>
                 </div>
@@ -317,7 +317,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       placeholder="Ingrese su contraseña"
                       autoComplete="current-password"
                       required
-                      className="w-full pl-11 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[14.5px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                      className="w-full pl-11 pr-11 py-4 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
                     />
                     <button
                       id="btn-toggle-password-icon"
@@ -333,7 +333,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 {/* Fila: Recordarme + Olvidé mi contraseña */}
-                <div className="flex items-center justify-between gap-2 pt-0.5">
+                <div className="flex items-center justify-between gap-2 pt-1">
                   <button
                     type="button"
                     role="switch"
@@ -341,7 +341,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     onClick={() => setRememberMe(!rememberMe)}
                     className="inline-flex items-center gap-2.5 cursor-pointer py-1 focus:outline-none"
                   >
-                    <span className="text-[13px] font-medium text-[#1F2937]">
+                    <span className="text-[13.5px] font-medium text-[#1F2937]">
                       Recordarme
                     </span>
                     <span
@@ -363,7 +363,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       setRecoveryIdentifier(username.trim());
                       setViewMode('recovery');
                     }}
-                    className="text-[13px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
+                    className="text-[13.5px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
                   >
                     Olvidé mi contraseña
                   </button>
@@ -374,7 +374,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   id="btn-login-submit"
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-2 min-h-[48px]"
+                  className="w-full py-4 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15.5px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-2 min-h-[52px]"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
