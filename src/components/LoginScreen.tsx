@@ -151,26 +151,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         />
       </div>
 
-      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades + logo CAMPOSOL arriba) */}
-      <div className="lg:hidden relative w-full h-[46dvh] min-h-[310px] max-h-[410px] shrink-0 overflow-hidden bg-[#15803D]">
+      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades difuminando suavemente hacia blanco) */}
+      <div className="lg:hidden relative w-full h-[41dvh] min-h-[280px] max-h-[365px] shrink-0 overflow-hidden bg-white">
         {!heroImgFailed ? (
           <img
             src={imgValleyFleetBg}
             alt="Unidades de transporte CAMPOSOL en el valle"
             referrerPolicy="no-referrer"
             onError={() => setHeroImgFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover object-[52%_64%] pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-[52%_60%] pointer-events-none select-none"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#15803D] to-white flex items-center justify-center opacity-20 pointer-events-none">
             <Bus className="w-32 h-32 text-white" />
           </div>
         )}
 
-        {/* Scrim sutil en la franja superior para destacar el logo manteniendo el paisaje vivo */}
+        {/* Scrim superior para contraste del logo */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,36,18,0.68)_0%,rgba(8,36,18,0.20)_38%,rgba(8,36,18,0)_72%,rgba(8,36,18,0.22)_100%)] pointer-events-none"
+          className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#082412]/70 via-[#082412]/25 to-transparent pointer-events-none"
+        />
+
+        {/* Difuminado suave inferior hacia blanco puro (sin corte ni línea brusca) */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.45)_45%,rgba(255,255,255,0.88)_78%,#FFFFFF_100%)] pointer-events-none"
         />
 
         {/* Lockup oficial CAMPOSOL | Transporte de Personal en el espacio superior */}
@@ -201,7 +207,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       </div>
 
       {/* CONTENEDOR PRINCIPAL RESPONSIVO (Móvil + PC / Laptop) */}
-      <div className="relative z-10 w-full flex-1 lg:flex-none max-w-6xl mx-auto lg:px-10 lg:py-8 -mt-6 lg:mt-0 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
+      <div className="relative z-10 w-full flex-1 lg:flex-none max-w-6xl mx-auto lg:px-10 lg:py-8 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
         {/* Columna Izquierda (PC / Laptop): Identidad formal sobre el paisaje */}
         <div className="hidden lg:flex lg:col-span-7 flex-col justify-center text-white pr-4">
           <div className="flex items-center gap-4">
@@ -239,17 +245,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
         </div>
 
-        {/* Columna Derecha / Panel Blanco Móvil (Diseño anterior limpio, encuadrado y sin espacios muertos) */}
-        <div className="w-full flex-1 lg:flex-none lg:col-span-5 lg:max-w-[430px] lg:justify-self-end flex flex-col">
-          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white rounded-t-[28px] lg:rounded-[24px] px-6 pt-6 pb-5 sm:p-7 shadow-[0_-10px_28px_rgba(15,23,42,0.14)] lg:shadow-2xl border-t-[3px] border-[#22A846] lg:border lg:border-white/80 lg:border-t-4 lg:border-t-[#22A846]">
+        {/* Columna Derecha / Panel Blanco Móvil (Continuo sin línea de corte, campos amplios y proporcionados) */}
+        <div className="w-full flex-1 lg:flex-none lg:col-span-5 lg:max-w-[440px] lg:justify-self-end flex flex-col">
+          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white lg:rounded-[26px] px-6 pt-1 pb-5 lg:p-8 lg:shadow-2xl lg:border lg:border-white/80">
             {/* VISTA: INICIAR SESIÓN */}
             {viewMode === 'login' && (
-              <div className="my-auto py-1 space-y-5">
+              <div className="flex-1 lg:flex-none flex flex-col justify-evenly lg:justify-start py-2 lg:py-0 space-y-5">
                 <div>
-                  <h1 className="text-[26px] sm:text-[28px] font-extrabold text-[#111827] tracking-tight leading-tight">
+                  <h1 className="text-[32px] sm:text-[34px] font-extrabold text-[#111827] tracking-tight leading-tight">
                     Bienvenido(a)
                   </h1>
-                  <p className="text-[14.5px] font-normal text-slate-600 mt-1 leading-snug">
+                  <p className="text-[16px] font-normal text-slate-600 mt-1.5 leading-snug">
                     Inicie sesión en Transporte de Personal
                   </p>
                 </div>
@@ -257,19 +263,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 {errorMessage && (
                   <div
                     id="login-error-box"
-                    className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
+                    className="p-3.5 bg-[#FDECEC] border border-[#FECACA] rounded-2xl flex items-start gap-2.5 text-xs text-[#DC2626]"
                   >
                     <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
                     <div className="font-bold leading-relaxed">{errorMessage}</div>
                   </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-4">
-                  {/* Campo: Usuario */}
-                  <div className="relative pt-1.5">
+                <form onSubmit={handleLogin} className="space-y-5">
+                  {/* Campo: Usuario ampliado */}
+                  <div className="relative pt-2">
                     <label
                       htmlFor="input-login-username"
-                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
+                      className="absolute top-0 left-4 bg-white px-1.5 text-[13px] font-medium text-slate-500 z-10"
                     >
                       Usuario
                     </label>
@@ -284,22 +290,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         autoCorrect="off"
                         autoComplete="username"
                         required
-                        className="w-full pl-4 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                        className="w-full pl-4 pr-12 py-4 bg-white border border-[#CBD5E1] rounded-2xl text-[16px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
                       />
-                      <User className="w-5 h-5 text-slate-400 absolute right-3.5 pointer-events-none" />
+                      <User className="w-5.5 h-5.5 text-slate-400 absolute right-4 pointer-events-none" />
                     </div>
                   </div>
 
-                  {/* Campo: Contraseña */}
-                  <div className="relative pt-1.5">
+                  {/* Campo: Contraseña ampliado */}
+                  <div className="relative pt-2">
                     <label
                       htmlFor="input-login-password"
-                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
+                      className="absolute top-0 left-4 bg-white px-1.5 text-[13px] font-medium text-slate-500 z-10"
                     >
                       Contraseña
                     </label>
                     <div className="relative flex items-center">
-                      <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
+                      <Lock className="w-5.5 h-5.5 text-slate-400 absolute left-4 pointer-events-none" />
                       <input
                         id="input-login-password"
                         type={showPassword ? 'text' : 'password'}
@@ -308,17 +314,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         placeholder="Ingrese su contraseña"
                         autoComplete="current-password"
                         required
-                        className="w-full pl-11 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                        className="w-full pl-12 pr-12 py-4 bg-white border border-[#CBD5E1] rounded-2xl text-[16px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
                       />
                       <button
                         id="btn-toggle-password-icon"
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-1.5 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                        className="absolute right-2 p-2.5 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
                         title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                         aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPassword ? <EyeOff className="w-5.5 h-5.5" /> : <Eye className="w-5.5 h-5.5" />}
                       </button>
                     </div>
                   </div>
@@ -330,17 +336,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       role="switch"
                       aria-checked={rememberMe}
                       onClick={() => setRememberMe(!rememberMe)}
-                      className="inline-flex items-center gap-2 cursor-pointer py-1 focus:outline-none"
+                      className="inline-flex items-center gap-2.5 cursor-pointer py-1 focus:outline-none"
                     >
-                      <span className="text-[13px] font-medium text-[#1F2937]">
+                      <span className="text-[14px] font-medium text-[#1F2937]">
                         Recordarme
                       </span>
                       <span
-                        className={`w-10 h-5.5 rounded-full p-0.5 transition-colors flex items-center ${
+                        className={`w-11 h-6 rounded-full p-0.5 transition-colors flex items-center ${
                           rememberMe ? 'bg-[#22A846] justify-end' : 'bg-[#737373] justify-start'
                         }`}
                       >
-                        <span className="w-4.5 h-4.5 rounded-full bg-white shadow-xs block" />
+                        <span className="w-5 h-5 rounded-full bg-white shadow-xs block" />
                       </span>
                     </button>
 
@@ -354,21 +360,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         setRecoveryIdentifier(username.trim());
                         setViewMode('recovery');
                       }}
-                      className="text-[13px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
+                      className="text-[14px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
                     >
                       Olvidé mi contraseña
                     </button>
                   </div>
 
-                  {/* Botón Principal: Iniciar sesión */}
+                  {/* Botón Principal: Iniciar sesión ampliado */}
                   <button
                     id="btn-login-submit"
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[50px]"
+                    className="w-full py-4 px-5 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-2xl text-[16.5px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[56px]"
                   >
                     {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-5.5 h-5.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <span>Iniciar sesión</span>
                     )}
