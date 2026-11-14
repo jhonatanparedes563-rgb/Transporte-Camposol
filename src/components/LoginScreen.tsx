@@ -20,7 +20,7 @@ import {
 } from '../services/authService';
 import { AppUser } from '../types';
 import { getPublicAssetUrl } from './CamposolLogo';
-import imgFleetHero from '../assets/images/camposol_fleet_units_hero_1794672229032.jpg';
+import imgValleyFleetBg from '../assets/images/camposol_valley_fleet_bg_1794672840329.jpg';
 
 const REMEMBERED_USER_KEY = 'camposol_tdp_remembered_user';
 
@@ -131,34 +131,81 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-white md:bg-[#EEF3F7] flex flex-col md:justify-center md:items-center md:p-6 font-sans antialiased text-[#1B3A57]">
-      {/* Contenedor Principal: Edge-to-edge en celular, encuadrado limpio en escritorio */}
-      <div className="w-full flex-1 md:flex-none md:max-w-[440px] md:min-h-[780px] bg-white md:rounded-[28px] md:shadow-xl md:border md:border-[#E2E8F0] flex flex-col overflow-hidden">
-        {/* Cabecera Original de Unidades de Flota CAMPOSOL */}
-        <div className="relative w-full h-[42dvh] min-h-[300px] max-h-[380px] md:h-[310px] bg-gradient-to-br from-[#0F7A2E] via-[#1B5E3A] to-[#1B3A57] overflow-hidden shrink-0">
-          {!heroImgFailed ? (
-            <img
-              src={imgFleetHero}
-              alt="Unidades de transporte de personal CAMPOSOL"
-              referrerPolicy="no-referrer"
-              onError={() => setHeroImgFailed(true)}
-              className="absolute inset-0 w-full h-full object-cover object-[50%_62%] pointer-events-none select-none"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none">
-              <Bus className="w-36 h-36 text-white" />
-            </div>
-          )}
-
-          {/* Scrim superior suave para legibilidad de marca y degradado inferior hacia la tarjeta blanca */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,48,26,0.78)_0%,rgba(10,48,26,0.28)_42%,rgba(10,48,26,0.08)_68%,rgba(15,23,42,0.45)_100%)] pointer-events-none"
+    <div className="min-h-[100dvh] w-full bg-[#0D2B19] relative flex flex-col lg:justify-center font-sans antialiased text-[#1B3A57] overflow-x-hidden">
+      {/* FONDO PANORÁMICO EN ESCRITORIO / LAPTOP (Valle + Montañas + Unidades) */}
+      <div className="hidden lg:block absolute inset-0 pointer-events-none select-none overflow-hidden">
+        {!heroImgFailed ? (
+          <img
+            src={imgValleyFleetBg}
+            alt="Unidades de transporte CAMPOSOL en el valle"
+            referrerPolicy="no-referrer"
+            onError={() => setHeroImgFailed(true)}
+            className="w-full h-full object-cover object-center"
           />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#0F7A2E] via-[#1B5E3A] to-[#0D2B19]" />
+        )}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,36,18,0.82)_0%,rgba(8,36,18,0.42)_48%,rgba(8,36,18,0.58)_100%)]"
+        />
+      </div>
 
-          {/* Identidad CAMPOSOL en la zona superior (despejando las unidades en el centro) */}
-          <div className="relative z-10 px-5 pt-5 flex items-center gap-3">
-            <div className="w-13 h-13 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/85 shadow-md shrink-0 flex items-center justify-center">
+      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Encuadre exacto de montañas + 3 unidades sin recortes) */}
+      <div className="lg:hidden relative w-full h-[42dvh] min-h-[275px] max-h-[360px] shrink-0 overflow-hidden bg-[#0F4D26]">
+        {!heroImgFailed ? (
+          <img
+            src={imgValleyFleetBg}
+            alt="Unidades de transporte CAMPOSOL en el valle"
+            referrerPolicy="no-referrer"
+            onError={() => setHeroImgFailed(true)}
+            className="w-full h-full object-cover object-[52%_65%] pointer-events-none select-none"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center opacity-15">
+            <Bus className="w-32 h-32 text-white" />
+          </div>
+        )}
+
+        {/* Scrim superior para la marca e inferior para fundir con el fondo verde profundo */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,36,18,0.72)_0%,rgba(8,36,18,0.18)_38%,rgba(8,36,18,0.06)_68%,rgba(13,43,25,0.95)_100%)] pointer-events-none"
+        />
+
+        {/* Identidad CAMPOSOL en el área superior del cielo */}
+        <div className="relative z-10 px-5 pt-4 flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/85 shadow-md shrink-0 flex items-center justify-center">
+            <img
+              src={getPublicAssetUrl('camposol-emblem.png')}
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.includes('.svg')) {
+                  target.src = getPublicAssetUrl('camposol-emblem.svg');
+                }
+              }}
+              alt="CAMPOSOL"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="min-w-0 border-l-[1.5px] border-white/75 pl-3 py-0.5">
+            <div className="text-[19px] font-extrabold tracking-wide text-white leading-none drop-shadow-xs">
+              CAMPOSOL
+            </div>
+            <div className="text-[12px] font-semibold text-[#DCFCE7] leading-tight mt-0.5 truncate drop-shadow-xs">
+              Transporte de Personal
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CONTENEDOR PRINCIPAL RESPONSIVO (Móvil + Laptop / PC) */}
+      <div className="relative z-10 w-full flex-1 lg:flex-none max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 pb-5 pt-0 lg:py-8 -mt-6 lg:mt-0 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center justify-center">
+        {/* Columna Izquierda (Solo Escritorio / Laptop): Marca y Propósito sobre el paisaje */}
+        <div className="hidden lg:flex lg:col-span-7 flex-col justify-between text-white pr-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/90 shadow-lg shrink-0 flex items-center justify-center">
               <img
                 src={getPublicAssetUrl('camposol-emblem.png')}
                 onError={(e) => {
@@ -172,323 +219,333 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 className="w-full h-full object-cover"
               />
             </div>
-
-            <div className="min-w-0 border-l-[1.5px] border-white/75 pl-3 py-0.5">
-              <div className="text-[20px] font-extrabold tracking-wide text-white leading-none drop-shadow-xs">
+            <div className="border-l-2 border-white/70 pl-4 py-1">
+              <div className="text-2xl font-extrabold tracking-wide text-white leading-none">
                 CAMPOSOL
               </div>
-              <div className="text-[12.5px] font-semibold text-[#DCFCE7] leading-tight mt-1 truncate drop-shadow-xs">
-                Transporte de Personal
+              <div className="text-sm font-semibold text-[#DCFCE7] mt-1">
+                Sistema de Transporte de Personal
               </div>
             </div>
           </div>
+
+          <div className="mt-8 max-w-xl">
+            <h2 className="text-4xl font-extrabold text-white leading-[1.12] tracking-tight drop-shadow-sm">
+              Gestión coordinada de flota para operaciones agrícolas
+            </h2>
+            <p className="mt-3 text-base text-white/85 leading-relaxed max-w-lg">
+              Registra requerimientos, optimiza unidades por zona y controla la programación diaria de ingreso y salida de personal.
+            </p>
+          </div>
         </div>
 
-        {/* Tarjeta Inferior Blanca con Curva Arquitectónica Limpia */}
-        <div className="flex-1 flex flex-col justify-between px-6 pt-6 pb-5 bg-white rounded-t-[28px] -mt-6 relative z-10 shadow-[0_-8px_24px_rgba(15,23,42,0.10)]">
-          {/* VISTA: INICIAR SESIÓN */}
-          {viewMode === 'login' && (
-            <div className="space-y-5">
-              <div>
-                <h1 className="text-[28px] font-extrabold text-[#111827] tracking-tight leading-tight">
-                  Bienvenido(a)
-                </h1>
-                <p className="text-[15.5px] font-normal text-slate-600 mt-1 leading-snug">
-                  Inicie sesión en Transporte de Personal
-                </p>
-              </div>
-
-              {errorMessage && (
-                <div
-                  id="login-error-box"
-                  className="p-3.5 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
-                >
-                  <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
-                  <div className="font-bold leading-relaxed">{errorMessage}</div>
+        {/* Columna Derecha / Móvil: Tarjeta Compacta de Acceso (sin espacios en blanco sobrantes) */}
+        <div className="w-full max-w-[430px] mx-auto lg:mx-0 lg:col-span-5 lg:justify-self-end flex flex-col">
+          <div className="bg-white/96 backdrop-blur-md rounded-[24px] p-5 sm:p-7 shadow-2xl border border-white/80">
+            {/* VISTA: INICIAR SESIÓN */}
+            {viewMode === 'login' && (
+              <div className="space-y-4">
+                <div>
+                  <h1 className="text-[26px] sm:text-[28px] font-extrabold text-[#111827] tracking-tight leading-tight">
+                    Bienvenido(a)
+                  </h1>
+                  <p className="text-[14.5px] font-normal text-slate-600 mt-0.5 leading-snug">
+                    Inicie sesión en Transporte de Personal
+                  </p>
                 </div>
-              )}
 
-              <form onSubmit={handleLogin} className="space-y-4">
-                {/* Campo: Usuario con etiqueta flotante sobre borde */}
-                <div className="relative pt-1.5">
-                  <label
-                    htmlFor="input-login-username"
-                    className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
+                {errorMessage && (
+                  <div
+                    id="login-error-box"
+                    className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
                   >
-                    Usuario
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      id="input-login-username"
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Ingrese su usuario"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      autoComplete="username"
-                      required
-                      className="w-full pl-4 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
-                    />
-                    <User className="w-5 h-5 text-slate-400 absolute right-3.5 pointer-events-none" />
+                    <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+                    <div className="font-bold leading-relaxed">{errorMessage}</div>
                   </div>
-                </div>
+                )}
 
-                {/* Campo: Contraseña con etiqueta flotante sobre borde */}
-                <div className="relative pt-1.5">
-                  <label
-                    htmlFor="input-login-password"
-                    className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
-                  >
-                    Contraseña
-                  </label>
-                  <div className="relative flex items-center">
-                    <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
-                    <input
-                      id="input-login-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Ingrese su contraseña"
-                      autoComplete="current-password"
-                      required
-                      className="w-full pl-11 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
-                    />
-                    <button
-                      id="btn-toggle-password-icon"
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-1.5 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
-                      title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                <form onSubmit={handleLogin} className="space-y-3.5">
+                  {/* Campo: Usuario */}
+                  <div className="relative pt-1.5">
+                    <label
+                      htmlFor="input-login-username"
+                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Fila: Recordarme + Olvidé mi contraseña */}
-                <div className="flex items-center justify-between gap-2 pt-0.5">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={rememberMe}
-                    onClick={() => setRememberMe(!rememberMe)}
-                    className="inline-flex items-center gap-2.5 cursor-pointer py-1 focus:outline-none"
-                  >
-                    <span className="text-[13.5px] font-medium text-[#1F2937]">
-                      Recordarme
-                    </span>
-                    <span
-                      className={`w-11 h-6 rounded-full p-0.5 transition-colors flex items-center ${
-                        rememberMe ? 'bg-[#22A846] justify-end' : 'bg-[#737373] justify-start'
-                      }`}
-                    >
-                      <span className="w-5 h-5 rounded-full bg-white shadow-xs block" />
-                    </span>
-                  </button>
-
-                  <button
-                    id="btn-forgot-password"
-                    type="button"
-                    onClick={() => {
-                      setErrorMessage('');
-                      setRecoveryError('');
-                      setRecoverySuccess(false);
-                      setRecoveryIdentifier(username.trim());
-                      setViewMode('recovery');
-                    }}
-                    className="text-[13.5px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
-                  >
-                    Olvidé mi contraseña
-                  </button>
-                </div>
-
-                {/* Botón Principal: Iniciar sesión */}
-                <button
-                  id="btn-login-submit"
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-4 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15.5px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-1 min-h-[52px]"
-                >
-                  {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <span>Iniciar sesión</span>
-                  )}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* VISTA: RECUPERAR CONTRASEÑA */}
-          {viewMode === 'recovery' && (
-            <div className="space-y-5">
-              {!recoverySuccess ? (
-                <>
-                  <div>
-                    <h1 className="text-[24px] font-extrabold text-[#111827] tracking-tight leading-tight">
-                      Recuperar contraseña
-                    </h1>
-                    <p className="text-sm text-slate-600 mt-1 leading-snug">
-                      Ingrese su usuario o correo electrónico registrado para solicitar el restablecimiento de su acceso.
-                    </p>
-                  </div>
-
-                  {recoveryError && (
-                    <div
-                      id="recovery-error-box"
-                      className="p-3.5 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
-                    >
-                      <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
-                      <div className="font-bold leading-relaxed">{recoveryError}</div>
+                      Usuario
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        id="input-login-username"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Ingrese su usuario"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        autoComplete="username"
+                        required
+                        className="w-full pl-4 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                      />
+                      <User className="w-5 h-5 text-slate-400 absolute right-3.5 pointer-events-none" />
                     </div>
-                  )}
+                  </div>
 
-                  <form onSubmit={handleRecoverySubmit} className="space-y-4">
-                    <div className="relative pt-1.5">
-                      <label
-                        htmlFor="input-recovery-identifier"
-                        className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
-                      >
-                        Usuario o correo institucional
-                      </label>
-                      <div className="relative flex items-center">
-                        <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
-                        <input
-                          id="input-recovery-identifier"
-                          type="text"
-                          value={recoveryIdentifier}
-                          onChange={(e) => setRecoveryIdentifier(e.target.value)}
-                          placeholder="Ej: jperez o jperez@camposol.com.pe"
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          required
-                          className="w-full pl-11 pr-4 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[14.5px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      id="btn-send-recovery"
-                      type="submit"
-                      disabled={isRecoverySubmitting}
-                      className="w-full py-4 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[52px]"
+                  {/* Campo: Contraseña */}
+                  <div className="relative pt-1.5">
+                    <label
+                      htmlFor="input-login-password"
+                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
                     >
-                      {isRecoverySubmitting ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <span>Enviar recuperación</span>
-                          <Send className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-
-                    <div className="pt-1 text-center">
+                      Contraseña
+                    </label>
+                    <div className="relative flex items-center">
+                      <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
+                      <input
+                        id="input-login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Ingrese su contraseña"
+                        autoComplete="current-password"
+                        required
+                        className="w-full pl-11 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                      />
                       <button
-                        id="btn-back-to-login"
+                        id="btn-toggle-password-icon"
                         type="button"
-                        onClick={() => {
-                          setViewMode('login');
-                          setRecoveryError('');
-                        }}
-                        className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 hover:text-[#2F7D18] transition-colors cursor-pointer py-2"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-1.5 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                        title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Volver al inicio de sesión</span>
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
-                  </form>
-                </>
-              ) : (
-                <div className="space-y-4">
-                  <div className="w-14 h-14 bg-[#EAF7E4] border border-[#C6E9B4] text-[#2F7D18] rounded-2xl flex items-center justify-center mx-auto shadow-2xs">
-                    <CheckCircle2 className="w-8 h-8" />
                   </div>
 
-                  <div className="text-center space-y-1">
-                    <h2 className="text-lg font-extrabold text-[#111827]">
-                      Solicitud enviada
-                    </h2>
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                      El sistema ha registrado su requerimiento de recuperación de contraseña.
-                    </p>
+                  {/* Fila: Recordarme + Olvidé mi contraseña */}
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={rememberMe}
+                      onClick={() => setRememberMe(!rememberMe)}
+                      className="inline-flex items-center gap-2 cursor-pointer py-1 focus:outline-none"
+                    >
+                      <span className="text-[13px] font-medium text-[#1F2937]">
+                        Recordarme
+                      </span>
+                      <span
+                        className={`w-10 h-5.5 rounded-full p-0.5 transition-colors flex items-center ${
+                          rememberMe ? 'bg-[#22A846] justify-end' : 'bg-[#737373] justify-start'
+                        }`}
+                      >
+                        <span className="w-4.5 h-4.5 rounded-full bg-white shadow-xs block" />
+                      </span>
+                    </button>
+
+                    <button
+                      id="btn-forgot-password"
+                      type="button"
+                      onClick={() => {
+                        setErrorMessage('');
+                        setRecoveryError('');
+                        setRecoverySuccess(false);
+                        setRecoveryIdentifier(username.trim());
+                        setViewMode('recovery');
+                      }}
+                      className="text-[13px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
+                    >
+                      Olvidé mi contraseña
+                    </button>
                   </div>
 
-                  {recoveredUser && (
-                    <div className="bg-[#F8FAFC] border border-[#E5ECF2] p-3.5 rounded-xl space-y-2 text-xs">
-                      <div className="flex items-center justify-between border-b border-[#E5ECF2] pb-1.5">
-                        <span className="text-[11px] font-semibold text-slate-500">
-                          Trabajador
-                        </span>
-                        <span className="font-bold text-[#1B3A57]">
-                          {recoveredUser.nombre}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between border-b border-[#E5ECF2] pb-1.5">
-                        <span className="text-[11px] font-semibold text-slate-500">
-                          Usuario
-                        </span>
-                        <span className="font-mono font-bold text-[#2F7D18]">
-                          @{recoveredUser.usuario}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-slate-500">
-                          Correo Institucional
-                        </span>
-                        <span className="font-mono text-slate-700 font-bold">
-                          {recoveredUser.email || `${recoveredUser.usuario}@camposol.com.pe`}
-                        </span>
-                      </div>
+                  {/* Botón Principal: Iniciar sesión */}
+                  <button
+                    id="btn-login-submit"
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[48px]"
+                  >
+                    {isLoading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <span>Iniciar sesión</span>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* VISTA: RECUPERAR CONTRASEÑA */}
+            {viewMode === 'recovery' && (
+              <div className="space-y-4">
+                {!recoverySuccess ? (
+                  <>
+                    <div>
+                      <h1 className="text-[22px] sm:text-[24px] font-extrabold text-[#111827] tracking-tight leading-tight">
+                        Recuperar contraseña
+                      </h1>
+                      <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-snug">
+                        Ingrese su usuario o correo electrónico registrado para solicitar el restablecimiento de su acceso.
+                      </p>
                     </div>
-                  )}
 
-                  <div className="p-3 bg-[#EAF7E4] border border-[#C6E9B4] rounded-xl text-left text-xs text-[#1B3A57] leading-relaxed font-medium">
-                    Se han enviado las pautas de validación a su correo y se notificó al{' '}
-                    <strong>Administrador del Sistema de Transporte</strong>.
+                    {recoveryError && (
+                      <div
+                        id="recovery-error-box"
+                        className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
+                      >
+                        <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+                        <div className="font-bold leading-relaxed">{recoveryError}</div>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleRecoverySubmit} className="space-y-3.5">
+                      <div className="relative pt-1.5">
+                        <label
+                          htmlFor="input-recovery-identifier"
+                          className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
+                        >
+                          Usuario o correo institucional
+                        </label>
+                        <div className="relative flex items-center">
+                          <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
+                          <input
+                            id="input-recovery-identifier"
+                            type="text"
+                            value={recoveryIdentifier}
+                            onChange={(e) => setRecoveryIdentifier(e.target.value)}
+                            placeholder="Ej: jperez o jperez@camposol.com.pe"
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            required
+                            className="w-full pl-11 pr-4 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[14.5px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        id="btn-send-recovery"
+                        type="submit"
+                        disabled={isRecoverySubmitting}
+                        className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[48px]"
+                      >
+                        {isRecoverySubmitting ? (
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <span>Enviar recuperación</span>
+                            <Send className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+
+                      <div className="text-center">
+                        <button
+                          id="btn-back-to-login"
+                          type="button"
+                          onClick={() => {
+                            setViewMode('login');
+                            setRecoveryError('');
+                          }}
+                          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 hover:text-[#2F7D18] transition-colors cursor-pointer py-1.5"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span>Volver al inicio de sesión</span>
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="w-12 h-12 bg-[#EAF7E4] border border-[#C6E9B4] text-[#2F7D18] rounded-2xl flex items-center justify-center mx-auto shadow-2xs">
+                      <CheckCircle2 className="w-7 h-7" />
+                    </div>
+
+                    <div className="text-center space-y-1">
+                      <h2 className="text-lg font-extrabold text-[#111827]">
+                        Solicitud enviada
+                      </h2>
+                      <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                        El sistema ha registrado su requerimiento de recuperación de contraseña.
+                      </p>
+                    </div>
+
+                    {recoveredUser && (
+                      <div className="bg-[#F8FAFC] border border-[#E5ECF2] p-3.5 rounded-xl space-y-2 text-xs">
+                        <div className="flex items-center justify-between border-b border-[#E5ECF2] pb-1.5">
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            Trabajador
+                          </span>
+                          <span className="font-bold text-[#1B3A57]">
+                            {recoveredUser.nombre}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-[#E5ECF2] pb-1.5">
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            Usuario
+                          </span>
+                          <span className="font-mono font-bold text-[#2F7D18]">
+                            @{recoveredUser.usuario}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            Correo Institucional
+                          </span>
+                          <span className="font-mono text-slate-700 font-bold">
+                            {recoveredUser.email || `${recoveredUser.usuario}@camposol.com.pe`}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-3 bg-[#EAF7E4] border border-[#C6E9B4] rounded-xl text-left text-xs text-[#1B3A57] leading-relaxed font-medium">
+                      Se han enviado las pautas de validación a su correo y se notificó al{' '}
+                      <strong>Administrador del Sistema de Transporte</strong>.
+                    </div>
+
+                    <button
+                      id="btn-login-with-recovered"
+                      type="button"
+                      onClick={() => {
+                        if (recoveredUser) {
+                          setActiveSessionUser(recoveredUser);
+                          onLoginSuccess(recoveredUser);
+                        } else {
+                          const admin = restoreMainAdminUser();
+                          onLoginSuccess(admin);
+                        }
+                      }}
+                      className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] text-white font-bold rounded-xl text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <span>Ingresar ahora con esta cuenta</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      id="btn-confirm-return-login"
+                      type="button"
+                      onClick={() => {
+                        setViewMode('login');
+                        setRecoverySuccess(false);
+                        setRecoveryIdentifier('');
+                        setRecoveryError('');
+                      }}
+                      className="w-full py-3 px-4 bg-[#F1F5F9] hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Volver a la pantalla de login</span>
+                    </button>
                   </div>
+                )}
+              </div>
+            )}
+          </div>
 
-                  <button
-                    id="btn-login-with-recovered"
-                    type="button"
-                    onClick={() => {
-                      if (recoveredUser) {
-                        setActiveSessionUser(recoveredUser);
-                        onLoginSuccess(recoveredUser);
-                      } else {
-                        const admin = restoreMainAdminUser();
-                        onLoginSuccess(admin);
-                      }
-                    }}
-                    className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] text-white font-bold rounded-xl text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Ingresar ahora con esta cuenta</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    id="btn-confirm-return-login"
-                    type="button"
-                    onClick={() => {
-                      setViewMode('login');
-                      setRecoverySuccess(false);
-                      setRecoveryIdentifier('');
-                      setRecoveryError('');
-                    }}
-                    className="w-full py-3 px-4 bg-[#F1F5F9] hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Volver a la pantalla de login</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Pie institucional discreto */}
-          <div className="text-center mt-auto pt-4 text-[11px] text-slate-400 font-medium">
+          {/* Pie institucional discreto sobre fondo del valle */}
+          <div className="text-center mt-3.5 text-[11px] text-white/80 font-medium drop-shadow-2xs">
             CAMPOSOL S.A. · Sistema de Transporte de Personal
           </div>
         </div>
