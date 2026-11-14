@@ -36,7 +36,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
       {/* Mobile App Container: Full-bleed edge-to-edge on phones/tablets, centered frame only on wide desktop */}
       <div className="w-full lg:max-w-lg bg-[#EEF3F7] min-h-[100dvh] h-[100dvh] lg:h-[844px] lg:max-h-[calc(100vh-2rem)] lg:rounded-[32px] lg:shadow-2xl lg:border lg:border-[#D8E2EA] flex flex-col relative overflow-hidden">
         {/* Mobile App Header */}
-        <header className="relative z-40 overflow-hidden bg-gradient-to-br from-[#0F7A2E] via-[#1E9834] to-[#52B826] text-white px-4 pt-3.5 pb-6 flex items-center justify-between shrink-0">
+        <header className="relative z-40 overflow-hidden bg-gradient-to-br from-[#0F7A2E] via-[#1E9834] to-[#52B826] text-white px-4 pt-2.5 pb-4.5 flex items-center justify-between shrink-0">
           {/* Ondas verdes decorativas de fondo */}
           <svg
             aria-hidden="true"
@@ -71,7 +71,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
                 <ArrowLeft className="w-6 h-6 text-white" />
               </button>
             ) : (
-              <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md shrink-0 ring-1 ring-white/35 bg-[#04443A] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-md shrink-0 ring-1 ring-white/35 bg-[#04443A] flex items-center justify-center">
                 <img
                   src={getPublicAssetUrl('app-icon-192-v4.png')}
                   onError={(e) => {
