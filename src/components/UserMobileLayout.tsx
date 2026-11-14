@@ -36,19 +36,42 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
       {/* Mobile App Container: Full-bleed edge-to-edge on phones/tablets, centered frame only on wide desktop */}
       <div className="w-full lg:max-w-lg bg-[#EEF3F7] min-h-[100dvh] h-[100dvh] lg:h-[844px] lg:max-h-[calc(100vh-2rem)] lg:rounded-[32px] lg:shadow-2xl lg:border lg:border-[#D8E2EA] flex flex-col relative overflow-hidden">
         {/* Mobile App Header */}
-        <header className="sticky top-0 z-40 bg-[#55A529] text-white px-4 py-3 shadow-xs flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <header className="relative z-40 overflow-hidden bg-gradient-to-br from-[#0F7A2E] via-[#1E9834] to-[#52B826] text-white px-4 pt-3.5 pb-6 flex items-center justify-between shrink-0">
+          {/* Ondas verdes decorativas de fondo */}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 400 96"
+            preserveAspectRatio="none"
+            className="absolute inset-0 w-full h-full pointer-events-none"
+          >
+            <path
+              d="M150,0 C210,40 270,10 340,45 C370,60 390,45 400,35 L400,0 Z"
+              fill="#6BCB2F"
+              opacity="0.35"
+            />
+            <path
+              d="M220,96 C265,45 315,15 400,5 L400,96 Z"
+              fill="#0A6624"
+              opacity="0.45"
+            />
+            <path
+              d="M0,78 C95,96 220,92 310,76 C355,68 385,72 400,78 L400,96 L0,96 Z"
+              fill="#EEF3F7"
+            />
+          </svg>
+
+          <div className="relative z-10 flex items-center gap-3 min-w-0">
             {currentScreen !== 'home' ? (
               <button
                 id="btn-mobile-back"
                 onClick={() => onNavigate('home')}
-                className="p-1.5 -ml-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors focus:outline-none cursor-pointer shrink-0"
+                className="p-2 -ml-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors focus:outline-none cursor-pointer shrink-0"
                 aria-label="Volver al inicio"
               >
-                <ArrowLeft className="w-5 h-5 text-white" />
+                <ArrowLeft className="w-6 h-6 text-white" />
               </button>
             ) : (
-              <div className="w-10 h-10 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/70 bg-[#55A529] flex items-center justify-center p-0.5">
+              <div className="w-13 h-13 rounded-full overflow-hidden shadow-md shrink-0 border-2 border-[#FACC15]/85 bg-[#15803D] flex items-center justify-center">
                 <img
                   src={getPublicAssetUrl('camposol-emblem.png')}
                   onError={(e) => {
@@ -59,16 +82,16 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
                   }}
                   alt="CAMPOSOL"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               </div>
             )}
 
-            <div className="min-w-0 border-l border-white/65 pl-2.5">
-              <div className="font-extrabold tracking-wide text-[16px] text-white leading-tight">
+            <div className="min-w-0 border-l-[1.5px] border-white/75 pl-3 py-0.5">
+              <div className="font-extrabold tracking-wide text-[21px] text-white leading-none drop-shadow-2xs">
                 CAMPOSOL
               </div>
-              <div className="text-[12px] text-white/95 font-medium leading-tight truncate">
+              <div className="text-[13px] text-white/95 font-semibold leading-tight mt-1 truncate">
                 {currentScreen === 'new-request'
                   ? 'Nuevo Requerimiento'
                   : currentScreen === 'my-requests'
@@ -78,13 +101,13 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
             </div>
           </div>
 
-          {/* User Profile Pill & Logout Button */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Logout Button */}
+          <div className="relative z-10 flex items-center gap-2 shrink-0">
             {onLogout && (
               <button
                 id="btn-mobile-logout"
                 onClick={onLogout}
-                className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-full text-xs font-semibold transition-all border border-white/25 cursor-pointer"
+                className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-full text-xs font-semibold transition-all border border-white/30 cursor-pointer backdrop-blur-2xs"
                 title="Cerrar sesión"
               >
                 <LogOut className="w-3.5 h-3.5 text-[#EAF7E4]" />

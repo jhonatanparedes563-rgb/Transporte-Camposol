@@ -105,30 +105,50 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
     return dateStr;
   };
 
+  const firstName = (currentUser?.nombre || 'Solicitante').trim().split(/\s+/)[0];
+  const hour = new Date().getHours();
+  const saludo = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+
   return (
     <div className="min-h-full w-full flex flex-col px-3.5 py-3 gap-3">
-      {/* 1. Solicitante Conectado */}
-      <div className="bg-white rounded-2xl px-3.5 py-2.5 border border-[#E2E8F0] shadow-xs flex items-center justify-between gap-2.5 shrink-0">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 rounded-full bg-[#E5F5DF] text-[#15803D] flex items-center justify-center shrink-0">
-            <User className="w-5 h-5" />
+      {/* 1. Saludo y Bienvenida al Solicitante */}
+      <div className="bg-white rounded-2xl px-4 py-3.5 border border-[#E2E8F0] shadow-xs shrink-0">
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-12 h-12 rounded-full bg-[#E5F5DF] border border-[#CBEBC2] text-[#15803D] flex items-center justify-center shrink-0">
+              <User className="w-6 h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-[17px] font-extrabold text-[#1B3A57] leading-tight tracking-tight truncate">
+                ¡{saludo}, {firstName}!
+              </h1>
+              <p className="text-xs font-medium text-slate-600 leading-snug mt-0.5">
+                Bienvenido al portal de transporte de personal
+              </p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-[11px] font-medium text-slate-500 block leading-tight">
-              Solicitante conectado
+
+          {currentUser?.area && (
+            <span className="shrink-0 max-w-[138px] inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-[#BFE6B3] bg-[#EAF7E4] text-[10.5px] font-semibold text-[#15803D]">
+              <Sprout className="w-3 h-3 shrink-0" />
+              <span className="truncate">{currentUser.area}</span>
             </span>
-            <span className="text-[13.5px] font-bold text-[#1B3A57] leading-snug block truncate">
-              {currentUser?.nombre || 'Solicitante'}
-            </span>
-          </div>
+          )}
         </div>
 
-        {currentUser?.area && (
-          <span className="shrink-0 max-w-[148px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#BFE6B3] bg-[#EAF7E4] text-[11px] font-semibold text-[#15803D]">
-            <Sprout className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{currentUser.area}</span>
+        <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-[11.5px]">
+          <span className="text-slate-500 truncate">
+            Solicitante:{' '}
+            <strong className="font-bold text-[#1B3A57]">
+              {currentUser?.nombre || 'Solicitante'}
+            </strong>
           </span>
-        )}
+          {currentUser?.fundo && (
+            <span className="text-[11px] font-semibold text-[#15803D] shrink-0">
+              {currentUser.fundo}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* 2. Banner Principal: Nuevo Requerimiento (expansivo y de alto impacto visual) */}
