@@ -151,15 +151,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         />
       </div>
 
-      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades difuminando suavemente hacia blanco más abajo) */}
-      <div className="lg:hidden relative w-full h-[45dvh] min-h-[310px] max-h-[410px] shrink-0 overflow-hidden bg-white">
+      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades difuminando suave en el borde inferior) */}
+      <div className="lg:hidden relative w-full h-[46dvh] min-h-[320px] max-h-[430px] shrink-0 overflow-hidden bg-white">
         {!heroImgFailed ? (
           <img
             src={imgValleyFleetBg}
             alt="Unidades de transporte CAMPOSOL en el valle"
             referrerPolicy="no-referrer"
             onError={() => setHeroImgFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover object-[52%_58%] pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-[52%_60%] pointer-events-none select-none"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-[#15803D] to-white flex items-center justify-center opacity-20 pointer-events-none">
@@ -173,10 +173,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#082412]/70 via-[#082412]/25 to-transparent pointer-events-none"
         />
 
-        {/* Difuminado suave concentrado en el borde inferior hacia blanco puro */}
+        {/* Difuminado suave concentrado bien abajo hacia blanco puro */}
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-18 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.22)_38%,rgba(255,255,255,0.72)_74%,#FFFFFF_100%)] pointer-events-none"
+          className="absolute inset-x-0 bottom-0 h-14 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.28)_42%,rgba(255,255,255,0.78)_78%,#FFFFFF_100%)] pointer-events-none"
         />
 
         {/* Lockup oficial CAMPOSOL | Transporte de Personal en el espacio superior */}
@@ -236,12 +236,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
 
           <div className="mt-7 max-w-xl">
-            <h2 className="text-4xl font-extrabold text-white leading-[1.12] tracking-tight drop-shadow-sm">
+            <div
+              role="heading"
+              aria-level={2}
+              className="text-4xl font-extrabold text-white leading-[1.12] tracking-tight drop-shadow-sm"
+            >
               Gestión formal y eficiente del transporte agrícola
-            </h2>
-            <p className="mt-3 text-base text-white/90 leading-relaxed max-w-lg drop-shadow-xs">
+            </div>
+            <div className="mt-3 text-base text-white/90 leading-relaxed max-w-lg drop-shadow-xs">
               Coordina requerimientos, asigna unidades por zona y supervisa la programación diaria de ingreso y salida en campo y planta.
-            </p>
+            </div>
           </div>
         </div>
 
@@ -250,14 +254,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white lg:rounded-[26px] px-6 pt-1 pb-4 lg:p-8 lg:shadow-2xl lg:border lg:border-white/80">
             {/* VISTA: INICIAR SESIÓN */}
             {viewMode === 'login' && (
-              <div className="flex-1 lg:flex-none flex flex-col justify-between lg:justify-start pt-1 pb-3 lg:py-0 gap-4 lg:gap-5">
+              <div className="flex flex-col justify-start pt-1 pb-3 lg:py-0 gap-5">
                 <div>
-                  <h1 className="text-[38px] sm:text-[42px] lg:text-[36px] font-extrabold text-[#111827] tracking-tight leading-[1.08]">
+                  <div
+                    role="heading"
+                    aria-level={1}
+                    className="text-[32px] sm:text-[36px] lg:text-[32px] font-extrabold text-[#111827] tracking-tight leading-[1.1]"
+                  >
                     Bienvenido(a)
-                  </h1>
-                  <p className="text-[17px] sm:text-[18px] lg:text-[15.5px] font-normal text-slate-600 mt-1.5 leading-snug">
+                  </div>
+                  <div className="text-[16px] sm:text-[17px] lg:text-[15px] font-normal text-slate-600 mt-1.5 leading-snug">
                     Inicie sesión en Transporte de Personal
-                  </p>
+                  </div>
                 </div>
 
                 {errorMessage && (
@@ -270,12 +278,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-5">
+                <form onSubmit={handleLogin} className="space-y-4">
                   {/* Campo: Usuario ampliado */}
                   <div className="relative pt-2">
                     <label
                       htmlFor="input-login-username"
-                      className="absolute top-0 left-4 bg-white px-1.5 text-[13px] font-medium text-slate-500 z-10"
+                      className="absolute top-0 left-4 bg-white px-1.5 text-[13.5px]! font-medium text-slate-500 z-10"
                     >
                       Usuario
                     </label>
@@ -290,9 +298,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         autoCorrect="off"
                         autoComplete="username"
                         required
-                        className="w-full pl-4 pr-12 py-4 bg-white border border-[#CBD5E1] rounded-2xl text-[16px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
+                        className="w-full pl-4 pr-12 py-3.5 bg-white border border-[#CBD5E1] rounded-2xl text-[16px]! font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
                       />
-                      <User className="w-5.5 h-5.5 text-slate-400 absolute right-4 pointer-events-none" />
+                      <User className="w-5 h-5 text-slate-400 absolute right-4 pointer-events-none" />
                     </div>
                   </div>
 
@@ -300,12 +308,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   <div className="relative pt-2">
                     <label
                       htmlFor="input-login-password"
-                      className="absolute top-0 left-4 bg-white px-1.5 text-[13px] font-medium text-slate-500 z-10"
+                      className="absolute top-0 left-4 bg-white px-1.5 text-[13.5px]! font-medium text-slate-500 z-10"
                     >
                       Contraseña
                     </label>
                     <div className="relative flex items-center">
-                      <Lock className="w-5.5 h-5.5 text-slate-400 absolute left-4 pointer-events-none" />
+                      <Lock className="w-5 h-5 text-slate-400 absolute left-4 pointer-events-none" />
                       <input
                         id="input-login-password"
                         type={showPassword ? 'text' : 'password'}
@@ -314,7 +322,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         placeholder="Ingrese su contraseña"
                         autoComplete="current-password"
                         required
-                        className="w-full pl-12 pr-12 py-4 bg-white border border-[#CBD5E1] rounded-2xl text-[16px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
+                        className="w-full pl-12 pr-12 py-3.5 bg-white border border-[#CBD5E1] rounded-2xl text-[16px]! font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
                       />
                       <button
                         id="btn-toggle-password-icon"
@@ -324,7 +332,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                         aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
-                        {showPassword ? <EyeOff className="w-5.5 h-5.5" /> : <Eye className="w-5.5 h-5.5" />}
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
@@ -338,7 +346,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       onClick={() => setRememberMe(!rememberMe)}
                       className="inline-flex items-center gap-2.5 cursor-pointer py-1 focus:outline-none"
                     >
-                      <span className="text-[14px] font-medium text-[#1F2937]">
+                      <span className="text-[14.5px] font-medium text-[#1F2937]">
                         Recordarme
                       </span>
                       <span
@@ -360,7 +368,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         setRecoveryIdentifier(username.trim());
                         setViewMode('recovery');
                       }}
-                      className="text-[14px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
+                      className="text-[14.5px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
                     >
                       Olvidé mi contraseña
                     </button>
@@ -371,7 +379,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     id="btn-login-submit"
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-4 px-5 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-2xl text-[16.5px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[56px]"
+                    className="w-full py-4 px-5 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-2xl text-[17px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[54px]"
                   >
                     {isLoading ? (
                       <div className="w-5.5 h-5.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
