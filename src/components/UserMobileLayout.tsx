@@ -64,14 +64,11 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
               </div>
             )}
 
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold tracking-wider text-sm text-white">CAMPOSOL</span>
-                <span className="text-[9px] uppercase font-bold tracking-widest bg-white/20 text-white px-2 py-0.5 rounded-full">
-                  SOLICITANTE
-                </span>
+            <div className="min-w-0 border-l border-white/65 pl-2.5">
+              <div className="font-extrabold tracking-wide text-[16px] text-white leading-tight">
+                CAMPOSOL
               </div>
-              <div className="text-[11px] text-[#EAF7E4] font-medium truncate">
+              <div className="text-[12px] text-white/95 font-medium leading-tight truncate">
                 {currentScreen === 'new-request'
                   ? 'Nuevo Requerimiento'
                   : currentScreen === 'my-requests'
