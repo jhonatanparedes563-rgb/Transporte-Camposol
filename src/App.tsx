@@ -26,7 +26,7 @@ const DatabaseManagementModal = lazy(() =>
 const AppLoadingScreen: React.FC = () => (
   <div className="min-h-[100dvh] w-full bg-white flex flex-col items-center justify-center gap-3 px-6">
     <img
-      src={getPublicAssetUrl('app-icon-192-v2.png')}
+      src={getPublicAssetUrl('app-icon-192-v3.png')}
       alt="CAMPOSOL TDP Transporte de Personal"
       className="w-24 h-24 object-contain animate-pulse"
     />

@@ -181,18 +181,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         {/* Lockup oficial CAMPOSOL | Transporte de Personal en el espacio superior */}
         <div className="relative z-10 px-5 pt-5 flex items-center gap-3.5">
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/95 shadow-lg shrink-0 flex items-center justify-center">
+          <div className="w-15 h-15 rounded-2xl overflow-hidden bg-[#04443A] ring-1 ring-white/35 shadow-lg shrink-0 flex items-center justify-center">
             <img
-              src={getPublicAssetUrl('camposol-emblem.png')}
+              src={getPublicAssetUrl('app-icon-192-v3.png')}
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.includes('.svg')) {
-                  target.src = getPublicAssetUrl('camposol-emblem.svg');
+                if (!target.src.includes('512')) {
+                  target.src = getPublicAssetUrl('app-icon-512-v3.png');
                 }
               }}
-              alt="CAMPOSOL"
+              alt="CAMPOSOL TDP Transporte de Personal"
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           </div>
           <div className="min-w-0 border-l-2 border-white/85 pl-3.5 py-0.5">
@@ -211,18 +211,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         {/* Columna Izquierda (PC / Laptop): Identidad formal sobre el paisaje */}
         <div className="hidden lg:flex lg:col-span-7 flex-col justify-center text-white pr-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/95 shadow-lg shrink-0 flex items-center justify-center">
+            <div className="w-18 h-18 rounded-2xl overflow-hidden bg-[#04443A] ring-1 ring-white/35 shadow-lg shrink-0 flex items-center justify-center">
               <img
-                src={getPublicAssetUrl('camposol-emblem.png')}
+                src={getPublicAssetUrl('app-icon-512-v3.png')}
                 onError={(e) => {
                   const target = e.currentTarget;
-                  if (!target.src.includes('.svg')) {
-                    target.src = getPublicAssetUrl('camposol-emblem.svg');
+                  if (!target.src.includes('192')) {
+                    target.src = getPublicAssetUrl('app-icon-192-v3.png');
                   }
                 }}
-                alt="CAMPOSOL"
+                alt="CAMPOSOL TDP Transporte de Personal"
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
             <div className="border-l-2 border-white/80 pl-4 py-1">
