@@ -131,8 +131,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#0D2B19] relative flex flex-col lg:justify-center font-sans antialiased text-[#1B3A57] overflow-x-hidden">
-      {/* FONDO PANORÁMICO EN ESCRITORIO / LAPTOP (Valle + Montañas + Unidades) */}
+    <div className="min-h-[100dvh] w-full bg-white lg:bg-[#0F2A1A] relative flex flex-col lg:justify-center font-sans antialiased text-[#1B3A57] overflow-x-hidden">
+      {/* FONDO PANORÁMICO COMPLETO EN PC / LAPTOP (Valle luminoso + Montañas + Unidades) */}
       <div className="hidden lg:block absolute inset-0 pointer-events-none select-none overflow-hidden">
         {!heroImgFailed ? (
           <img
@@ -143,39 +143,39 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             className="w-full h-full object-cover object-center"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#0F7A2E] via-[#1B5E3A] to-[#0D2B19]" />
+          <div className="w-full h-full bg-gradient-to-br from-[#15803D] via-[#1B5E3A] to-[#0F2A1A]" />
         )}
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,36,18,0.82)_0%,rgba(8,36,18,0.42)_48%,rgba(8,36,18,0.58)_100%)]"
+          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,34,18,0.72)_0%,rgba(9,34,18,0.28)_48%,rgba(9,34,18,0.42)_100%)]"
         />
       </div>
 
-      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Encuadre exacto de montañas + 3 unidades sin recortes) */}
-      <div className="lg:hidden relative w-full h-[42dvh] min-h-[275px] max-h-[360px] shrink-0 overflow-hidden bg-[#0F4D26]">
+      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Luminosa, viva, con logo visible arriba y 3 unidades completas) */}
+      <div className="lg:hidden relative w-full h-[43dvh] min-h-[290px] max-h-[385px] shrink-0 overflow-hidden bg-[#15803D]">
         {!heroImgFailed ? (
           <img
             src={imgValleyFleetBg}
             alt="Unidades de transporte CAMPOSOL en el valle"
             referrerPolicy="no-referrer"
             onError={() => setHeroImgFailed(true)}
-            className="w-full h-full object-cover object-[52%_65%] pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-[52%_64%] pointer-events-none select-none"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center opacity-15">
+          <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none">
             <Bus className="w-32 h-32 text-white" />
           </div>
         )}
 
-        {/* Scrim superior para la marca e inferior para fundir con el fondo verde profundo */}
+        {/* Degradado sutil solo en la franja superior para legibilidad del logo, manteniendo vivo el paisaje */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,36,18,0.72)_0%,rgba(8,36,18,0.18)_38%,rgba(8,36,18,0.06)_68%,rgba(13,43,25,0.95)_100%)] pointer-events-none"
+          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,36,18,0.68)_0%,rgba(8,36,18,0.16)_38%,rgba(8,36,18,0)_68%,rgba(8,36,18,0.24)_100%)] pointer-events-none"
         />
 
-        {/* Identidad CAMPOSOL en el área superior del cielo */}
+        {/* Identidad CAMPOSOL visible en la zona superior */}
         <div className="relative z-10 px-5 pt-4 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/85 shadow-md shrink-0 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/90 shadow-md shrink-0 flex items-center justify-center">
             <img
               src={getPublicAssetUrl('camposol-emblem.png')}
               onError={(e) => {
@@ -189,7 +189,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               className="w-full h-full object-cover"
             />
           </div>
-          <div className="min-w-0 border-l-[1.5px] border-white/75 pl-3 py-0.5">
+          <div className="min-w-0 border-l-[1.5px] border-white/80 pl-3 py-0.5">
             <div className="text-[19px] font-extrabold tracking-wide text-white leading-none drop-shadow-xs">
               CAMPOSOL
             </div>
@@ -200,10 +200,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         </div>
       </div>
 
-      {/* CONTENEDOR PRINCIPAL RESPONSIVO (Móvil + Laptop / PC) */}
-      <div className="relative z-10 w-full flex-1 lg:flex-none max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 pb-5 pt-0 lg:py-8 -mt-6 lg:mt-0 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center justify-center">
-        {/* Columna Izquierda (Solo Escritorio / Laptop): Marca y Propósito sobre el paisaje */}
-        <div className="hidden lg:flex lg:col-span-7 flex-col justify-between text-white pr-4">
+      {/* CONTENEDOR PRINCIPAL RESPONSIVO (Móvil + PC / Laptop) */}
+      <div className="relative z-10 w-full flex-1 lg:flex-none max-w-6xl mx-auto lg:px-10 lg:py-8 -mt-6 lg:mt-0 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
+        {/* Columna Izquierda (PC / Laptop): Identidad formal y descripción sobre el paisaje */}
+        <div className="hidden lg:flex lg:col-span-7 flex-col justify-center text-white pr-4">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/90 shadow-lg shrink-0 flex items-center justify-center">
               <img
@@ -219,32 +219,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="border-l-2 border-white/70 pl-4 py-1">
-              <div className="text-2xl font-extrabold tracking-wide text-white leading-none">
+            <div className="border-l-2 border-white/75 pl-4 py-1">
+              <div className="text-2xl font-extrabold tracking-wide text-white leading-none drop-shadow-xs">
                 CAMPOSOL
               </div>
-              <div className="text-sm font-semibold text-[#DCFCE7] mt-1">
+              <div className="text-sm font-semibold text-[#DCFCE7] mt-1 drop-shadow-xs">
                 Sistema de Transporte de Personal
               </div>
             </div>
           </div>
 
-          <div className="mt-8 max-w-xl">
+          <div className="mt-7 max-w-xl">
             <h2 className="text-4xl font-extrabold text-white leading-[1.12] tracking-tight drop-shadow-sm">
-              Gestión coordinada de flota para operaciones agrícolas
+              Gestión formal y eficiente del transporte agrícola
             </h2>
-            <p className="mt-3 text-base text-white/85 leading-relaxed max-w-lg">
-              Registra requerimientos, optimiza unidades por zona y controla la programación diaria de ingreso y salida de personal.
+            <p className="mt-3 text-base text-white/90 leading-relaxed max-w-lg drop-shadow-xs">
+              Coordina requerimientos, asigna unidades por zona y supervisa la programación diaria de ingreso y salida en campo y planta.
             </p>
           </div>
         </div>
 
-        {/* Columna Derecha / Móvil: Tarjeta Compacta de Acceso (sin espacios en blanco sobrantes) */}
-        <div className="w-full max-w-[430px] mx-auto lg:mx-0 lg:col-span-5 lg:justify-self-end flex flex-col">
-          <div className="bg-white/96 backdrop-blur-md rounded-[24px] p-5 sm:p-7 shadow-2xl border border-white/80">
+        {/* Columna Derecha / Panel Blanco Móvil (Formal, luminoso y proporcionado) */}
+        <div className="w-full flex-1 lg:flex-none lg:col-span-5 lg:max-w-[430px] lg:justify-self-end flex flex-col">
+          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white rounded-t-[28px] lg:rounded-[24px] px-6 pt-6 pb-5 sm:p-7 shadow-[0_-10px_28px_rgba(15,23,42,0.14)] lg:shadow-2xl border-t-[3px] border-[#22A846] lg:border lg:border-white/80 lg:border-t-4 lg:border-t-[#22A846]">
             {/* VISTA: INICIAR SESIÓN */}
             {viewMode === 'login' && (
-              <div className="space-y-4">
+              <>
                 <div>
                   <h1 className="text-[26px] sm:text-[28px] font-extrabold text-[#111827] tracking-tight leading-tight">
                     Bienvenido(a)
@@ -254,132 +254,134 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   </p>
                 </div>
 
-                {errorMessage && (
-                  <div
-                    id="login-error-box"
-                    className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
-                  >
-                    <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
-                    <div className="font-bold leading-relaxed">{errorMessage}</div>
-                  </div>
-                )}
-
-                <form onSubmit={handleLogin} className="space-y-3.5">
-                  {/* Campo: Usuario */}
-                  <div className="relative pt-1.5">
-                    <label
-                      htmlFor="input-login-username"
-                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
+                <div className="my-auto py-4 lg:py-5 space-y-4">
+                  {errorMessage && (
+                    <div
+                      id="login-error-box"
+                      className="p-3 bg-[#FDECEC] border border-[#FECACA] rounded-xl flex items-start gap-2.5 text-xs text-[#DC2626]"
                     >
-                      Usuario
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        id="input-login-username"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Ingrese su usuario"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        autoComplete="username"
-                        required
-                        className="w-full pl-4 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
-                      />
-                      <User className="w-5 h-5 text-slate-400 absolute right-3.5 pointer-events-none" />
+                      <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+                      <div className="font-bold leading-relaxed">{errorMessage}</div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Campo: Contraseña */}
-                  <div className="relative pt-1.5">
-                    <label
-                      htmlFor="input-login-password"
-                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
-                    >
-                      Contraseña
-                    </label>
-                    <div className="relative flex items-center">
-                      <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
-                      <input
-                        id="input-login-password"
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Ingrese su contraseña"
-                        autoComplete="current-password"
-                        required
-                        className="w-full pl-11 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
-                      />
-                      <button
-                        id="btn-toggle-password-icon"
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-1.5 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
-                        title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    {/* Campo: Usuario */}
+                    <div className="relative pt-1.5">
+                      <label
+                        htmlFor="input-login-username"
+                        className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        Usuario
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          id="input-login-username"
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          placeholder="Ingrese su usuario"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          autoComplete="username"
+                          required
+                          className="w-full pl-4 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                        />
+                        <User className="w-5 h-5 text-slate-400 absolute right-3.5 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Campo: Contraseña */}
+                    <div className="relative pt-1.5">
+                      <label
+                        htmlFor="input-login-password"
+                        className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
+                      >
+                        Contraseña
+                      </label>
+                      <div className="relative flex items-center">
+                        <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 pointer-events-none" />
+                        <input
+                          id="input-login-password"
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Ingrese su contraseña"
+                          autoComplete="current-password"
+                          required
+                          className="w-full pl-11 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                        />
+                        <button
+                          id="btn-toggle-password-icon"
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-1.5 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                          title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Fila: Recordarme + Olvidé mi contraseña */}
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rememberMe}
+                        onClick={() => setRememberMe(!rememberMe)}
+                        className="inline-flex items-center gap-2 cursor-pointer py-1 focus:outline-none"
+                      >
+                        <span className="text-[13px] font-medium text-[#1F2937]">
+                          Recordarme
+                        </span>
+                        <span
+                          className={`w-10 h-5.5 rounded-full p-0.5 transition-colors flex items-center ${
+                            rememberMe ? 'bg-[#22A846] justify-end' : 'bg-[#737373] justify-start'
+                          }`}
+                        >
+                          <span className="w-4.5 h-4.5 rounded-full bg-white shadow-xs block" />
+                        </span>
+                      </button>
+
+                      <button
+                        id="btn-forgot-password"
+                        type="button"
+                        onClick={() => {
+                          setErrorMessage('');
+                          setRecoveryError('');
+                          setRecoverySuccess(false);
+                          setRecoveryIdentifier(username.trim());
+                          setViewMode('recovery');
+                        }}
+                        className="text-[13px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
+                      >
+                        Olvidé mi contraseña
                       </button>
                     </div>
-                  </div>
 
-                  {/* Fila: Recordarme + Olvidé mi contraseña */}
-                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    {/* Botón Principal: Iniciar sesión */}
                     <button
-                      type="button"
-                      role="switch"
-                      aria-checked={rememberMe}
-                      onClick={() => setRememberMe(!rememberMe)}
-                      className="inline-flex items-center gap-2 cursor-pointer py-1 focus:outline-none"
+                      id="btn-login-submit"
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[50px]"
                     >
-                      <span className="text-[13px] font-medium text-[#1F2937]">
-                        Recordarme
-                      </span>
-                      <span
-                        className={`w-10 h-5.5 rounded-full p-0.5 transition-colors flex items-center ${
-                          rememberMe ? 'bg-[#22A846] justify-end' : 'bg-[#737373] justify-start'
-                        }`}
-                      >
-                        <span className="w-4.5 h-4.5 rounded-full bg-white shadow-xs block" />
-                      </span>
+                      {isLoading ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <span>Iniciar sesión</span>
+                      )}
                     </button>
-
-                    <button
-                      id="btn-forgot-password"
-                      type="button"
-                      onClick={() => {
-                        setErrorMessage('');
-                        setRecoveryError('');
-                        setRecoverySuccess(false);
-                        setRecoveryIdentifier(username.trim());
-                        setViewMode('recovery');
-                      }}
-                      className="text-[13px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
-                    >
-                      Olvidé mi contraseña
-                    </button>
-                  </div>
-
-                  {/* Botón Principal: Iniciar sesión */}
-                  <button
-                    id="btn-login-submit"
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[48px]"
-                  >
-                    {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <span>Iniciar sesión</span>
-                    )}
-                  </button>
-                </form>
-              </div>
+                  </form>
+                </div>
+              </>
             )}
 
             {/* VISTA: RECUPERAR CONTRASEÑA */}
             {viewMode === 'recovery' && (
-              <div className="space-y-4">
+              <div className="my-auto py-2 space-y-4">
                 {!recoverySuccess ? (
                   <>
                     <div>
@@ -401,11 +403,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       </div>
                     )}
 
-                    <form onSubmit={handleRecoverySubmit} className="space-y-3.5">
+                    <form onSubmit={handleRecoverySubmit} className="space-y-4">
                       <div className="relative pt-1.5">
                         <label
                           htmlFor="input-recovery-identifier"
-                          className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
+                          className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
                         >
                           Usuario o correo institucional
                         </label>
@@ -429,7 +431,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         id="btn-send-recovery"
                         type="submit"
                         disabled={isRecoverySubmitting}
-                        className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[48px]"
+                        className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[50px]"
                       >
                         {isRecoverySubmitting ? (
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -542,11 +544,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 )}
               </div>
             )}
-          </div>
 
-          {/* Pie institucional discreto sobre fondo del valle */}
-          <div className="text-center mt-3.5 text-[11px] text-white/80 font-medium drop-shadow-2xs">
-            CAMPOSOL S.A. · Sistema de Transporte de Personal
+            {/* Pie institucional limpio dentro de la tarjeta formal */}
+            <div className="pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400 font-medium">
+              CAMPOSOL S.A. · Sistema de Transporte de Personal
+            </div>
           </div>
         </div>
       </div>
