@@ -220,12 +220,6 @@ const inferTurnoFromTime = (timeStr: string): TurnoLabel => {
   return 'NOCHE';
 };
 
-const formatTurnoDisplay = (t: TurnoLabel): string => {
-  if (t === 'MAÑANA') return 'Mañana';
-  if (t === 'TARDE') return 'Tarde';
-  return 'Noche';
-};
-
 const isPendingAssignment = (row: ScheduleRow): boolean => {
   const prov = (row.provider || '').trim().toLowerCase();
   const plate = (row.plate || '').trim().toLowerCase();
@@ -1320,17 +1314,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       </td>
 
                       <td className="py-2.5 px-3 whitespace-nowrap tabular-nums">
-                        <div className="text-[11px] font-medium text-[#1B3A57]">{row.time}</div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
-                          {formatTurnoDisplay(row.turno)}
-                        </div>
+                        <span className="text-[11px] font-medium text-[#1B3A57]">{row.time}</span>
                       </td>
 
                       <td className="py-2.5 px-3 whitespace-nowrap">
-                        <div className="text-[11px] font-medium text-[#1B3A57]">{row.type}</div>
-                        <div className="text-[10px] text-slate-500 mt-0.5 tabular-nums">
-                          Cap. {row.cap} pax
-                        </div>
+                        <span className="text-[11px] font-medium text-[#1B3A57]">{row.type}</span>
                       </td>
 
                       <td className="py-2.5 px-3 whitespace-nowrap tabular-nums">
