@@ -49,8 +49,8 @@ export const CamposolLogo: React.FC<CamposolLogoProps> = ({
     '2xl': 'w-28 h-28',
   };
 
-  const primaryAsset = variant === 'icon' ? 'app-icon-192-v3.png' : 'camposol-emblem.png';
-  const fallbackAsset = variant === 'icon' ? 'app-icon-512-v3.png' : 'camposol-emblem.svg';
+  const primaryAsset = variant === 'icon' ? 'app-icon-192-v4.png' : 'camposol-emblem.png';
+  const fallbackAsset = variant === 'icon' ? 'app-icon-512-v4.png' : 'camposol-emblem.svg';
 
   return (
     <img

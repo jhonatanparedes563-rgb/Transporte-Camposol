@@ -73,11 +73,11 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
             ) : (
               <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md shrink-0 ring-1 ring-white/35 bg-[#04443A] flex items-center justify-center">
                 <img
-                  src={getPublicAssetUrl('app-icon-192-v3.png')}
+                  src={getPublicAssetUrl('app-icon-192-v4.png')}
                   onError={(e) => {
                     const target = e.currentTarget;
                     if (!target.src.includes('512')) {
-                      target.src = getPublicAssetUrl('app-icon-512-v3.png');
+                      target.src = getPublicAssetUrl('app-icon-512-v4.png');
                     }
                   }}
                   alt="CAMPOSOL TDP Transporte de Personal"

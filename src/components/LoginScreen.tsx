@@ -183,11 +183,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         <div className="relative z-10 px-5 pt-5 flex items-center gap-3.5">
           <div className="w-15 h-15 rounded-2xl overflow-hidden bg-[#04443A] ring-1 ring-white/35 shadow-lg shrink-0 flex items-center justify-center">
             <img
-              src={getPublicAssetUrl('app-icon-192-v3.png')}
+              src={getPublicAssetUrl('app-icon-192-v4.png')}
               onError={(e) => {
                 const target = e.currentTarget;
                 if (!target.src.includes('512')) {
-                  target.src = getPublicAssetUrl('app-icon-512-v3.png');
+                  target.src = getPublicAssetUrl('app-icon-512-v4.png');
                 }
               }}
               alt="CAMPOSOL TDP Transporte de Personal"
@@ -213,11 +213,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           <div className="flex items-center gap-4">
             <div className="w-18 h-18 rounded-2xl overflow-hidden bg-[#04443A] ring-1 ring-white/35 shadow-lg shrink-0 flex items-center justify-center">
               <img
-                src={getPublicAssetUrl('app-icon-512-v3.png')}
+                src={getPublicAssetUrl('app-icon-512-v4.png')}
                 onError={(e) => {
                   const target = e.currentTarget;
                   if (!target.src.includes('192')) {
-                    target.src = getPublicAssetUrl('app-icon-192-v3.png');
+                    target.src = getPublicAssetUrl('app-icon-192-v4.png');
                   }
                 }}
                 alt="CAMPOSOL TDP Transporte de Personal"
