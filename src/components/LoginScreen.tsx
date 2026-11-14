@@ -131,24 +131,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#164A27] relative flex flex-col lg:justify-center font-sans antialiased text-[#1B3A57] overflow-x-hidden">
-      {/* FONDO AMBIENTAL CONTINUO EN MÓVIL (Continuación viva y luminosa del paisaje verde bajo la tarjeta) */}
-      <div className="lg:hidden absolute inset-0 pointer-events-none select-none overflow-hidden">
-        {!heroImgFailed && (
-          <img
-            src={imgValleyFleetBg}
-            alt=""
-            aria-hidden="true"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover object-bottom scale-110 blur-md opacity-70"
-          />
-        )}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,83,45,0.35)_0%,rgba(21,94,48,0.68)_55%,rgba(14,68,34,0.88)_100%)]"
-        />
-      </div>
-
+    <div className="min-h-[100dvh] w-full bg-white lg:bg-[#0F2A1A] relative flex flex-col lg:justify-center font-sans antialiased text-[#1B3A57] overflow-x-hidden">
       {/* FONDO PANORÁMICO COMPLETO EN PC / LAPTOP */}
       <div className="hidden lg:block absolute inset-0 pointer-events-none select-none overflow-hidden">
         {!heroImgFailed ? (
@@ -164,19 +147,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         )}
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,34,18,0.72)_0%,rgba(9,34,18,0.28)_48%,rgba(9,34,18,0.42)_100%)]"
+          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,34,18,0.74)_0%,rgba(9,34,18,0.28)_48%,rgba(9,34,18,0.44)_100%)]"
         />
       </div>
 
-      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Nítida: montañas + cultivos + 3 unidades completas) */}
-      <div className="lg:hidden relative z-10 w-full h-[40dvh] min-h-[265px] max-h-[360px] shrink-0 overflow-hidden bg-[#15803D]">
+      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades + logo CAMPOSOL arriba) */}
+      <div className="lg:hidden relative w-full h-[46dvh] min-h-[310px] max-h-[410px] shrink-0 overflow-hidden bg-[#15803D]">
         {!heroImgFailed ? (
           <img
             src={imgValleyFleetBg}
             alt="Unidades de transporte CAMPOSOL en el valle"
             referrerPolicy="no-referrer"
             onError={() => setHeroImgFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover object-[52%_65%] pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-[52%_64%] pointer-events-none select-none"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none">
@@ -184,15 +167,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {/* Scrim sutil superior para contraste del logo y suave fundido inferior hacia el paisaje continuo */}
+        {/* Scrim sutil en la franja superior para destacar el logo manteniendo el paisaje vivo */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,36,18,0.68)_0%,rgba(8,36,18,0.14)_38%,rgba(8,36,18,0)_70%,rgba(20,83,45,0.72)_100%)] pointer-events-none"
+          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,36,18,0.68)_0%,rgba(8,36,18,0.20)_38%,rgba(8,36,18,0)_72%,rgba(8,36,18,0.22)_100%)] pointer-events-none"
         />
 
-        {/* Identidad CAMPOSOL visible en la zona superior */}
-        <div className="relative z-10 px-5 pt-4 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/90 shadow-md shrink-0 flex items-center justify-center">
+        {/* Lockup oficial CAMPOSOL | Transporte de Personal en el espacio superior */}
+        <div className="relative z-10 px-5 pt-5 flex items-center gap-3.5">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/95 shadow-lg shrink-0 flex items-center justify-center">
             <img
               src={getPublicAssetUrl('camposol-emblem.png')}
               onError={(e) => {
@@ -206,11 +189,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               className="w-full h-full object-cover"
             />
           </div>
-          <div className="min-w-0 border-l-[1.5px] border-white/80 pl-3 py-0.5">
-            <div className="text-[19px] font-extrabold tracking-wide text-white leading-none drop-shadow-xs">
+          <div className="min-w-0 border-l-2 border-white/85 pl-3.5 py-0.5">
+            <div className="text-[22px] font-extrabold tracking-wide text-white leading-none drop-shadow-sm">
               CAMPOSOL
             </div>
-            <div className="text-[12px] font-semibold text-[#DCFCE7] leading-tight mt-0.5 truncate drop-shadow-xs">
+            <div className="text-[13px] font-semibold text-[#ECFDF5] leading-tight mt-1 truncate drop-shadow-xs">
               Transporte de Personal
             </div>
           </div>
@@ -218,11 +201,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       </div>
 
       {/* CONTENEDOR PRINCIPAL RESPONSIVO (Móvil + PC / Laptop) */}
-      <div className="relative z-20 w-full flex-1 lg:flex-none max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 pb-5 pt-2 lg:py-8 -mt-7 lg:mt-0 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center justify-center">
-        {/* Columna Izquierda (PC / Laptop): Identidad formal y descripción sobre el paisaje */}
+      <div className="relative z-10 w-full flex-1 lg:flex-none max-w-6xl mx-auto lg:px-10 lg:py-8 -mt-6 lg:mt-0 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
+        {/* Columna Izquierda (PC / Laptop): Identidad formal sobre el paisaje */}
         <div className="hidden lg:flex lg:col-span-7 flex-col justify-center text-white pr-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/90 shadow-lg shrink-0 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/95 shadow-lg shrink-0 flex items-center justify-center">
               <img
                 src={getPublicAssetUrl('camposol-emblem.png')}
                 onError={(e) => {
@@ -236,12 +219,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="border-l-2 border-white/75 pl-4 py-1">
+            <div className="border-l-2 border-white/80 pl-4 py-1">
               <div className="text-2xl font-extrabold tracking-wide text-white leading-none drop-shadow-xs">
                 CAMPOSOL
               </div>
-              <div className="text-sm font-semibold text-[#DCFCE7] mt-1 drop-shadow-xs">
-                Sistema de Transporte de Personal
+              <div className="text-sm font-semibold text-[#ECFDF5] mt-1 drop-shadow-xs">
+                Transporte de Personal
               </div>
             </div>
           </div>
@@ -256,25 +239,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
         </div>
 
-        {/* Columna Derecha / Tarjeta Compacta Móvil (Uniforme, detallada y sin espacios blancos muertos) */}
-        <div className="w-full max-w-[430px] mx-auto lg:mx-0 lg:col-span-5 lg:justify-self-end flex flex-col">
-          <div className="bg-white/97 backdrop-blur-md rounded-[24px] p-5 sm:p-7 shadow-2xl border border-white/85 overflow-hidden">
+        {/* Columna Derecha / Panel Blanco Móvil (Diseño anterior limpio, encuadrado y sin espacios muertos) */}
+        <div className="w-full flex-1 lg:flex-none lg:col-span-5 lg:max-w-[430px] lg:justify-self-end flex flex-col">
+          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white rounded-t-[28px] lg:rounded-[24px] px-6 pt-6 pb-5 sm:p-7 shadow-[0_-10px_28px_rgba(15,23,42,0.14)] lg:shadow-2xl border-t-[3px] border-[#22A846] lg:border lg:border-white/80 lg:border-t-4 lg:border-t-[#22A846]">
             {/* VISTA: INICIAR SESIÓN */}
             {viewMode === 'login' && (
-              <div className="space-y-4">
-                {/* Encabezado Formal con detalle de icono corporativo */}
-                <div className="flex items-center gap-3 pb-3.5 border-b border-slate-100">
-                  <div className="w-11 h-11 rounded-2xl bg-[#EAF7E4] border border-[#CBEBC2] text-[#15803D] flex items-center justify-center shrink-0">
-                    <Bus className="w-5.5 h-5.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <h1 className="text-[22px] sm:text-[24px] font-extrabold text-[#111827] tracking-tight leading-tight">
-                      Bienvenido(a)
-                    </h1>
-                    <p className="text-[13px] font-medium text-slate-600 leading-snug">
-                      Inicie sesión en Transporte de Personal
-                    </p>
-                  </div>
+              <div className="my-auto py-1 space-y-5">
+                <div>
+                  <h1 className="text-[26px] sm:text-[28px] font-extrabold text-[#111827] tracking-tight leading-tight">
+                    Bienvenido(a)
+                  </h1>
+                  <p className="text-[14.5px] font-normal text-slate-600 mt-1 leading-snug">
+                    Inicie sesión en Transporte de Personal
+                  </p>
                 </div>
 
                 {errorMessage && (
@@ -287,12 +264,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-3.5">
+                <form onSubmit={handleLogin} className="space-y-4">
                   {/* Campo: Usuario */}
                   <div className="relative pt-1.5">
                     <label
                       htmlFor="input-login-username"
-                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
+                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
                     >
                       Usuario
                     </label>
@@ -317,7 +294,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   <div className="relative pt-1.5">
                     <label
                       htmlFor="input-login-password"
-                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
+                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
                     >
                       Contraseña
                     </label>
@@ -377,7 +354,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         setRecoveryIdentifier(username.trim());
                         setViewMode('recovery');
                       }}
-                      className="text-[13px] font-semibold text-[#15803D] hover:underline focus:outline-none cursor-pointer py-1"
+                      className="text-[13px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-1"
                     >
                       Olvidé mi contraseña
                     </button>
@@ -388,33 +365,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     id="btn-login-submit"
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-[#15803D] to-[#22A846] hover:from-[#166534] hover:to-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[50px]"
+                    className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[50px]"
                   >
                     {isLoading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <>
-                        <span>Iniciar sesión</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
+                      <span>Iniciar sesión</span>
                     )}
                   </button>
                 </form>
-
-                {/* Detalle operativo compacto al pie de la tarjeta */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Solicitantes · Programación · Control</span>
-                  <span className="font-semibold text-[#15803D]">CAMPOSOL S.A.</span>
-                </div>
               </div>
             )}
 
             {/* VISTA: RECUPERAR CONTRASEÑA */}
             {viewMode === 'recovery' && (
-              <div className="space-y-4">
+              <div className="my-auto py-2 space-y-4">
                 {!recoverySuccess ? (
                   <>
-                    <div className="pb-3 border-b border-slate-100">
+                    <div>
                       <h1 className="text-[22px] sm:text-[24px] font-extrabold text-[#111827] tracking-tight leading-tight">
                         Recuperar contraseña
                       </h1>
@@ -433,11 +401,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       </div>
                     )}
 
-                    <form onSubmit={handleRecoverySubmit} className="space-y-3.5">
+                    <form onSubmit={handleRecoverySubmit} className="space-y-4">
                       <div className="relative pt-1.5">
                         <label
                           htmlFor="input-recovery-identifier"
-                          className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10 rounded"
+                          className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
                         >
                           Usuario o correo institucional
                         </label>
@@ -461,7 +429,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         id="btn-send-recovery"
                         type="submit"
                         disabled={isRecoverySubmitting}
-                        className="w-full py-3.5 px-4 bg-gradient-to-r from-[#15803D] to-[#22A846] hover:from-[#166534] hover:to-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[50px]"
+                        className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[50px]"
                       >
                         {isRecoverySubmitting ? (
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -574,11 +542,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 )}
               </div>
             )}
-          </div>
 
-          {/* Pie institucional discreto */}
-          <div className="text-center mt-3 text-[11px] text-white/85 font-medium drop-shadow-xs">
-            CAMPOSOL S.A. · Sistema de Transporte de Personal
+            {/* Pie institucional limpio dentro del panel blanco */}
+            <div className="pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400 font-medium">
+              CAMPOSOL S.A. · Sistema de Transporte de Personal
+            </div>
           </div>
         </div>
       </div>
