@@ -304,15 +304,15 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
     );
   }, [eligibleReqs]);
 
-  const initialDate = useMemo(() => {
-    const today = getTodayStr();
-    if (availableDates.includes(today)) return today;
-    if (availableDates.length > 0) return availableDates[0];
-    return today;
-  }, [availableDates]);
-
-  const [selectedFecha, setSelectedFecha] = useState<string>(initialDate);
+  const [selectedFecha, setSelectedFecha] = useState<string>(() => getTodayStr());
   const [hasManualDateSelection, setHasManualDateSelection] = useState<boolean>(false);
+
+  const dateOptions = useMemo(() => {
+    const today = getTodayStr();
+    const set = new Set<string>([today, ...availableDates]);
+    if (selectedFecha && selectedFecha !== 'TODOS') set.add(selectedFecha);
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [availableDates, selectedFecha]);
   const [rows, setRows] = useState<ScheduleRow[]>([]);
 
   const [zoneTab, setZoneTab] = useState<ZoneFilter>('TODOS');
@@ -353,16 +353,20 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   }, []);
 
   useEffect(() => {
-    if (!hasManualDateSelection) {
-      if (selectedFecha !== initialDate) {
-        setSelectedFecha(initialDate);
+    const syncTodayIfNeeded = () => {
+      if (!hasManualDateSelection) {
+        const today = getTodayStr();
+        setSelectedFecha((prev) => (prev !== today ? today : prev));
       }
-      return;
-    }
-    if (selectedFecha !== 'TODOS' && !availableDates.includes(selectedFecha) && availableDates.length > 0) {
-      setSelectedFecha(initialDate);
-    }
-  }, [availableDates, initialDate, selectedFecha, hasManualDateSelection]);
+    };
+    syncTodayIfNeeded();
+    const timer = setInterval(syncTodayIfNeeded, 60000);
+    window.addEventListener('focus', syncTodayIfNeeded);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', syncTodayIfNeeded);
+    };
+  }, [hasManualDateSelection]);
 
   const buildScheduleFromRealData = useCallback(
     (fechaTarget: string, enableBlueLine: boolean) => {
@@ -1039,12 +1043,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                   className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                 >
                   <option value="TODOS">Todas</option>
-                  {selectedFecha !== 'TODOS' && !availableDates.includes(selectedFecha) && (
-                    <option value={selectedFecha}>
-                      {formatDateDDMMYYYY(selectedFecha)}
-                    </option>
-                  )}
-                  {availableDates.map((dateStr) => (
+                  {dateOptions.map((dateStr) => (
                     <option key={dateStr} value={dateStr}>
                       {formatDateDDMMYYYY(dateStr)}
                     </option>
