@@ -958,26 +958,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
             <h3 className="text-sm font-bold text-[#1B3A57] leading-tight">
               Generación de programación
             </h3>
-            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
-              <span>
-                Visualizar, optimizar y asignar recorridos • Mostrando{' '}
-                <strong className="text-[#1B3A57] font-semibold">{filteredRows.length}</strong> de{' '}
-                <strong className="text-[#1B3A57] font-semibold">{rows.length}</strong> unidades
-              </span>
-              {selectedFecha !== 'TODOS' && (
-                <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#EAF7E4] text-[#2F7D18] rounded-full border border-[#C6E9B4]">
-                  DEL DÍA ({selectedFecha})
-                </span>
-              )}
-              {consolidarLineaAzul && (
-                <span
-                  className="px-2 py-0.5 text-[10px] font-semibold bg-[#E6F3FB] text-[#0082B3] rounded-full border border-[#D4E9F7]"
-                  title="Cada requerimiento y fundo opera de forma independiente por usuario; consolida sus paraderos sobre Línea Azul (Agricultor/Sincromax/Yakuy) o en borde San José (fundos centrales)."
-                >
-                  LÍNEA AZUL 100%
-                </span>
-              )}
-            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Visualizar, optimizar y asignar recorridos
+            </p>
           </div>
 
           {/* Botones de Acción con Ícono Arriba + Buscador Píldora */}

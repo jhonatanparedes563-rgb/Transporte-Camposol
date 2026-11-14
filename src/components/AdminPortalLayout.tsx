@@ -1518,28 +1518,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 <h3 className="text-sm font-bold text-[#1B3A57] leading-tight">
                   Recepción de requerimientos
                 </h3>
-                <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                  <span>
-                    Visualizar, filtrar y gestionar requerimientos • Mostrando{' '}
-                    <strong className="text-[#1B3A57] font-semibold">{filteredRequerimientos.length}</strong> de{' '}
-                    <strong className="text-[#1B3A57] font-semibold">{requerimientos.length}</strong>
-                  </span>
-                  {filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr() && (
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#EAF7E4] text-[#2F7D18] rounded-full border border-[#C6E9B4]">
-                      DEL DÍA ({getTodayStr()})
-                    </span>
-                  )}
-                  {filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr() && (
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#FFF6E0] text-[#B45309] rounded-full border border-[#FDE68A]">
-                      DE AYER ({getYesterdayStr()})
-                    </span>
-                  )}
-                  {filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr() && (
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#E6F3FB] text-[#0082B3] rounded-full border border-[#D4E9F7]">
-                      DE MAÑANA ({getTomorrowStr()})
-                    </span>
-                  )}
-                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Visualizar, filtrar y gestionar requerimientos
+                </p>
               </div>
 
               {/* Right Action Icons + Pill Search */}
