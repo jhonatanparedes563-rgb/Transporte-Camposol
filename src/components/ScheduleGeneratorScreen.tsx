@@ -1021,90 +1021,92 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           </div>
         </div>
 
-        {/* Filtros Limpios en Una Sola Fila */}
+        {/* Filtros Limpios Encuadrados en Todo el Ancho */}
         <div className="px-5 pt-2 pb-4">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Fecha */}
-            <div className="relative min-w-[145px] flex-1 sm:flex-none">
-              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
-                Fecha
-              </label>
-              <select
-                value={selectedFecha}
-                onChange={(e) => {
-                  setHasManualDateSelection(true);
-                  setSelectedFecha(e.target.value);
-                }}
-                className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
-              >
-                <option value="TODOS">Todas</option>
-                {selectedFecha !== 'TODOS' && !availableDates.includes(selectedFecha) && (
-                  <option value={selectedFecha}>
-                    {formatDateDDMMYYYY(selectedFecha)}
-                  </option>
-                )}
-                {availableDates.map((dateStr) => (
-                  <option key={dateStr} value={dateStr}>
-                    {formatDateDDMMYYYY(dateStr)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Fecha */}
+              <div className="relative">
+                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  Fecha
+                </label>
+                <select
+                  value={selectedFecha}
+                  onChange={(e) => {
+                    setHasManualDateSelection(true);
+                    setSelectedFecha(e.target.value);
+                  }}
+                  className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                >
+                  <option value="TODOS">Todas</option>
+                  {selectedFecha !== 'TODOS' && !availableDates.includes(selectedFecha) && (
+                    <option value={selectedFecha}>
+                      {formatDateDDMMYYYY(selectedFecha)}
+                    </option>
+                  )}
+                  {availableDates.map((dateStr) => (
+                    <option key={dateStr} value={dateStr}>
+                      {formatDateDDMMYYYY(dateStr)}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Procesos */}
-            <div className="relative min-w-[140px] flex-1 sm:flex-none">
-              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
-                Procesos
-              </label>
-              <select
-                value={procesoEstadoFilter}
-                onChange={(e) => setProcesoEstadoFilter(e.target.value as ProcesoEstadoFilter)}
-                className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
-              >
-                <option value="ACTIVOS">Activos</option>
-                <option value="PENDIENTE_APROBADO">Pend. y Aprob.</option>
-                <option value="PENDIENTE">Pendientes</option>
-                <option value="APROBADO">Aprobados</option>
-                <option value="ATENDIDO">Atendidos</option>
-              </select>
-            </div>
+              {/* Procesos */}
+              <div className="relative">
+                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  Procesos
+                </label>
+                <select
+                  value={procesoEstadoFilter}
+                  onChange={(e) => setProcesoEstadoFilter(e.target.value as ProcesoEstadoFilter)}
+                  className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                >
+                  <option value="ACTIVOS">Activos</option>
+                  <option value="PENDIENTE_APROBADO">Pend. y Aprob.</option>
+                  <option value="PENDIENTE">Pendientes</option>
+                  <option value="APROBADO">Aprobados</option>
+                  <option value="ATENDIDO">Atendidos</option>
+                </select>
+              </div>
 
-            {/* Turno */}
-            <div className="relative min-w-[120px] flex-1 sm:flex-none">
-              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
-                Turno
-              </label>
-              <select
-                value={turnoFilter}
-                onChange={(e) => setTurnoFilter(e.target.value)}
-                className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
-              >
-                <option value="TODOS">Todos</option>
-                <option value="MAÑANA">Mañana</option>
-                <option value="TARDE">Tarde</option>
-                <option value="NOCHE">Noche</option>
-              </select>
-            </div>
+              {/* Turno */}
+              <div className="relative">
+                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  Turno
+                </label>
+                <select
+                  value={turnoFilter}
+                  onChange={(e) => setTurnoFilter(e.target.value)}
+                  className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                >
+                  <option value="TODOS">Todos</option>
+                  <option value="MAÑANA">Mañana</option>
+                  <option value="TARDE">Tarde</option>
+                  <option value="NOCHE">Noche</option>
+                </select>
+              </div>
 
-            {/* Estado */}
-            <div className="relative min-w-[135px] flex-1 sm:flex-none">
-              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
-                Estado
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
-              >
-                <option value="TODOS">Todos</option>
-                <option value="pendiente">Sin asignar</option>
-                <option value="ok">Listos</option>
-                <option value="exceso">Excede cap.</option>
-              </select>
+              {/* Estado */}
+              <div className="relative">
+                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  Estado
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                  className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                >
+                  <option value="TODOS">Todos</option>
+                  <option value="pendiente">Sin asignar</option>
+                  <option value="ok">Listos</option>
+                  <option value="exceso">Excede cap.</option>
+                </select>
+              </div>
             </div>
 
             {/* Selectores rápidos de Zona + Restablecer */}
-            <div className="flex flex-wrap items-center gap-1.5 lg:ml-auto">
+            <div className="shrink-0 flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] font-medium text-slate-400 mr-0.5">Zona:</span>
               {(
                 [
