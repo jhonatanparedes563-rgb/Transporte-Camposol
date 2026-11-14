@@ -1170,7 +1170,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
         {/* Tabla Limpia con Cabecera Celeste Corporativa */}
         <div className="overflow-x-auto max-h-[calc(100vh-340px)]">
-          <table className="w-full text-left text-[11px]">
+          <table className="w-full text-left text-[12px]">
             <thead className="sticky top-0 z-10 bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
               <tr>
                 <th className="py-2.5 px-3 w-10 whitespace-nowrap">#</th>
@@ -1191,7 +1191,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-slate-100 text-slate-700">
+            <tbody className="bg-white divide-y divide-[#EEF2F6] text-[12px] font-normal text-[#334155]">
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={14} className="py-10 text-center text-slate-500">
@@ -1216,36 +1216,28 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
                   return (
                     <tr key={row.id} className="hover:bg-[#F7FBFE] transition-colors">
-                      <td className="py-2.5 px-3 text-[11px] font-medium text-gray-400 tabular-nums whitespace-nowrap">
+                      <td className="py-3 px-3 text-[12px] font-normal text-[#334155] tabular-nums whitespace-nowrap">
                         {String(idx + 1).padStart(2, '0')}
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap">
+                      <td className="py-3 px-3 whitespace-nowrap">
                         <span
-                          className="text-[11px] font-medium text-slate-500 block truncate max-w-[160px]"
+                          className="text-[12px] font-normal text-[#334155] block truncate max-w-[160px]"
                           title={row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
                         >
                           {row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span
-                          className={`text-[10px] font-semibold uppercase ${
-                            row.zone === 'LÍNEA AZUL'
-                              ? 'text-[#0082B3]'
-                              : row.zone === 'SUR'
-                              ? 'text-[#3D8B1C]'
-                              : 'text-[#0082B3]'
-                          }`}
-                        >
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="text-[12px] font-normal text-[#334155] uppercase">
                           {row.zone}
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap">
+                      <td className="py-3 px-3 whitespace-nowrap">
                         <span
-                          className="text-[11px] font-semibold text-[#1B3A57] block truncate max-w-[160px]"
+                          className="text-[12px] font-normal text-[#334155] block truncate max-w-[170px]"
                           title={
                             row.zonasEspecificas && row.zonasEspecificas.length > 1
                               ? `Última zona: ${row.zonaDestinoFinal} · Recorrido: ${row.zonasEspecificas.join(' → ')}`
@@ -1256,24 +1248,22 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="text-[11px] font-medium text-[#1B3A57]">{row.area}</span>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="text-[12px] font-normal text-[#334155]">{row.area}</span>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="text-[11px] font-medium text-slate-700">{row.fundo}</span>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="text-[12px] font-normal text-[#334155]">{row.fundo}</span>
                       </td>
 
-                      <td className="py-2.5 px-3 max-w-[320px]">
-                        <div className="text-[11px] text-slate-700 leading-snug">
+                      <td className="py-3 px-3 max-w-[340px]">
+                        <div className="text-[12px] font-normal text-[#334155] leading-snug">
                           {row.stopDetails.length > 0 ? (
                             row.stopDetails.map((s, sIdx) => (
                               <React.Fragment key={`${s.paradero}-${sIdx}`}>
-                                {sIdx > 0 && <span className="text-slate-300 mx-1">→</span>}
-                                <span className="font-medium text-[#1B3A57]">{s.paradero}</span>
-                                <span className="text-slate-400 tabular-nums ml-0.5">
-                                  ({s.cantidad})
-                                </span>
+                                {sIdx > 0 && <span className="mx-1">→</span>}
+                                <span>{s.paradero}</span>
+                                <span className="tabular-nums ml-0.5">({s.cantidad})</span>
                               </React.Fragment>
                             ))
                           ) : (
@@ -1282,57 +1272,38 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         </div>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span
-                          className={`text-[10px] font-semibold uppercase ${
-                            row.movimiento === 'INGRESO'
-                              ? 'text-[#3D8B1C]'
-                              : row.movimiento === 'SALIDA'
-                              ? 'text-[#0082B3]'
-                              : 'text-purple-600'
-                          }`}
-                        >
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="text-[12px] font-normal text-[#334155] uppercase">
                           {row.movimiento}
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap tabular-nums">
-                        <span className="text-[11px] font-medium text-[#1B3A57]">{row.time}</span>
+                      <td className="py-3 px-3 whitespace-nowrap tabular-nums">
+                        <span className="text-[12px] font-normal text-[#334155]">{row.time}</span>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="text-[11px] font-medium text-[#1B3A57]">{row.type}</span>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="text-[12px] font-normal text-[#334155]">{row.type}</span>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap tabular-nums">
-                        <div>
-                          <span className="font-semibold text-[#1B3A57]">{row.people}</span>{' '}
-                          <span className="text-[10px] text-slate-500">
-                            / {row.cap} pers.
-                          </span>
+                      <td className="py-3 px-3 whitespace-nowrap tabular-nums">
+                        <div className="text-[12px] font-normal text-[#334155]">
+                          {row.people} / {row.cap} pers.
                         </div>
-                        <div
-                          className={`text-[10px] font-semibold mt-0.5 ${
-                            overCap
-                              ? 'text-[#DC2626]'
-                              : pct >= 90
-                              ? 'text-[#2F7D18]'
-                              : 'text-[#B45309]'
-                          }`}
-                        >
+                        <div className="text-[12px] font-normal text-[#334155] mt-0.5">
                           {pct}% ocupación
                         </div>
                       </td>
 
-                      <td className="py-2.5 px-3 whitespace-nowrap">
+                      <td className="py-3 px-3 whitespace-nowrap">
                         {missingAssign ? (
-                          <span className="text-[11px] text-slate-400 italic">Por asignar</span>
+                          <span className="text-[12px] font-normal text-[#334155]">Por asignar</span>
                         ) : (
                           <div>
-                            <div className="text-[11px] font-medium text-[#1B3A57]">
+                            <div className="text-[12px] font-normal text-[#334155]">
                               {row.provider} • {row.plate}
                             </div>
-                            <div className="text-[10px] text-slate-500 mt-0.5 truncate max-w-[170px]">
+                            <div className="text-[12px] font-normal text-[#334155] mt-0.5 truncate max-w-[180px]">
                               {row.driver}
                             </div>
                           </div>

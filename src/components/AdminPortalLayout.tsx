@@ -1778,7 +1778,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
             {/* Clean Light-Blue Table Header + Flat White Rows */}
             <div className="overflow-x-auto max-h-[calc(100vh-340px)]">
-              <table className="w-full text-left text-[11px]">
+              <table className="w-full text-left text-[12px]">
                 <thead className="sticky top-0 z-10 bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
                   <tr>
                     <th className="py-2.5 px-3 w-8">
@@ -1805,7 +1805,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     <th className="py-2.5 px-3 text-center whitespace-nowrap border-l border-[#D4E9F7]/70">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100 text-gray-700">
+                <tbody className="bg-white divide-y divide-[#EEF2F6] text-[12px] font-normal text-[#334155]">
                   {filteredRequerimientos.length === 0 ? (
                     <tr>
                       <td colSpan={12} className="py-10 text-center text-gray-500">
@@ -1867,34 +1867,34 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 className="rounded-sm border-slate-300 text-[#55A529] focus:ring-[#55A529]"
                               />
                             </td>
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3 whitespace-nowrap">
                               <button
                                 onClick={() => onOpenRequirementDetail(req)}
-                                className="font-semibold text-[#1B3A57] hover:text-[#2F7D18] hover:underline transition-colors text-left whitespace-nowrap cursor-pointer"
+                                className="text-[12px] font-normal text-[#334155] hover:underline transition-colors text-left whitespace-nowrap cursor-pointer"
                                 title="Ver detalle del requerimiento"
                               >
                                 {req.numeroRequerimiento}
                               </button>
-                              <div className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
+                              <div className="text-[12px] font-normal text-[#334155] whitespace-nowrap mt-0.5">
                                 {req.fechaRegistro ? req.fechaRegistro.slice(0, 10) : '-'}
                                 {formatHoraSimple(req.fechaRegistro) ? ` • ${formatHoraSimple(req.fechaRegistro)}` : ''}
                               </div>
                             </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span className="text-[11px] font-medium text-slate-700">{req.fecha}</span>
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="text-[12px] font-normal text-[#334155]">{req.fecha}</span>
                             </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
+                            <td className="py-3 px-3 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() => toggleExpandReq(req.id)}
-                                className="text-[11px] font-semibold text-[#3D8B1C] hover:underline flex items-center gap-0.5 cursor-pointer whitespace-nowrap"
+                                className="text-[12px] font-normal text-[#334155] hover:underline flex items-center gap-0.5 cursor-pointer whitespace-nowrap"
                                 title="Haz clic para desplegar el resumen de paraderos"
                               >
                                 <span>{paraderosCount} paradero{paraderosCount !== 1 ? 's' : ''}</span>
                                 {expandedReqIds.includes(req.id) ? (
-                                  <ChevronUp className="w-3 h-3 text-[#3D8B1C]" />
+                                  <ChevronUp className="w-3 h-3 text-[#334155]" />
                                 ) : (
-                                  <ChevronDown className="w-3 h-3 text-[#3D8B1C]" />
+                                  <ChevronDown className="w-3 h-3 text-[#334155]" />
                                 )}
                               </button>
                               <button
@@ -1903,63 +1903,54 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                   e.stopPropagation();
                                   setSupervisorModalReq(req);
                                 }}
-                                className="text-[10px] text-[#0082B3] hover:underline flex items-center gap-0.5 mt-0.5 cursor-pointer whitespace-nowrap"
+                                className="text-[12px] font-normal text-[#334155] hover:underline flex items-center gap-0.5 mt-0.5 cursor-pointer whitespace-nowrap"
                                 title="Ver detalle completo de paraderos"
                               >
                                 <span>Ver detalle</span>
-                                <ChevronRight className="w-2.5 h-2.5" />
+                                <ChevronRight className="w-3 h-3 text-[#334155]" />
                               </button>
                             </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span className="text-[11px] font-medium text-[#1B3A57]">{req.area}</span>
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="text-[12px] font-normal text-[#334155]">{req.area}</span>
                             </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span className="text-[11px] font-medium text-slate-700">{req.fundo}</span>
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="text-[12px] font-normal text-[#334155]">{req.fundo}</span>
                             </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span
-                                className={`text-[10px] font-semibold uppercase ${
-                                  req.movimiento === 'INGRESO'
-                                    ? 'text-[#3D8B1C]'
-                                    : req.movimiento === 'SALIDA'
-                                    ? 'text-[#0082B3]'
-                                    : 'text-purple-600'
-                                }`}
-                              >
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="text-[12px] font-normal text-[#334155] uppercase">
                                 {req.movimiento}
                               </span>
                             </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <div className="text-[11px] text-slate-600">
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <div className="text-[12px] font-normal text-[#334155]">
                                 {(() => {
                                   const h = getHorarioDisplay(req);
                                   if (h.isIngreso) {
                                     return (
                                       <span>
-                                        Norte: <strong className="font-medium text-slate-700">{h.horaNorte}</strong> | Sur: <strong className="font-medium text-slate-700">{h.horaSur}</strong>
+                                        Norte: {h.horaNorte} | Sur: {h.horaSur}
                                       </span>
                                     );
                                   }
-                                  return (
-                                    <span className="font-medium text-slate-700">{h.horaNormal}</span>
-                                  );
+                                  return <span>{h.horaNormal}</span>;
                                 })()}
                               </div>
                             </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span className="font-semibold text-[#1B3A57]">{req.totalPersonas}</span>{' '}
-                              <span className="text-[10px] text-slate-500">pers.</span>
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="text-[12px] font-normal text-[#334155]">
+                                {req.totalPersonas} pers.
+                              </span>
                             </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
+                            <td className="py-3 px-3 whitespace-nowrap">
                               <span
-                                className="text-[11px] font-medium text-slate-700 block truncate max-w-[190px]"
+                                className="text-[12px] font-normal text-[#334155] block truncate max-w-[200px]"
                                 title={req.usuario || 'Solicitante'}
                               >
                                 {req.usuario || 'Solicitante'}
                               </span>
                               {req.observaciones && (
                                 <span
-                                  className="text-[10px] text-slate-400 italic block truncate max-w-[190px] mt-0.5"
+                                  className="text-[12px] font-normal text-[#334155] block truncate max-w-[200px] mt-0.5"
                                   title={req.observaciones}
                                 >
                                   {req.observaciones}
