@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Bus,
   Lock,
   User,
   ArrowRight,
@@ -19,10 +20,7 @@ import {
 } from '../services/authService';
 import { AppUser } from '../types';
 import { getPublicAssetUrl } from './CamposolLogo';
-import imgTeam from '../assets/images/camposol_field_team_1794669769552.jpg';
-import imgBlueberry from '../assets/images/camposol_blueberry_harvest_1794669770772.jpg';
-import imgCitrus from '../assets/images/camposol_citrus_workers_1794669771239.jpg';
-import imgPacking from '../assets/images/camposol_packing_plant_1794669771411.jpg';
+import imgFleetHero from '../assets/images/camposol_fleet_units_hero_1794672229032.jpg';
 
 const REMEMBERED_USER_KEY = 'camposol_tdp_remembered_user';
 
@@ -41,6 +39,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [heroImgFailed, setHeroImgFailed] = useState(false);
 
   // Estados para Recuperación de Contraseña
   const [recoveryIdentifier, setRecoveryIdentifier] = useState('');
@@ -133,127 +132,68 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-[100dvh] w-full bg-white md:bg-[#EEF3F7] flex flex-col md:justify-center md:items-center md:p-6 font-sans antialiased text-[#1B3A57]">
-      {/* Contenedor Principal: Edge-to-edge en celular, encuadrado elegante en escritorio */}
+      {/* Contenedor Principal: Edge-to-edge en celular, encuadrado limpio en escritorio */}
       <div className="w-full flex-1 md:flex-none md:max-w-[440px] md:min-h-[780px] bg-white md:rounded-[28px] md:shadow-xl md:border md:border-[#E2E8F0] flex flex-col overflow-hidden">
-        {/* Mosaico Fotográfico Diagonal CAMPOSOL (~44% de la pantalla en móvil) */}
-        <div className="relative w-full h-[44dvh] min-h-[330px] max-h-[410px] md:h-[330px] bg-white overflow-hidden shrink-0">
-          {/* Cuadrícula rotada ocupando todo el ancho y alto del mosaico */}
+        {/* Cabecera Original de Unidades de Flota CAMPOSOL */}
+        <div className="relative w-full h-[42dvh] min-h-[300px] max-h-[380px] md:h-[310px] bg-gradient-to-br from-[#0F7A2E] via-[#1B5E3A] to-[#1B3A57] overflow-hidden shrink-0">
+          {!heroImgFailed ? (
+            <img
+              src={imgFleetHero}
+              alt="Unidades de transporte de personal CAMPOSOL"
+              referrerPolicy="no-referrer"
+              onError={() => setHeroImgFailed(true)}
+              className="absolute inset-0 w-full h-full object-cover object-[50%_62%] pointer-events-none select-none"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none">
+              <Bus className="w-36 h-36 text-white" />
+            </div>
+          )}
+
+          {/* Scrim superior suave para legibilidad de marca y degradado inferior hacia la tarjeta blanca */}
           <div
             aria-hidden="true"
-            className="absolute inset-x-[-14%] inset-y-[-14%] grid grid-cols-3 grid-rows-3 gap-3 -rotate-[21deg] pointer-events-none select-none"
-          >
-            {/* Fila 1 */}
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
-              <img
-                src={imgBlueberry}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-[50%_22%] rotate-[21deg] scale-[1.28]"
-              />
-            </div>
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
-              <img
-                src={imgTeam}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-[50%_28%] rotate-[21deg] scale-[1.26]"
-              />
-            </div>
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
-              <img
-                src={imgCitrus}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-[50%_30%] rotate-[21deg] scale-[1.28]"
-              />
-            </div>
-
-            {/* Fila 2: Celda central blanca limpia para el logo CAMPOSOL */}
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
-              <img
-                src={imgPacking}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-[58%_35%] rotate-[21deg] scale-[1.32]"
-              />
-            </div>
-            <div className="rounded-sm bg-white h-full" />
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
-              <img
-                src={imgCitrus}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-[42%_30%] rotate-[21deg] scale-[1.28]"
-              />
-            </div>
-
-            {/* Fila 3 */}
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
-              <img
-                src={imgPacking}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-[50%_30%] rotate-[21deg] scale-[1.30]"
-              />
-            </div>
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
-              <img
-                src={imgTeam}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-[50%_22%] rotate-[21deg] scale-[1.28]"
-              />
-            </div>
-            <div className="overflow-hidden rounded-sm bg-[#EAF7E4] h-full">
-              <img
-                src={imgBlueberry}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-[50%_25%] rotate-[21deg] scale-[1.28]"
-              />
-            </div>
-          </div>
-
-          {/* Emblema Central CAMPOSOL integrado limpiamente en el espacio blanco central */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4">
-            <div className="flex flex-col items-center">
-              <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-[#55A529] flex items-center justify-center shadow-sm ring-4 ring-white">
-                <img
-                  src={getPublicAssetUrl('camposol-emblem.png')}
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (!target.src.includes('.svg')) {
-                      target.src = getPublicAssetUrl('camposol-emblem.svg');
-                    }
-                  }}
-                  alt="CAMPOSOL"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <span className="mt-1.5 px-2.5 py-0.5 rounded-full bg-white/95 text-[14px] font-extrabold text-[#38A126] tracking-tight whitespace-nowrap shadow-2xs">
-                Transporte de Personal
-              </span>
-            </div>
-          </div>
-
-          {/* Corte inferior limpio hacia la superficie del formulario */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-5 bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none"
+            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,48,26,0.78)_0%,rgba(10,48,26,0.28)_42%,rgba(10,48,26,0.08)_68%,rgba(15,23,42,0.45)_100%)] pointer-events-none"
           />
+
+          {/* Identidad CAMPOSOL en la zona superior (despejando las unidades en el centro) */}
+          <div className="relative z-10 px-5 pt-5 flex items-center gap-3">
+            <div className="w-13 h-13 rounded-full overflow-hidden bg-[#15803D] border-2 border-white/85 shadow-md shrink-0 flex items-center justify-center">
+              <img
+                src={getPublicAssetUrl('camposol-emblem.png')}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.src.includes('.svg')) {
+                    target.src = getPublicAssetUrl('camposol-emblem.svg');
+                  }
+                }}
+                alt="CAMPOSOL"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="min-w-0 border-l-[1.5px] border-white/75 pl-3 py-0.5">
+              <div className="text-[20px] font-extrabold tracking-wide text-white leading-none drop-shadow-xs">
+                CAMPOSOL
+              </div>
+              <div className="text-[12.5px] font-semibold text-[#DCFCE7] leading-tight mt-1 truncate drop-shadow-xs">
+                Transporte de Personal
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Cuerpo del Formulario: centrado proporcionalmente en la mitad inferior */}
-        <div className="flex-1 flex flex-col justify-between px-6 pt-3 pb-5 bg-white">
+        {/* Tarjeta Inferior Blanca con Curva Arquitectónica Limpia */}
+        <div className="flex-1 flex flex-col justify-between px-6 pt-6 pb-5 bg-white rounded-t-[28px] -mt-6 relative z-10 shadow-[0_-8px_24px_rgba(15,23,42,0.10)]">
           {/* VISTA: INICIAR SESIÓN */}
           {viewMode === 'login' && (
-            <div className="my-auto py-2 space-y-5">
+            <div className="space-y-5">
               <div>
-                <h1 className="text-[30px] font-extrabold text-[#111827] tracking-tight leading-tight">
+                <h1 className="text-[28px] font-extrabold text-[#111827] tracking-tight leading-tight">
                   Bienvenido(a)
                 </h1>
-                <p className="text-[16px] font-normal text-[#1F2937] mt-1 leading-snug">
+                <p className="text-[15.5px] font-normal text-slate-600 mt-1 leading-snug">
                   Inicie sesión en Transporte de Personal
                 </p>
               </div>
@@ -270,33 +210,28 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
               <form onSubmit={handleLogin} className="space-y-4">
                 {/* Campo: Usuario con etiqueta flotante sobre borde */}
-                <div>
-                  <div className="relative pt-1.5">
-                    <label
-                      htmlFor="input-login-username"
-                      className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
-                    >
-                      Usuario
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        id="input-login-username"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Ingrese su usuario o DNI"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        autoComplete="username"
-                        required
-                        className="w-full pl-4 pr-11 py-4 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
-                      />
-                      <User className="w-5 h-5 text-slate-400 absolute right-3.5 pointer-events-none" />
-                    </div>
+                <div className="relative pt-1.5">
+                  <label
+                    htmlFor="input-login-username"
+                    className="absolute top-0 left-3.5 bg-white px-1.5 text-xs font-medium text-slate-500 z-10"
+                  >
+                    Usuario
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      id="input-login-username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Ingrese su usuario"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      autoComplete="username"
+                      required
+                      className="w-full pl-4 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                    />
+                    <User className="w-5 h-5 text-slate-400 absolute right-3.5 pointer-events-none" />
                   </div>
-                  <p className="text-[12px] text-slate-500 mt-1.5 pl-1">
-                    Ingrese con su usuario asignado o número de DNI
-                  </p>
                 </div>
 
                 {/* Campo: Contraseña con etiqueta flotante sobre borde */}
@@ -317,7 +252,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       placeholder="Ingrese su contraseña"
                       autoComplete="current-password"
                       required
-                      className="w-full pl-11 pr-11 py-4 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
+                      className="w-full pl-11 pr-11 py-3.5 bg-white border border-[#CBD5E1] rounded-xl text-[15px] font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/20 focus:border-[#22A846] transition-all"
                     />
                     <button
                       id="btn-toggle-password-icon"
@@ -333,7 +268,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 {/* Fila: Recordarme + Olvidé mi contraseña */}
-                <div className="flex items-center justify-between gap-2 pt-1">
+                <div className="flex items-center justify-between gap-2 pt-0.5">
                   <button
                     type="button"
                     role="switch"
@@ -374,7 +309,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   id="btn-login-submit"
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-4 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15.5px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-2 min-h-[52px]"
+                  className="w-full py-4 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15.5px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-1 min-h-[52px]"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -438,7 +373,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       id="btn-send-recovery"
                       type="submit"
                       disabled={isRecoverySubmitting}
-                      className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[48px]"
+                      className="w-full py-4 px-4 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-xl text-[15px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[52px]"
                     >
                       {isRecoverySubmitting ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -553,7 +488,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           )}
 
           {/* Pie institucional discreto */}
-          <div className="text-center pt-5 text-[11px] text-slate-400 font-medium">
+          <div className="text-center mt-auto pt-4 text-[11px] text-slate-400 font-medium">
             CAMPOSOL S.A. · Sistema de Transporte de Personal
           </div>
         </div>
