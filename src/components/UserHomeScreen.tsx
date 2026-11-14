@@ -110,9 +110,9 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   const saludo = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
 
   return (
-    <div className="min-h-full w-full flex flex-col justify-between px-3 py-2 gap-2">
+    <div className="min-h-full w-full flex flex-col justify-center px-3.5 py-2.5 gap-3">
       {/* 1. Saludo y Bienvenida al Solicitante */}
-      <div className="bg-white rounded-2xl px-3 py-2.5 border border-[#E2E8F0] shadow-xs shrink-0">
+      <div className="bg-white rounded-2xl px-3.5 py-2.5 border border-[#E2E8F0] shadow-xs shrink-0">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-10 h-10 rounded-full bg-[#E5F5DF] border border-[#CBEBC2] text-[#15803D] flex items-center justify-center shrink-0">
@@ -129,14 +129,14 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
           </div>
 
           {currentUser?.area && (
-            <span className="shrink-0 max-w-[132px] inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#BFE6B3] bg-[#EAF7E4] text-[10px] font-semibold text-[#15803D]">
+            <span className="shrink-0 max-w-[165px] inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-[#BFE6B3] bg-[#EAF7E4] text-[10px] font-semibold text-[#15803D]">
               <Sprout className="w-3 h-3 shrink-0" />
               <span className="truncate">{currentUser.area}</span>
             </span>
           )}
         </div>
 
-        <div className="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px]">
+        <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px]">
           <span className="text-slate-500 truncate">
             Solicitante:{' '}
             <strong className="font-bold text-[#1B3A57]">
@@ -151,12 +151,12 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
         </div>
       </div>
 
-      {/* 2. Banner Principal: Nuevo Requerimiento (flexible para encajar completo en cualquier teléfono) */}
+      {/* 2. Banner Principal: Nuevo Requerimiento */}
       <button
         id="btn-mobile-nuevo-requerimiento"
         type="button"
         onClick={onNewRequirement}
-        className="relative w-full flex-1 min-h-[118px] max-h-[190px] rounded-2xl overflow-hidden bg-white border border-[#DCE8DF] shadow-sm text-left group cursor-pointer active:scale-[0.99] transition-transform flex items-center"
+        className="relative w-full h-[clamp(146px,21dvh,188px)] shrink-0 rounded-2xl overflow-hidden bg-white border border-[#DCE8DF] shadow-sm text-left group cursor-pointer active:scale-[0.99] transition-transform flex items-center"
       >
         {!bannerImgFailed && (
           <img
@@ -182,9 +182,9 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
           <path d="M0,17 Q42,28 88,34 L0,34 Z" fill="#15803D" opacity="0.88" />
         </svg>
 
-        <div className="relative z-10 px-3.5 py-2.5 flex flex-col justify-center w-[54%] max-w-[205px]">
+        <div className="relative z-10 px-4 py-3 flex flex-col justify-center w-[54%] max-w-[205px]">
           <div className="relative inline-block w-fit">
-            <span className="block text-[24px] sm:text-[26px] font-extrabold text-[#15803D] leading-none tracking-tight">
+            <span className="block text-[25px] sm:text-[27px] font-extrabold text-[#15803D] leading-none tracking-tight">
               Nuevo
             </span>
             <svg
@@ -197,7 +197,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
               <line x1="13" y1="20" x2="23" y2="17" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
             </svg>
           </div>
-          <span className="block text-[20px] sm:text-[22px] font-extrabold text-[#1B3A57] leading-[1.06] tracking-tight mt-0.5">
+          <span className="block text-[21px] sm:text-[23px] font-extrabold text-[#1B3A57] leading-[1.06] tracking-tight mt-0.5">
             Requerimiento
           </span>
           <div className="text-[11.5px]! font-medium text-slate-700 leading-snug mt-1">
@@ -208,14 +208,14 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
       </button>
 
       {/* 3. Tarjetas KPI de Estados */}
-      <div className="grid grid-cols-3 gap-2 shrink-0">
+      <div className="grid grid-cols-3 gap-2.5 shrink-0">
         <button
           id="btn-mobile-mis-requerimientos"
           type="button"
           onClick={onMyRequirements}
-          className="bg-[#FFF8EC] border border-[#FDE2B8] rounded-2xl py-2.5 px-1.5 flex flex-col items-center justify-center text-center shadow-xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer"
+          className="bg-[#FFF8EC] border border-[#FDE2B8] rounded-2xl py-3 px-2 flex flex-col items-center justify-center text-center shadow-xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer"
         >
-          <span className="w-9 h-9 rounded-full border-2 border-[#F59E0B] bg-white text-[#F59E0B] flex items-center justify-center mb-1">
+          <span className="w-9 h-9 rounded-full border-2 border-[#F59E0B] bg-white text-[#F59E0B] flex items-center justify-center mb-1.5">
             <Clock className="w-5 h-5 stroke-[2.2]" />
           </span>
           <span className="text-[26px] font-extrabold text-[#9A3412] leading-none tabular-nums">
@@ -232,9 +232,9 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
         <button
           type="button"
           onClick={onMyRequirements}
-          className="bg-[#EFFCF2] border border-[#C1F0CD] rounded-2xl py-2.5 px-1.5 flex flex-col items-center justify-center text-center shadow-xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer"
+          className="bg-[#EFFCF2] border border-[#C1F0CD] rounded-2xl py-3 px-2 flex flex-col items-center justify-center text-center shadow-xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer"
         >
-          <span className="w-9 h-9 rounded-full bg-[#16A34A] text-white flex items-center justify-center mb-1">
+          <span className="w-9 h-9 rounded-full bg-[#16A34A] text-white flex items-center justify-center mb-1.5">
             <CheckCircle2 className="w-5 h-5" />
           </span>
           <span className="text-[26px] font-extrabold text-[#15803D] leading-none tabular-nums">
@@ -251,9 +251,9 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
         <button
           type="button"
           onClick={onMyRequirements}
-          className="bg-[#EFF6FF] border border-[#C7E0FC] rounded-2xl py-2.5 px-1.5 flex flex-col items-center justify-center text-center shadow-xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer"
+          className="bg-[#EFF6FF] border border-[#C7E0FC] rounded-2xl py-3 px-2 flex flex-col items-center justify-center text-center shadow-xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer"
         >
-          <span className="w-9 h-9 rounded-full bg-[#0284C7] text-white flex items-center justify-center mb-1">
+          <span className="w-9 h-9 rounded-full bg-[#0284C7] text-white flex items-center justify-center mb-1.5">
             <CheckCheck className="w-5 h-5" />
           </span>
           <span className="text-[26px] font-extrabold text-[#1E3A8A] leading-none tabular-nums">
@@ -281,7 +281,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
               onSelectRequirement(latestReq);
             }
           }}
-          className="bg-white rounded-2xl p-3 border border-[#E2E8F0] shadow-xs hover:border-[#22A846] transition-all cursor-pointer active:scale-[0.99] shrink-0"
+          className="bg-white rounded-2xl p-3.5 border border-[#E2E8F0] shadow-xs hover:border-[#22A846] transition-all cursor-pointer active:scale-[0.99] shrink-0"
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -295,7 +295,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
             </span>
           </div>
 
-          <div className="mt-2 bg-[#F7FAFC] border border-[#EDF2F7] rounded-xl px-3 py-2 grid grid-cols-2 gap-2.5 items-center">
+          <div className="mt-2.5 bg-[#F7FAFC] border border-[#EDF2F7] rounded-xl px-3 py-2 grid grid-cols-2 gap-2.5 items-center">
             <div className="space-y-1.5 pr-2 border-r-2 border-blue-200/70 min-w-0">
               <div className="flex items-center gap-1.5 min-w-0">
                 <Calendar className="w-4 h-4 text-[#334155] shrink-0" />
@@ -340,7 +340,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
             const st = getStatusStyle(latestReq.estado);
             return (
               <div
-                className={`mt-2 px-3 py-1.5 rounded-full border flex items-center justify-between text-[12.5px] font-bold ${st.bar}`}
+                className={`mt-2.5 px-3 py-1.5 rounded-full border flex items-center justify-between text-[12.5px] font-bold ${st.bar}`}
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -373,7 +373,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
       )}
 
       {/* 5. Horario de corte al pie */}
-      <div className="bg-[#F4FBF2] border border-[#CBEBC2] rounded-2xl px-3 py-1.5 flex items-center gap-2 text-[11px] text-[#1B3A57] leading-snug shrink-0">
+      <div className="bg-[#F4FBF2] border border-[#CBEBC2] rounded-2xl px-3.5 py-2 flex items-center gap-2 text-[11px] text-[#1B3A57] leading-snug shrink-0">
         <Clock className="w-3.5 h-3.5 text-[#15803D] shrink-0" />
         <div className="text-[11px]! min-w-0 leading-snug">
           <strong className="font-bold text-[#14532D]">Horario de corte:</strong>{' '}

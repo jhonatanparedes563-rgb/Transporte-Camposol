@@ -152,7 +152,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       </div>
 
       {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades difuminando suave en el borde inferior) */}
-      <div className="lg:hidden relative w-full h-[39dvh] min-h-[195px] max-h-[385px] shrink-0 overflow-hidden bg-white">
+      <div className="lg:hidden relative w-full h-[40dvh] min-h-[200px] max-h-[360px] shrink-0 overflow-hidden bg-white">
         {!heroImgFailed ? (
           <img
             src={imgValleyFleetBg}
@@ -249,21 +249,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
         </div>
 
-        {/* Columna Derecha / Panel Blanco Móvil (Continuo sin línea de corte, todo visible sin scroll en móvil) */}
+        {/* Columna Derecha / Panel Blanco Móvil (Centrado, proporcional y ordenado) */}
         <div className="w-full flex-1 lg:flex-none lg:col-span-5 lg:max-w-[440px] lg:justify-self-end flex flex-col">
-          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white lg:rounded-[26px] px-5 sm:px-6 pt-0 pb-3 lg:p-8 lg:shadow-2xl lg:border lg:border-white/80">
+          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white lg:rounded-[26px] px-6 pt-1 pb-4 lg:p-8 lg:shadow-2xl lg:border lg:border-white/80">
             {/* VISTA: INICIAR SESIÓN */}
             {viewMode === 'login' && (
-              <div className="flex flex-col justify-start pt-0.5 pb-2 lg:py-0 gap-3 sm:gap-4 lg:gap-5">
+              <div className="flex flex-col justify-center my-auto py-2 lg:py-0 gap-4 lg:gap-5">
                 <div>
                   <div
                     role="heading"
                     aria-level={1}
-                    className="text-[28px] sm:text-[34px] lg:text-[32px] font-extrabold text-[#111827] tracking-tight leading-[1.08]"
+                    className="text-[30px] lg:text-[32px] font-extrabold text-[#111827] tracking-tight leading-[1.1]"
                   >
                     Bienvenido(a)
                   </div>
-                  <div className="text-[14.5px] sm:text-[16px] lg:text-[15px] font-normal text-slate-600 mt-1 leading-snug">
+                  <div className="text-[15px] font-normal text-slate-600 mt-1 leading-snug">
                     Inicie sesión en Transporte de Personal
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
+                <form onSubmit={handleLogin} className="space-y-3.5">
                   {/* Campo: Usuario ampliado */}
                   <div className="relative pt-2">
                     <label
@@ -298,7 +298,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         autoCorrect="off"
                         autoComplete="username"
                         required
-                        className="w-full pl-4 pr-12 py-3 sm:py-3.5 bg-white border border-[#CBD5E1] rounded-2xl text-[15.5px]! sm:text-[16px]! font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
+                        className="w-full pl-4 pr-12 py-3.5 bg-white border border-[#CBD5E1] rounded-2xl text-[15.5px]! font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
                       />
                       <User className="w-5 h-5 text-slate-400 absolute right-4 pointer-events-none" />
                     </div>
@@ -322,7 +322,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         placeholder="Ingrese su contraseña"
                         autoComplete="current-password"
                         required
-                        className="w-full pl-12 pr-12 py-3 sm:py-3.5 bg-white border border-[#CBD5E1] rounded-2xl text-[15.5px]! sm:text-[16px]! font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
+                        className="w-full pl-12 pr-12 py-3.5 bg-white border border-[#CBD5E1] rounded-2xl text-[15.5px]! font-semibold text-[#111827] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#22A846]/25 focus:border-[#22A846] transition-all"
                       />
                       <button
                         id="btn-toggle-password-icon"
@@ -346,7 +346,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       onClick={() => setRememberMe(!rememberMe)}
                       className="inline-flex items-center gap-2.5 cursor-pointer py-0.5 focus:outline-none"
                     >
-                      <span className="text-[14px] sm:text-[14.5px] font-medium text-[#1F2937]">
+                      <span className="text-[14px] font-medium text-[#1F2937]">
                         Recordarme
                       </span>
                       <span
@@ -368,7 +368,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         setRecoveryIdentifier(username.trim());
                         setViewMode('recovery');
                       }}
-                      className="text-[14px] sm:text-[14.5px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-0.5"
+                      className="text-[14px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-0.5"
                     >
                       Olvidé mi contraseña
                     </button>
@@ -379,7 +379,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     id="btn-login-submit"
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 sm:py-3.5 px-5 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-2xl text-[16px] sm:text-[17px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[48px] sm:min-h-[54px]"
+                    className="w-full py-3.5 px-5 bg-[#22A846] hover:bg-[#1C8E3A] active:scale-[0.99] text-white font-bold rounded-2xl text-[16px] lg:text-[17px] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer min-h-[52px]"
                   >
                     {isLoading ? (
                       <div className="w-5.5 h-5.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
