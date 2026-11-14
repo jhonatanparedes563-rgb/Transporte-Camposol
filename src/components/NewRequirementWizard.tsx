@@ -38,28 +38,27 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   const todayDate = new Date().toISOString().split('T')[0];
 
   const buildInitialDraft = (): RequerimientoDraft => {
+    const storedComedores = getStoredComedores();
+    const defaultComedorName = storedComedores[0]?.comedor || '57';
+
     // Si existe un borrador guardado en progreso, restaurarlo para no perder datos
     const savedDraft = getStoredRequirementDraft();
     if (savedDraft) {
+      const comedoresConDatos = (savedDraft.comedores || []).filter((c) =>
+        Object.values(c.paraderosCantidades || {}).some((v) => Number(v) > 0)
+      );
+      if (comedoresConDatos.length === 0 && (savedDraft.comedores?.length || 0) > 1) {
+        return {
+          ...savedDraft,
+          comedores: [{ comedor: savedDraft.comedores![0].comedor || defaultComedorName, paraderosCantidades: {} }],
+        };
+      }
       return savedDraft;
     }
 
-    const storedComedores = getStoredComedores();
-    const initialComedores: ComedorPersonalDraft[] =
-      storedComedores.length >= 2
-        ? storedComedores.slice(0, 2).map((c) => ({
-            comedor: c.comedor,
-            paraderosCantidades: {},
-          }))
-        : storedComedores.length === 1
-        ? [
-            { comedor: storedComedores[0].comedor, paraderosCantidades: {} },
-            { comedor: '63', paraderosCantidades: {} },
-          ]
-        : [
-            { comedor: '57', paraderosCantidades: {} },
-            { comedor: '63', paraderosCantidades: {} },
-          ];
+    const initialComedores: ComedorPersonalDraft[] = [
+      { comedor: defaultComedorName, paraderosCantidades: {} },
+    ];
 
     return {
       fecha: todayDate,

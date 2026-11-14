@@ -1,24 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Bus,
-  PlusCircle,
-  ClipboardList,
-  ArrowRight,
+  ArrowUpRight,
+  ArrowDownLeft,
   Clock,
   Calendar,
+  CalendarCheck,
   Users,
+  Check,
   CheckCircle2,
   Clock3,
   XCircle,
   CheckCheck,
   ChevronRight,
-  Info,
-  UserCheck,
-  History,
+  User,
+  MapPin,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, AppUser } from '../types';
 import { getHorarioDisplay } from '../data/masterData';
-import { getPublicAssetUrl } from './CamposolLogo';
+import busBannerImg from '../assets/images/camposol_bus_banner_1794664881122.jpg';
 
 interface UserHomeScreenProps {
   onNewRequirement: () => void;
@@ -36,350 +36,317 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   onSelectRequirement,
   currentUser,
 }) => {
-  // Count user metrics in a single pass with memoization
-  const { totalReqs, pendingReqs, approvedReqs, attendedReqs, latestReq, historyReqs } = React.useMemo(() => {
+  const [bannerImgFailed, setBannerImgFailed] = useState(false);
+
+  const { pendingReqs, approvedReqs, attendedReqs, latestReq } = React.useMemo(() => {
     let p = 0;
     let a = 0;
     let at = 0;
-    let hist = 0;
     for (const r of requerimientos) {
-      if (r.estado === 'ANULADO') hist++;
-      else if (r.estado === 'PENDIENTE' || r.estado === 'EN REVISIÓN') p++;
+      if (r.estado === 'ANULADO') continue;
+      if (r.estado === 'PENDIENTE' || r.estado === 'EN REVISIÓN') p++;
       else if (r.estado === 'APROBADO') a++;
       else if (r.estado === 'ATENDIDO') at++;
     }
     const activeReqs = requerimientos.filter((r) => r.estado !== 'ANULADO');
     return {
-      totalReqs: requerimientos.length,
       pendingReqs: p,
       approvedReqs: a,
       attendedReqs: at,
-      historyReqs: hist,
       latestReq: activeReqs.length > 0 ? activeReqs[0] : null,
     };
   }, [requerimientos]);
 
-  // Status visual badge styling
   const getStatusStyle = (estado: EstadoRequerimiento) => {
     switch (estado) {
       case 'APROBADO':
         return {
-          badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-          dot: 'bg-emerald-500',
-          icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />,
+          bar: 'bg-[#E8F8E2] border-[#BCE8AA] text-[#14532D]',
+          iconWrap: 'bg-[#16A34A] text-white',
+          icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+          label: 'Aprobado',
         };
       case 'ATENDIDO':
         return {
-          badge: 'bg-blue-100 text-blue-800 border-blue-300',
-          dot: 'bg-blue-500',
-          icon: <CheckCheck className="w-3.5 h-3.5 text-blue-600" />,
+          bar: 'bg-[#E6F3FB] border-[#C5E3F6] text-[#0C4A6E]',
+          iconWrap: 'bg-[#0284C7] text-white',
+          icon: <CheckCheck className="w-3.5 h-3.5" />,
+          label: 'Atendido',
         };
       case 'EN REVISIÓN':
         return {
-          badge: 'bg-purple-100 text-purple-800 border-purple-300',
-          dot: 'bg-purple-500',
-          icon: <Clock3 className="w-3.5 h-3.5 text-purple-600" />,
+          bar: 'bg-purple-50 border-purple-200 text-purple-900',
+          iconWrap: 'bg-purple-600 text-white',
+          icon: <Clock3 className="w-3.5 h-3.5" />,
+          label: 'En revisión',
         };
       case 'RECHAZADO':
         return {
-          badge: 'bg-red-100 text-red-800 border-red-300',
-          dot: 'bg-red-500',
-          icon: <XCircle className="w-3.5 h-3.5 text-red-600" />,
+          bar: 'bg-[#FDECEC] border-[#FECACA] text-[#991B1B]',
+          iconWrap: 'bg-[#DC2626] text-white',
+          icon: <XCircle className="w-3.5 h-3.5" />,
+          label: 'Rechazado',
         };
       case 'PENDIENTE':
       default:
         return {
-          badge: 'bg-amber-100 text-amber-800 border-amber-300',
-          dot: 'bg-amber-500',
-          icon: <Clock className="w-3.5 h-3.5 text-amber-600" />,
+          bar: 'bg-[#E9F7E1] border-[#C6E9B4] text-[#166534]',
+          iconWrap: 'bg-[#16A34A] text-white',
+          icon: <Check className="w-3.5 h-3.5 stroke-[2.75]" />,
+          label: 'Pendiente',
         };
     }
   };
 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
-    try {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return dateStr;
-    } catch {
-      return dateStr;
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
+    return dateStr;
   };
 
   return (
-    <div className="flex flex-col w-full p-4 space-y-4 pb-24">
-      {/* 1. Header Hero Card */}
-      <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs relative overflow-hidden">
-        {/* Subtle background decoration */}
-        <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
-          <Bus className="w-36 h-36 text-[#55A529]" />
-        </div>
-
-        <div className="flex items-center gap-3 mb-1.5">
-          <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs shrink-0 border border-[#B89F67]/70 bg-[#55A529] flex items-center justify-center p-0.5">
-            <img
-              src={getPublicAssetUrl('camposol-emblem.png')}
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.src.includes('.svg')) {
-                  target.src = getPublicAssetUrl('camposol-emblem.svg');
-                }
-              }}
-              alt="CAMPOSOL"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-contain"
-            />
+    <div className="flex flex-col w-full p-3.5 space-y-3 pb-24">
+      {/* 1. Solicitante Conectado */}
+      <div className="bg-white rounded-2xl px-3.5 py-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 rounded-full bg-[#EAF7E4] text-[#15803D] flex items-center justify-center shrink-0">
+            <User className="w-5 h-5" />
           </div>
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#55A529] block">
-              CAMPOSOL
+          <div className="min-w-0 flex-1">
+            <span className="text-[11px] font-medium text-slate-500 block leading-tight">
+              Solicitante conectado
             </span>
-            <h1 className="text-base font-bold text-[#1B3A57] leading-tight">
-              Transporte de Personal
-            </h1>
+            <span className="text-[13px] font-bold text-[#1B3A57] leading-snug block truncate">
+              {currentUser?.nombre || 'Solicitante'}
+            </span>
           </div>
         </div>
 
-        <p className="text-xs text-slate-500 leading-relaxed mt-2">
-          Registra y consulta tus requerimientos para el ingreso o salida de personal de tu área.
-        </p>
-
-        {/* User identification badge from active session */}
-        {currentUser && (
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold text-xs">
-                <UserCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase leading-none">
-                  Solicitante Conectado
-                </span>
-                <span className="text-xs font-bold text-[#1B3A57] leading-tight block">
-                  {currentUser.nombre}
-                </span>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] font-bold text-[#2F7D18] bg-[#EAF7E4] border border-[#C6E9B4] px-2.5 py-0.5 rounded-full inline-block">
-                {currentUser.area}
-              </span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">
-                {currentUser.fundo}
-              </span>
-            </div>
-          </div>
+        {currentUser?.area && (
+          <span className="shrink-0 max-w-[140px] truncate px-2.5 py-1 rounded-full border border-[#22A846]/50 bg-[#F4FBF2] text-[11px] font-semibold text-[#15803D]">
+            {currentUser.area}
+          </span>
         )}
       </div>
 
-      {/* 2. BOTÓN 1: + NUEVO REQUERIMIENTO */}
+      {/* 2. Banner Principal: + Nuevo Requerimiento */}
       <button
         id="btn-mobile-nuevo-requerimiento"
+        type="button"
         onClick={onNewRequirement}
-        className="w-full bg-[#22A846] hover:bg-[#1C8E3A] active:bg-[#177830] text-white p-5 rounded-2xl shadow-sm hover:shadow-md transition-all text-left flex items-center justify-between group active:scale-[0.99]"
+        className="relative w-full min-h-[108px] rounded-2xl overflow-hidden shadow-sm bg-gradient-to-r from-[#0F7A33] via-[#1CA13D] to-[#49B82C] text-left group cursor-pointer active:scale-[0.99] transition-transform flex items-center justify-between px-4 py-3.5"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-13 h-13 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 text-white shadow-inner">
-            <PlusCircle className="w-8 h-8" />
-          </div>
-          <div>
-            <div className="text-base sm:text-lg font-bold uppercase tracking-tight text-white leading-tight">
-              + NUEVO REQUERIMIENTO
-            </div>
-            <div className="text-xs text-[#EAF7E4] font-medium mt-0.5">
-              Solicitar transporte para personal agrícola
-            </div>
-          </div>
-        </div>
-        <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white shrink-0 group-hover:translate-x-1 transition-transform">
-          <ArrowRight className="w-5 h-5" />
-        </div>
-      </button>
-
-      {/* 3. BOTÓN 2: MIS REQUERIMIENTOS */}
-      <button
-        id="btn-mobile-mis-requerimientos"
-        onClick={onMyRequirements}
-        className="w-full bg-white hover:bg-[#F7FBFE] p-4.5 rounded-2xl border border-[#E5ECF2] shadow-xs transition-all text-left flex items-center justify-between group"
-      >
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-[#1B3A57] text-white flex items-center justify-center shrink-0 shadow-xs">
-            <ClipboardList className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold uppercase text-[#1B3A57]">
-                MIS REQUERIMIENTOS
-              </span>
-              <span className="px-2.5 py-0.5 text-[10px] font-bold bg-[#EAF7E4] text-[#2F7D18] rounded-full border border-[#C6E9B4]">
-                {totalReqs}
-              </span>
-            </div>
-            <div className="text-xs text-slate-500 font-medium mt-0.5">
-              Consulta el estado de tus solicitudes
-            </div>
-          </div>
-        </div>
-        <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center text-slate-500 group-hover:translate-x-1 group-hover:text-[#55A529] transition-all">
-          <ChevronRight className="w-4 h-4" />
-        </div>
-      </button>
-
-      {/* 4. RESUMEN DEL USUARIO: PENDIENTES, APROBADOS, ATENDIDOS */}
-      <div className="space-y-2">
-        <div className="px-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-          Resumen de mis Solicitudes
-        </div>
-        <div className="grid grid-cols-3 gap-2.5">
-          {/* Pendientes */}
-          <div className="bg-white p-3 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-amber-400 shadow-2xs text-center">
-            <div className="flex items-center justify-center gap-1 text-[11px] text-[#B45309] font-bold mb-1">
-              <Clock className="w-3.5 h-3.5 text-amber-500" />
-              <span>Pendientes</span>
-            </div>
-            <div className="text-xl font-bold text-[#B45309] leading-none">{pendingReqs}</div>
-            <div className="text-[9px] text-slate-400 mt-1">En revisión</div>
-          </div>
-
-          {/* Aprobados */}
-          <div className="bg-white p-3 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-[#55A529] shadow-2xs text-center">
-            <div className="flex items-center justify-center gap-1 text-[11px] text-[#2F7D18] font-bold mb-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#55A529]" />
-              <span>Aprobados</span>
-            </div>
-            <div className="text-xl font-bold text-[#2F7D18] leading-none">{approvedReqs}</div>
-            <div className="text-[9px] text-slate-400 mt-1">Programados</div>
-          </div>
-
-          {/* Atendidos */}
-          <div className="bg-white p-3 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-[#0082B3] shadow-2xs text-center">
-            <div className="flex items-center justify-center gap-1 text-[11px] text-[#0082B3] font-bold mb-1">
-              <CheckCheck className="w-3.5 h-3.5 text-[#0082B3]" />
-              <span>Atendidos</span>
-            </div>
-            <div className="text-xl font-bold text-[#0082B3] leading-none">{attendedReqs}</div>
-            <div className="text-[9px] text-slate-400 mt-1">Completados</div>
-          </div>
-        </div>
-
-        {/* Notificación de requerimientos en historial */}
-        {historyReqs > 0 && (
-          <button
-            type="button"
-            onClick={onMyRequirements}
-            className="w-full mt-2 p-2.5 rounded-2xl bg-[#FDECEC] border border-[#FECACA] hover:bg-red-100/70 text-[#DC2626] flex items-center justify-between text-xs transition-colors shadow-2xs"
-          >
-            <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-[#DC2626] shrink-0" />
-              <span className="font-bold">
-                {historyReqs} {historyReqs === 1 ? 'solicitud guardada' : 'solicitudes guardadas'} en historial
-              </span>
-            </div>
-            <span className="text-[11px] text-[#DC2626] font-bold flex items-center gap-0.5">
-              <span>Ver Historial</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </span>
-          </button>
+        {!bannerImgFailed && (
+          <img
+            src={busBannerImg}
+            alt="Bus de transporte de personal CAMPOSOL"
+            referrerPolicy="no-referrer"
+            onError={() => setBannerImgFailed(true)}
+            className="absolute inset-0 w-full h-full object-cover object-right pointer-events-none select-none"
+          />
         )}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-[#0D6E2D] via-[#138735]/90 to-[#16A34A]/15 pointer-events-none"
+        />
+
+        <div className="relative z-10 flex items-center gap-3 min-w-0 max-w-[76%]">
+          <div className="relative w-11 h-11 rounded-full bg-[#22C55E] border-2 border-white/80 flex items-center justify-center shrink-0 shadow-xs">
+            <Bus className="w-5 h-5 text-white" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white text-[#15803D] flex items-center justify-center shadow-2xs">
+              <Check className="w-2.5 h-2.5 stroke-[3]" />
+            </span>
+          </div>
+
+          <div className="min-w-0">
+            <div className="text-[15px] font-extrabold text-white leading-tight tracking-tight drop-shadow-xs">
+              + Nuevo Requerimiento
+            </div>
+            <p className="text-[11px] font-medium text-white/95 leading-snug mt-0.5 drop-shadow-xs">
+              Solicita transporte para personal agrícola
+            </p>
+          </div>
+        </div>
+
+        <span className="relative z-10 w-8 h-8 rounded-full bg-white text-[#15803D] shadow-md flex items-center justify-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+          <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+        </span>
+      </button>
+
+      {/* 3. Tarjetas KPI de Estados */}
+      <div className="grid grid-cols-3 gap-2.5">
+        <button
+          id="btn-mobile-mis-requerimientos"
+          type="button"
+          onClick={onMyRequirements}
+          className="bg-[#FFF8EC] border border-[#FDE2B8] rounded-2xl py-3 px-2 flex flex-col items-center text-center shadow-2xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
+        >
+          <span className="w-8 h-8 rounded-full bg-[#F59E0B] text-white flex items-center justify-center mb-1.5 shadow-2xs">
+            <Clock className="w-4 h-4" />
+          </span>
+          <span className="text-2xl font-extrabold text-[#C2410C] leading-none tabular-nums">
+            {pendingReqs}
+          </span>
+          <span className="text-xs font-bold text-[#9A3412] mt-1">
+            Pendientes
+          </span>
+          <span className="mt-1.5 px-2 py-0.5 rounded-full bg-[#FFEDD5] border border-[#FED7AA] text-[10px] font-semibold text-[#B45309]">
+            En revisión
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onMyRequirements}
+          className="bg-[#EFFCF2] border border-[#C1F0CD] rounded-2xl py-3 px-2 flex flex-col items-center text-center shadow-2xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
+        >
+          <span className="w-8 h-8 rounded-full bg-[#16A34A] text-white flex items-center justify-center mb-1.5 shadow-2xs">
+            <CheckCircle2 className="w-4 h-4" />
+          </span>
+          <span className="text-2xl font-extrabold text-[#15803D] leading-none tabular-nums">
+            {approvedReqs}
+          </span>
+          <span className="text-xs font-bold text-[#166534] mt-1">
+            Aprobados
+          </span>
+          <span className="mt-1.5 px-2 py-0.5 rounded-full bg-[#DCFCE7] border border-[#BBF7D0] text-[10px] font-semibold text-[#15803D]">
+            Programados
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onMyRequirements}
+          className="bg-[#EFF6FF] border border-[#C7E0FC] rounded-2xl py-3 px-2 flex flex-col items-center text-center shadow-2xs hover:brightness-[0.98] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
+        >
+          <span className="w-8 h-8 rounded-full bg-[#0284C7] text-white flex items-center justify-center mb-1.5 shadow-2xs">
+            <CheckCheck className="w-4 h-4" />
+          </span>
+          <span className="text-2xl font-extrabold text-[#0369A1] leading-none tabular-nums">
+            {attendedReqs}
+          </span>
+          <span className="text-xs font-bold text-[#1E3A8A] mt-1">
+            Atendidos
+          </span>
+          <span className="mt-1.5 px-2 py-0.5 rounded-full bg-[#E0F2FE] border border-[#BAE6FD] text-[10px] font-semibold text-[#0369A1]">
+            Completados
+          </span>
+        </button>
       </div>
 
-      {/* 5. ÚLTIMO REQUERIMIENTO REGISTRADO (Tarjetón vertical de fácil lectura) */}
+      {/* 4. Última Solicitud Registrada */}
       {latestReq ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Última Solicitud Registrada
+        <div
+          id="card-latest-mobile-req"
+          role="button"
+          tabIndex={0}
+          onClick={() => onSelectRequirement(latestReq)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onSelectRequirement(latestReq);
+            }
+          }}
+          className="bg-white rounded-2xl p-3.5 border border-[#E5ECF2] shadow-xs hover:border-[#22A846] transition-all cursor-pointer active:scale-[0.99]"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <CalendarCheck className="w-4 h-4 text-[#15803D] shrink-0" />
+              <span className="text-[13px] font-bold text-[#1B3A57] truncate">
+                Tu última solicitud
+              </span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EAF7E4] text-[#2F7D18] font-mono text-[11px] font-bold shrink-0">
+              {latestReq.numeroRequerimiento}
             </span>
-            <button
-              onClick={onMyRequirements}
-              className="text-[11px] font-semibold text-[#2F7D18] hover:underline"
-            >
-              Ver todas ({totalReqs})
-            </button>
           </div>
 
-          <div
-            id="card-latest-mobile-req"
-            onClick={() => onSelectRequirement(latestReq)}
-            className="bg-white rounded-2xl p-4 border border-[#E5ECF2] shadow-xs hover:border-[#55A529] transition-all cursor-pointer space-y-3 active:scale-[0.99]"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-xs text-[#2F7D18] bg-[#EAF7E4] border border-[#C6E9B4] px-2.5 py-0.5 rounded-full">
-                  {latestReq.numeroRequerimiento}
-                </span>
-                <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+          <div className="mt-3 grid grid-cols-12 gap-2.5 items-center">
+            <div className="col-span-5 pr-2 border-r border-slate-200/80 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs text-[#1B3A57]">
+                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="font-semibold tabular-nums truncate">
                   {formatDisplayDate(latestReq.fecha)}
                 </span>
               </div>
-              <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                  getStatusStyle(latestReq.estado).badge
-                }`}
-              >
-                {getStatusStyle(latestReq.estado).icon}
-                <span>{latestReq.estado}</span>
-              </span>
-            </div>
-
-            <div className="bg-[#F8FAFC] p-3 rounded-xl border border-[#E5ECF2] space-y-1 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-bold text-[10px] uppercase">Área:</span>
-                <span className="font-bold text-[#1B3A57]">{latestReq.area}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-bold text-[10px] uppercase">Fundo:</span>
-                <span className="font-bold text-[#1B3A57]">{latestReq.fundo}</span>
-              </div>
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200/50">
-                <span className="text-slate-400 font-bold text-[10px] uppercase">Movimiento:</span>
-                <span className="font-bold text-[#2F7D18]">
-                  {latestReq.movimiento === 'INGRESO'
-                    ? `↓ INGRESO (${getHorarioDisplay(latestReq).textoHorario})`
-                    : latestReq.movimiento === 'SALIDA'
-                    ? `↑ SALIDA (${getHorarioDisplay(latestReq).textoHorario})`
-                    : `${latestReq.movimiento} (${getHorarioDisplay(latestReq).textoHorario})`}
+              <div className="flex items-center gap-1.5 text-xs text-[#1B3A57]">
+                <Users className="w-3.5 h-3.5 text-[#15803D] shrink-0" />
+                <span className="font-bold tabular-nums truncate">
+                  {latestReq.totalPersonas} personas
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs pt-1">
-              <div className="flex items-center gap-1.5 font-bold text-[#1B3A57]">
-                <Users className="w-4 h-4 text-[#55A529]" />
-                <span>{latestReq.totalPersonas} personas solicitadas</span>
+            <div className="col-span-7 bg-[#F4F8FB] rounded-xl px-2.5 py-2 space-y-1 text-[11px]">
+              <div className="flex items-center gap-1.5 text-[#1B3A57]">
+                <MapPin className="w-3.5 h-3.5 text-[#1B3A57] shrink-0" />
+                <span className="font-semibold truncate">{latestReq.area}</span>
               </div>
-              <span className="text-[#2F7D18] font-semibold flex items-center gap-0.5 text-xs">
-                <span>Ver detalle</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </span>
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <Bus className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <span className="truncate">{latestReq.fundo}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[#15803D] font-bold">
+                {latestReq.movimiento === 'SALIDA' ? (
+                  <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+                ) : (
+                  <ArrowDownLeft className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span className="truncate">
+                  {latestReq.movimiento}: {getHorarioDisplay(latestReq).textoHorario}
+                </span>
+              </div>
             </div>
           </div>
+
+          {(() => {
+            const st = getStatusStyle(latestReq.estado);
+            return (
+              <div
+                className={`mt-3 px-3 py-2 rounded-xl border flex items-center justify-between text-xs font-bold ${st.bar}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${st.iconWrap}`}
+                  >
+                    {st.icon}
+                  </span>
+                  <span>{st.label}</span>
+                </div>
+                <span className="inline-flex items-center gap-0.5 font-semibold">
+                  <span>Ver detalle</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            );
+          })()}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl p-6 border border-[#E5ECF2] text-center space-y-2">
+        <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] text-center space-y-2">
           <div className="w-10 h-10 rounded-full bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center mx-auto">
             <Bus className="w-5 h-5" />
           </div>
-          <div className="text-xs font-bold text-[#1B3A57] uppercase">
-            Aún no tienes requerimientos registrados
+          <div className="text-xs font-bold text-[#1B3A57]">
+            Sin solicitudes registradas
           </div>
           <p className="text-[11px] text-slate-500">
-            Toca el botón "+ Nuevo Requerimiento" para registrar tu primer pedido de transporte.
+            Toca &quot;+ Nuevo Requerimiento&quot; para solicitar transporte.
           </p>
         </div>
       )}
 
-      {/* 6. Nota de Coordinación */}
-      <div className="bg-[#EAF7E4] rounded-2xl p-3.5 border border-[#C6E9B4] flex items-start gap-2.5">
-        <Info className="w-4 h-4 text-[#2F7D18] shrink-0 mt-0.5" />
-        <div className="text-[11px] text-[#1B3A57] leading-relaxed">
-          <span className="font-bold text-[#2F7D18]">Coordinación de Transporte: </span>
-          El horario regular de recepción de solicitudes para la salida del mismo día es hasta las <strong className="font-bold text-[#1B3A57]">09:00 AM</strong> y para el día siguiente es hasta las <strong className="font-bold text-[#1B3A57]">14:00 PM</strong>.
-        </div>
+      {/* 5. Comentario obligatorio de Horario de Corte */}
+      <div className="bg-[#F4FBF2] border border-[#CBEBC2] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5 text-[11px] text-[#1B3A57] leading-snug">
+        <Clock className="w-4 h-4 text-[#15803D] shrink-0 mt-0.5" />
+        <p>
+          <strong className="font-bold text-[#14532D]">Horario de corte:</strong>{' '}
+          recepción para salida del mismo día hasta las{' '}
+          <strong className="font-bold">09:00 AM</strong> y para el día siguiente hasta las{' '}
+          <strong className="font-bold">02:00 PM (14:00)</strong>.
+        </p>
       </div>
     </div>
   );

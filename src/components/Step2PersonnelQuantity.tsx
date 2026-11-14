@@ -21,7 +21,7 @@ interface Step2PersonnelQuantityProps {
   onPrev: () => void;
 }
 
-const DEFAULT_COLUMNS = ['57', '63'];
+const DEFAULT_COLUMNS = ['57'];
 
 export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
   draft,
@@ -81,7 +81,7 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
     }
   }, [isAddingColumn]);
 
-  // Extract initial columns from draft comedores or default to exactly 2 stored comedores / DEFAULT_COLUMNS
+  // Extract initial columns from draft comedores or default to 1 stored comedor / DEFAULT_COLUMNS
   const initialColumns = useMemo(() => {
     if (draft.comedores && draft.comedores.length > 0) {
       // Prioritize columns that actually have non-zero quantities
@@ -90,26 +90,17 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
         .map((c) => c.comedor)
         .filter(Boolean);
 
-      if (withData.length >= 2) {
+      if (withData.length > 0) {
         return withData;
       }
-      if (withData.length === 1) {
-        const others = draft.comedores.map((c) => c.comedor).filter((c) => c && c !== withData[0]);
-        if (others.length > 0) return [withData[0], others[0]];
-        const stored = getStoredComedores().map((c) => c.comedor).filter((c) => c !== withData[0]);
-        return [withData[0], stored[0] || '63'];
-      }
-      // If none have entered quantities yet, take strictly the first 2
-      const names = draft.comedores.map((c) => c.comedor).filter(Boolean);
-      if (names.length >= 2) return names.slice(0, 2);
-      if (names.length === 1) {
-        const stored = getStoredComedores().map((c) => c.comedor).filter((c) => c !== names[0]);
-        return [names[0], stored[0] || '63'];
+
+      const firstName = draft.comedores.map((c) => c.comedor).filter(Boolean)[0];
+      if (firstName) {
+        return [firstName];
       }
     }
     const stored = getStoredComedores();
-    if (stored.length >= 2) return [stored[0].comedor, stored[1].comedor];
-    if (stored.length === 1) return [stored[0].comedor, '63'];
+    if (stored.length > 0) return [stored[0].comedor];
     return DEFAULT_COLUMNS;
   }, [draft.comedores]);
 
