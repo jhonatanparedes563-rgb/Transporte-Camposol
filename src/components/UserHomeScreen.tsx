@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Bus,
   Clock,
@@ -13,9 +13,18 @@ import {
   User,
   MapPin,
   Sprout,
+  CloudUpload,
+  RefreshCw,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, AppUser } from '../types';
 import { getHorarioDisplay } from '../data/masterData';
+import {
+  getCloudSyncStatus,
+  connectCloudSyncWithGoogle,
+  syncWithServerNow,
+  subscribeToDataChanges,
+} from '../services/storageService';
+import { subscribeToFirebaseAuth } from '../services/firestoreService';
 import busBannerImg from '../assets/images/camposol_bus_banner_light_1794665350151.jpg';
 
 interface UserHomeScreenProps {
@@ -35,6 +44,40 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   currentUser,
 }) => {
   const [bannerImgFailed, setBannerImgFailed] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(() => getCloudSyncStatus());
+  const [isSendingOutbox, setIsSendingOutbox] = useState(false);
+  const [outboxError, setOutboxError] = useState('');
+
+  useEffect(() => {
+    const refresh = () => setSyncStatus(getCloudSyncStatus());
+    refresh();
+    const unsubData = subscribeToDataChanges(refresh);
+    const unsubAuth = subscribeToFirebaseAuth(refresh);
+    return () => {
+      unsubData();
+      unsubAuth();
+    };
+  }, []);
+
+  const handleFlushPendingOutbox = async () => {
+    setOutboxError('');
+    setIsSendingOutbox(true);
+    try {
+      const current = getCloudSyncStatus();
+      if (!current.firebaseConnected && !current.hasServerSession) {
+        const res = await connectCloudSyncWithGoogle();
+        if (!res.success) {
+          setOutboxError(res.error || 'No se pudo conectar con Google Cloud.');
+          return;
+        }
+      } else {
+        await syncWithServerNow(true);
+      }
+      setSyncStatus(getCloudSyncStatus());
+    } finally {
+      setIsSendingOutbox(false);
+    }
+  };
 
   const { pendingReqs, approvedReqs, attendedReqs, latestReq } = React.useMemo(() => {
     let p = 0;
@@ -150,6 +193,45 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
           )}
         </div>
       </div>
+
+      {syncStatus.pendingOutboxCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-3.5 py-2.5 shadow-[0_2px_8px_rgba(15,23,42,0.04)] shrink-0 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <CloudUpload className="w-4 h-4 text-amber-700 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[12px]! font-bold text-amber-900 leading-tight">
+                  {syncStatus.pendingOutboxCount === 1
+                    ? '1 requerimiento pendiente de enviar a la web'
+                    : `${syncStatus.pendingOutboxCount} requerimientos pendientes de enviar a la web`}
+                </div>
+                <div className="text-[10.5px]! text-amber-800 leading-tight mt-0.5">
+                  Toca para subirlo en línea de inmediato.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              id="btn-home-flush-outbox"
+              onClick={handleFlushPendingOutbox}
+              disabled={isSendingOutbox}
+              className="shrink-0 px-3 py-1.5 rounded-full bg-[#1B3A57] hover:bg-[#132B42] text-white text-[11px]! font-bold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              {isSendingOutbox ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : (
+                <CloudUpload className="w-3 h-3" />
+              )}
+              <span>{syncStatus.firebaseConnected || syncStatus.hasServerSession ? 'Enviar ahora' : 'Conectar y enviar'}</span>
+            </button>
+          </div>
+          {outboxError && (
+            <div className="text-[11px]! font-semibold text-red-700 bg-red-50 border border-red-200 rounded-xl px-2.5 py-1">
+              {outboxError}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 2. Banner Principal: Nuevo Requerimiento */}
       <button

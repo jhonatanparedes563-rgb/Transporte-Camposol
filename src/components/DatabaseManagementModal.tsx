@@ -11,6 +11,7 @@ import {
   X,
   Layers,
   Calendar,
+  Cloud,
 } from 'lucide-react';
 import {
   getDatabaseStats,
@@ -20,7 +21,12 @@ import {
   getStoredDetalles,
   exportToCSV,
   DatabaseStats,
+  getCloudSyncStatus,
+  connectCloudSyncWithGoogle,
+  syncWithServerNow,
+  subscribeToDataChanges,
 } from '../services/storageService';
+import { subscribeToFirebaseAuth } from '../services/firestoreService';
 
 interface DatabaseManagementModalProps {
   isOpen: boolean;
@@ -34,18 +40,63 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
   onDataImported,
 }) => {
   const [stats, setStats] = useState<DatabaseStats | null>(null);
+  const [cloudStatus, setCloudStatus] = useState(() => getCloudSyncStatus());
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isConnectingCloud, setIsConnectingCloud] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       loadStats();
+      setCloudStatus(getCloudSyncStatus());
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const refresh = () => {
+      setStats(getDatabaseStats());
+      setCloudStatus(getCloudSyncStatus());
+    };
+    const unsubData = subscribeToDataChanges(refresh);
+    const unsubAuth = subscribeToFirebaseAuth(refresh);
+    return () => {
+      unsubData();
+      unsubAuth();
+    };
   }, [isOpen]);
 
   const loadStats = () => {
     setStats(getDatabaseStats());
+    setCloudStatus(getCloudSyncStatus());
+  };
+
+  const handleConnectOrSyncCloud = async () => {
+    setIsConnectingCloud(true);
+    try {
+      const current = getCloudSyncStatus();
+      if (!current.firebaseConnected) {
+        const res = await connectCloudSyncWithGoogle();
+        if (res.success) {
+          showToast(`Google Cloud Firestore conectado (${res.email})`, 'success');
+          if (onDataImported) onDataImported();
+        } else if (res.error) {
+          showToast(res.error, 'error');
+        }
+      } else {
+        const ok = await syncWithServerNow(true);
+        if (ok) {
+          showToast('Datos sincronizados en línea correctamente', 'success');
+          if (onDataImported) onDataImported();
+        } else {
+          showToast('No se pudo actualizar desde la nube', 'error');
+        }
+      }
+      loadStats();
+    } finally {
+      setIsConnectingCloud(false);
+    }
   };
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -300,20 +351,78 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
             </button>
           </div>
 
-          {/* Cloud Database Info Note */}
-          <div className="p-3.5 bg-[#EAF7E4] border border-[#C6E9B4] rounded-2xl text-[11px] text-[#1B3A57] space-y-2">
-            <div className="font-bold flex items-center justify-between text-[#2F7D18]">
+          {/* Cloud Database Info Note (Estado real en vivo) */}
+          <div
+            className={`p-3.5 border rounded-2xl text-[11px] text-[#1B3A57] space-y-2.5 ${
+              cloudStatus.firebaseConnected || cloudStatus.hasServerSession
+                ? 'bg-[#EAF7E4] border-[#C6E9B4]'
+                : 'bg-amber-50 border-amber-200'
+            }`}
+          >
+            <div
+              className={`font-bold flex items-center justify-between gap-2 ${
+                cloudStatus.firebaseConnected || cloudStatus.hasServerSession
+                  ? 'text-[#2F7D18]'
+                  : 'text-amber-900'
+              }`}
+            >
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Base Cloud Firestore Conectada</span>
+                {cloudStatus.firebaseConnected || cloudStatus.hasServerSession ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                )}
+                <span>
+                  {cloudStatus.firebaseConnected
+                    ? 'Google Cloud Firestore Activo'
+                    : cloudStatus.hasServerSession
+                    ? 'Servidor Web en Línea Activo'
+                    : 'Sin conexión en línea a la nube'}
+                </span>
               </span>
-              <span className="text-[10px] bg-[#55A529] text-white px-2.5 py-0.5 rounded-full font-bold">
-                EN VIVO
+              <span
+                className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold text-white shrink-0 ${
+                  cloudStatus.firebaseConnected || cloudStatus.hasServerSession
+                    ? 'bg-[#55A529]'
+                    : 'bg-amber-600'
+                }`}
+              >
+                {cloudStatus.firebaseConnected || cloudStatus.hasServerSession ? 'EN LÍNEA' : 'LOCAL'}
               </span>
             </div>
+
             <p className="text-slate-600 leading-relaxed">
-              La base de datos en la nube está activa y configurada para recibir y sincronizar en tiempo real los requerimientos y usuarios desde cualquier celular o equipo. Además, se mantiene un respaldo local para garantizar operación inmediata y soporte sin conexión.
+              {cloudStatus.firebaseConnected
+                ? `Sincronización en tiempo real activa con ${cloudStatus.firebaseEmail}. Todo requerimiento registrado en cualquier dispositivo se refleja automáticamente.`
+                : cloudStatus.hasServerSession
+                ? 'Conectado al servidor web en línea. Opcionalmente puede vincular Google Cloud Firestore para sincronización multi-origen en tiempo real.'
+                : 'Actualmente opera solo con caché local del navegador. Conecte Google Cloud Firestore para trabajar 100% en línea entre celulares y PC.'}
             </p>
+
+            {cloudStatus.pendingOutboxCount > 0 && (
+              <div className="text-[11px] font-bold text-amber-800 bg-white/80 border border-amber-200 rounded-xl px-2.5 py-1.5">
+                {cloudStatus.pendingOutboxCount} registro(s) pendiente(s) por enviar a la nube.
+              </div>
+            )}
+
+            <button
+              type="button"
+              id="btn-modal-connect-cloud"
+              onClick={handleConnectOrSyncCloud}
+              disabled={isConnectingCloud}
+              className="w-full py-2 px-3 bg-[#1B3A57] hover:bg-[#132B42] text-white rounded-xl text-[11px] font-bold uppercase flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isConnectingCloud ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Cloud className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {cloudStatus.firebaseConnected
+                  ? 'Sincronizar Nube Ahora'
+                  : 'Conectar Google Cloud Firestore ahora'}
+              </span>
+            </button>
           </div>
         </div>
 

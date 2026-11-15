@@ -72,7 +72,7 @@ service cloud.firestore {
           'id', 'numeroRequerimiento', 'fecha', 'area', 'fundo',
           'cultivo', 'parcelas', 'movimiento', 'horaRecojo', 'horaSalida',
           'horaRecojoNorte', 'horaRecojoSur', 'observaciones', 'usuario',
-          'userId', 'userUsername', 'userRole', 'fechaRegistro', 'updatedAt',
+          'userId', 'firebaseUid', 'firebaseEmail', 'userUsername', 'userRole', 'fechaRegistro', 'updatedAt',
           'totalPersonas', 'estado', 'fechaAnulacion', 'usuarioAnulacion',
           'motivoAnulacion', 'historialTrazabilidad'
         ]) &&
@@ -92,6 +92,8 @@ service cloud.firestore {
         data.observaciones is string && data.observaciones.size() <= 500 &&
         data.usuario is string && data.usuario.size() >= 1 && data.usuario.size() <= 120 &&
         isValidId(data.userId) &&
+        (!('firebaseUid' in data) || isValidId(data.firebaseUid)) &&
+        isOptionalBoundedString(data, 'firebaseEmail', 120) &&
         isOptionalBoundedString(data, 'userUsername', 64) &&
         (!('userRole' in data) || data.userRole in ['usuario', 'admin', 'receptor']) &&
         data.fechaRegistro is string && data.fechaRegistro.size() >= 10 && data.fechaRegistro.size() <= 40 &&
@@ -109,19 +111,26 @@ service cloud.firestore {
           'id', 'requerimientoId', 'numeroRequerimiento', 'userId', 'comedor', 'paradero', 'cantidad'
         ]) &&
         data.keys().hasOnly([
-          'id', 'requerimientoId', 'numeroRequerimiento', 'userId', 'comedor',
-          'parcela', 'paradero', 'zona', 'cultivo', 'cantidad'
+          'id', 'requerimientoId', 'numeroRequerimiento', 'userId', 'firebaseUid', 'firebaseEmail',
+          'comedor', 'parcela', 'paradero', 'zona', 'cultivo', 'cantidad'
         ]) &&
         isValidId(data.id) &&
         isValidId(data.requerimientoId) &&
         data.numeroRequerimiento is string && data.numeroRequerimiento.size() >= 5 && data.numeroRequerimiento.size() <= 32 && data.numeroRequerimiento.matches('^REQ-[0-9]+$') &&
         isValidId(data.userId) &&
+        (!('firebaseUid' in data) || isValidId(data.firebaseUid)) &&
+        isOptionalBoundedString(data, 'firebaseEmail', 120) &&
         data.comedor is string && data.comedor.size() >= 1 && data.comedor.size() <= 60 &&
         isOptionalBoundedString(data, 'parcela', 60) &&
         data.paradero is string && data.paradero.size() >= 1 && data.paradero.size() <= 120 &&
         (!('zona' in data) || data.zona in ['NORTE', 'SUR']) &&
         isOptionalBoundedString(data, 'cultivo', 60) &&
         data.cantidad is number && data.cantidad >= 1 && data.cantidad <= 500;
+    }
+
+    function isDocOwner(data) {
+      return data.userId == request.auth.uid ||
+        ('firebaseUid' in data && data.firebaseUid == request.auth.uid);
     }
 
     function isValidAppUser(data) {
@@ -179,19 +188,23 @@ service cloud.firestore {
     // ---------------------------------------------------------
     match /requerimientos/{reqId} {
       allow get: if isSignedIn() && isValidId(reqId) && (
-        existing().userId == request.auth.uid || isAdmin()
+        isDocOwner(existing()) || isAdmin()
       );
 
       allow list: if isBootstrappedAdmin() || (
-        isSignedIn() && resource.data.userId == request.auth.uid
+        isSignedIn() && isDocOwner(resource.data)
       );
 
       allow create: if isSignedIn() &&
         isValidId(reqId) &&
         isValidRequerimiento(incoming()) &&
         incoming().id == reqId &&
-        incoming().userId == request.auth.uid &&
-        incoming().estado == 'PENDIENTE';
+        (
+          isAdmin() || (
+            isDocOwner(incoming()) &&
+            incoming().estado == 'PENDIENTE'
+          )
+        );
 
       allow update: if isSignedIn() &&
         isValidId(reqId) &&
@@ -202,7 +215,7 @@ service cloud.firestore {
         incoming().fechaRegistro == existing().fechaRegistro &&
         (
           isAdmin() || (
-            existing().userId == request.auth.uid &&
+            isDocOwner(existing()) &&
             existing().estado == 'PENDIENTE' &&
             incoming().estado == 'ANULADO' &&
             incoming().diff(existing()).affectedKeys().hasOnly([
@@ -219,18 +232,18 @@ service cloud.firestore {
     // ---------------------------------------------------------
     match /detalles/{detId} {
       allow get: if isSignedIn() && isValidId(detId) && (
-        existing().userId == request.auth.uid || isAdmin()
+        isDocOwner(existing()) || isAdmin()
       );
 
       allow list: if isBootstrappedAdmin() || (
-        isSignedIn() && resource.data.userId == request.auth.uid
+        isSignedIn() && isDocOwner(resource.data)
       );
 
       allow create: if isSignedIn() &&
         isValidId(detId) &&
         isValidDetalle(incoming()) &&
         incoming().id == detId &&
-        (incoming().userId == request.auth.uid || isAdmin()) &&
+        (isDocOwner(incoming()) || isAdmin()) &&
         existsAfter(/databases/$(database)/documents/requerimientos/$(incoming().requerimientoId)) &&
         getAfter(/databases/$(database)/documents/requerimientos/$(incoming().requerimientoId)).data.userId == incoming().userId;
 

@@ -361,11 +361,27 @@ export const getCurrentSession = getActiveSessionUser;
 export function logoutSession(): void {
   clearActiveSession();
   if (typeof fetch !== 'undefined') {
-    fetch('/api/auth/logout', { method: 'POST', keepalive: true }).catch(() => {});
+    const logoutUrls = getApiCandidates('/api/auth/logout');
+    if (logoutUrls[0]) {
+      fetch(logoutUrls[0], { method: 'POST', keepalive: true }).catch(() => {});
+    }
   }
 }
 
 const STATIC_FAIL_KEY = 'camposol_static_login_fails_v1';
+const REMOTE_API_ORIGIN =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL
+    ? String((import.meta as any).env.VITE_API_BASE_URL).replace(/\/+$/, '')
+    : '') || 'https://ais-pre-cghjpgayljir3wow2e665v-731508762433.us-east1.run.app';
+
+let cachedWorkingApiPrefix: string | null = null;
+
+export function markWorkingApiUrl(fullUrl: string, endpoint: string): void {
+  const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  if (fullUrl.endsWith(clean)) {
+    cachedWorkingApiPrefix = fullUrl.slice(0, fullUrl.length - clean.length);
+  }
+}
 
 function isStaticToken(token: string | null): boolean {
   return Boolean(token && token.startsWith('static.'));
@@ -373,7 +389,16 @@ function isStaticToken(token: string | null): boolean {
 
 export function getApiCandidates(endpoint: string): string[] {
   const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const candidates = [clean];
+  const candidates: string[] = [];
+
+  if (cachedWorkingApiPrefix !== null) {
+    candidates.push(`${cachedWorkingApiPrefix}${clean}`);
+  }
+
+  if (!candidates.includes(clean)) {
+    candidates.push(clean);
+  }
+
   const baseUrl =
     typeof import.meta !== 'undefined' && (import.meta as any).env?.BASE_URL
       ? String((import.meta as any).env.BASE_URL)
@@ -385,6 +410,14 @@ export function getApiCandidates(endpoint: string): string[] {
       candidates.push(prefixed);
     }
   }
+
+  if (typeof window !== 'undefined' && REMOTE_API_ORIGIN && window.location.origin !== REMOTE_API_ORIGIN) {
+    const remoteUrl = `${REMOTE_API_ORIGIN}${clean}`;
+    if (!candidates.includes(remoteUrl)) {
+      candidates.push(remoteUrl);
+    }
+  }
+
   return candidates;
 }
 
@@ -407,7 +440,7 @@ async function fetchJsonApi(
 
   for (const url of getApiCandidates(endpoint)) {
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timer = controller ? setTimeout(() => controller.abort(), 10000) : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 8000) : null;
     try {
       const res = await fetch(url, {
         method,
@@ -418,12 +451,13 @@ async function fetchJsonApi(
       if (timer) clearTimeout(timer);
       const ct = (res.headers.get('content-type') || '').toLowerCase();
       if (ct.includes('application/json')) {
+        markWorkingApiUrl(url, endpoint);
         const data = await res.json().catch(() => ({}));
         return { reachableJson: true, res, data };
       }
     } catch {
       if (timer) clearTimeout(timer);
-      // Error de red, timeout o ruta no disponible en este origen
+      // Error de red, CORS, timeout o ruta no disponible en este origen
     }
   }
   return { reachableJson: false };
@@ -477,24 +511,19 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
   const token = getAuthToken();
   if (!token) return null;
   if (isStaticToken(token)) {
-    // Si ahora existe servidor API activo en este origen, comprobar cookie o exigir re-autenticación real
-    for (const url of getApiCandidates('/api/health')) {
-      try {
-        const healthRes = await fetch(url, { headers: { 'Cache-Control': 'no-cache' } });
-        const ct = (healthRes.headers.get('content-type') || '').toLowerCase();
-        if (healthRes.ok && ct.includes('application/json')) {
-          // Intentar validar por cookie HttpOnly si existiera
-          const sessionAttempt = await fetchJsonApi('/api/auth/session', { method: 'GET' });
-          if (sessionAttempt.reachableJson && sessionAttempt.res?.ok && sessionAttempt.data?.user) {
-            const sanitized = stripSensitiveFields(sessionAttempt.data.user);
-            setActiveSessionUser(sanitized);
-            return sanitized;
-          }
-          clearActiveSession();
-          return null;
+    // Si existe servidor API activo en este origen (mismo dominio), exigir sesión real en servidor
+    const sameOriginHealth = await fetchJsonApi('/api/health', { method: 'GET' });
+    if (sameOriginHealth.reachableJson && sameOriginHealth.res?.ok) {
+      const isSameOrigin = typeof window !== 'undefined' && !sameOriginHealth.res.url.startsWith(REMOTE_API_ORIGIN);
+      if (isSameOrigin) {
+        const sessionAttempt = await fetchJsonApi('/api/auth/session', { method: 'GET' });
+        if (sessionAttempt.reachableJson && sessionAttempt.res?.ok && sessionAttempt.data?.user) {
+          const sanitized = stripSensitiveFields(sessionAttempt.data.user);
+          setActiveSessionUser(sanitized);
+          return sanitized;
         }
-      } catch {
-        // Entorno estático u offline
+        clearActiveSession();
+        return null;
       }
     }
     return getActiveSessionUser();

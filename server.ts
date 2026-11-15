@@ -534,13 +534,32 @@ async function startServer() {
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
 
-  // Security headers across all responses
-  app.use((_req, res, next) => {
+  // Security headers & CORS across API responses (allows GitHub Pages / PWA origins to talk to Cloud Run backend)
+  app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-DNS-Prefetch-Control', 'off');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+
+    const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
+    const isAllowedOrigin =
+      origin &&
+      (/^https:\/\/[a-z0-9\-]+\.github\.io$/i.test(origin) ||
+        /^https:\/\/[a-z0-9\-]+\.run\.app$/i.test(origin) ||
+        /^http:\/\/localhost(:\d+)?$/i.test(origin) ||
+        /^http:\/\/127\.0\.0\.1(:\d+)?$/i.test(origin));
+
+    if (isAllowedOrigin && (req.url.startsWith('/api/') || req.url.startsWith('/Transporte-Camposol/api/'))) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
+      if (req.method === 'OPTIONS') {
+        return res.status(204).end();
+      }
+    }
     next();
   });
 
@@ -622,7 +641,7 @@ async function startServer() {
     const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
     res.cookie('camposol_token', token, {
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: isHttps ? 'none' : 'lax',
       secure: isHttps,
       maxAge: SESSION_TTL_MS,
       path: '/',

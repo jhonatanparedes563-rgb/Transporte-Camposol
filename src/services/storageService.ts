@@ -23,12 +23,26 @@ import {
 import {
   initializeFirestoreSync,
   registerFirestoreSyncCallback,
+  registerFirebaseConnectedCallback,
   firestoreSaveRequerimiento,
   firestoreUpdateRequerimientoEstado,
   firestoreDeleteRequerimiento,
   firestoreSaveMasterData,
+  firestoreSaveUser,
+  firestorePullAllNow,
+  isFirestoreAuthenticated,
+  getFirebaseUserInfo,
+  connectWithGoogleFirebase,
 } from './firestoreService';
-import { getAuthHeaders, getAuthToken, clearActiveSession, getApiCandidates } from './authService';
+import {
+  getAuthHeaders,
+  getAuthToken,
+  getActiveSessionUser,
+  getStoredUsers,
+  clearActiveSession,
+  getApiCandidates,
+  markWorkingApiUrl,
+} from './authService';
 
 const REQ_STORAGE_KEY = 'camposol_transporte_requerimientos_v1';
 const DET_STORAGE_KEY = 'camposol_transporte_detalles_v1';
@@ -134,16 +148,32 @@ function broadcastLocalChange(): void {
 if (typeof window !== 'undefined') {
   registerFirestoreSyncCallback((payload) => {
     let changed = false;
+    const pendingQueue = getSyncQueue();
+
     if (payload.requerimientos && Array.isArray(payload.requerimientos)) {
-      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(payload.requerimientos));
+      const cloudReqs = payload.requerimientos;
+      const cloudIds = new Set(cloudReqs.map((r) => r.id));
+      const unsyncedLocal = pendingQueue
+        .map((q) => q.requerimiento)
+        .filter((r) => !cloudIds.has(r.id));
+      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([...unsyncedLocal, ...cloudReqs]));
       changed = true;
     }
     if (payload.detalles && Array.isArray(payload.detalles)) {
-      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(payload.detalles));
+      const cloudDets = payload.detalles;
+      const cloudDetIds = new Set(cloudDets.map((d) => d.id));
+      const unsyncedDets = pendingQueue
+        .flatMap((q) => q.detalles || [])
+        .filter((d) => !cloudDetIds.has(d.id));
+      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([...cloudDets, ...unsyncedDets]));
       changed = true;
     }
     if (payload.users && Array.isArray(payload.users)) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(payload.users));
+      const localUsers = getStoredUsers();
+      const byId = new Map<string, AppUser>();
+      localUsers.forEach((u) => byId.set(u.id, u));
+      payload.users.forEach((u) => byId.set(u.id, u));
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(Array.from(byId.values())));
       changed = true;
     }
     if (payload.areas && Array.isArray(payload.areas)) {
@@ -177,6 +207,31 @@ if (typeof window !== 'undefined') {
     }
   });
 
+  registerFirebaseConnectedCallback(async (info) => {
+    try {
+      await processPendingSyncQueue();
+      // Si el administrador bootstrapped se conecta a Google Cloud, asegurar respaldo inicial de datos locales hacia Firestore
+      if (info.isBootstrappedAdmin) {
+        const localReqs = getStoredRequerimientos();
+        const localDets = getStoredDetalles();
+        const batchQueue = localReqs.slice(0, 100);
+        for (const req of batchQueue) {
+          const reqDets = localDets.filter(
+            (d) => d.requerimientoId === req.id || d.numeroRequerimiento === req.numeroRequerimiento
+          );
+          await firestoreSaveRequerimiento(req, reqDets, true).catch(() => false);
+        }
+        const localUsers = getStoredUsers();
+        for (const u of localUsers) {
+          await firestoreSaveUser(u).catch(() => false);
+        }
+      }
+      await firestorePullAllNow();
+    } catch {
+      // ignore non-fatal bootstrap sync errors
+    }
+  });
+
   // Iniciar la escucha en segundo plano
   initializeFirestoreSync().catch((err) => {
     console.warn('[Firestore] Inicialización diferida:', err);
@@ -203,6 +258,7 @@ async function apiFetch(
       if (timer) clearTimeout(timer);
       const ct = (res.headers.get('content-type') || '').toLowerCase();
       if (ct.includes('application/json')) {
+        markWorkingApiUrl(url, endpoint);
         return res;
       }
       lastRes = res;
@@ -219,11 +275,44 @@ async function apiFetch(
 let inFlightSyncPromise: Promise<boolean> | null = null;
 
 // -------------------------------------------------------------
-// CLOUD SERVER SYNC ENGINE
+// CLOUD SERVER & FIRESTORE SYNC ENGINE
 // -------------------------------------------------------------
-export async function syncWithServerNow(force: boolean = false): Promise<boolean> {
+export async function connectCloudSyncWithGoogle(): Promise<{
+  success: boolean;
+  email?: string | null;
+  error?: string;
+}> {
+  const res = await connectWithGoogleFirebase();
+  if (res.success) {
+    await syncWithServerNow(true);
+  }
+  return res;
+}
+
+export function getCloudSyncStatus() {
+  const fb = getFirebaseUserInfo();
   const token = getAuthToken();
-  if (typeof window === 'undefined' || !token || token.startsWith('static.')) return false;
+  return {
+    isOnline,
+    isSyncing,
+    lastSync: lastSyncDate,
+    firebaseConnected: fb.connected,
+    firebaseEmail: fb.email,
+    hasServerSession: Boolean(token && !token.startsWith('static.')),
+    pendingOutboxCount: getSyncQueue().length,
+  };
+}
+
+export async function syncWithServerNow(force: boolean = false): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  const token = getAuthToken();
+  const fbConnected = isFirestoreAuthenticated();
+  const hasServerToken = Boolean(token && !token.startsWith('static.'));
+
+  if (!hasServerToken && !fbConnected) {
+    return false;
+  }
+
   if (inFlightSyncPromise) {
     if (!force) return inFlightSyncPromise;
     try {
@@ -235,72 +324,83 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
   isSyncing = true;
 
   const runSync = async (): Promise<boolean> => {
+    let expressOk = false;
+    let firestoreOk = false;
     try {
-      const res = await apiFetch('/api/data', {
-        headers: {
-          'Cache-Control': 'no-cache',
-          ...getAuthHeaders(),
-        },
-      });
-      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      await processPendingSyncQueue();
 
-      if (res.status === 401 && ct.includes('application/json')) {
-        clearActiveSession();
-        return false;
+      if (hasServerToken) {
+        try {
+          const res = await apiFetch('/api/data', {
+            headers: {
+              'Cache-Control': 'no-cache',
+              ...getAuthHeaders(),
+            },
+          });
+          const ct = (res.headers.get('content-type') || '').toLowerCase();
+
+          if (res.status === 401 && ct.includes('application/json')) {
+            clearActiveSession();
+          } else if (res.ok && ct.includes('application/json')) {
+            const data = await res.json();
+            expressOk = true;
+            const pendingQueue = getSyncQueue();
+
+            if (data.requerimientos && Array.isArray(data.requerimientos)) {
+              const serverReqs: Requerimiento[] = data.requerimientos;
+              const serverIds = new Set(serverReqs.map((r) => r.id));
+              const pendingReqs = pendingQueue
+                .map((q) => q.requerimiento)
+                .filter((r) => !serverIds.has(r.id));
+              localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([...pendingReqs, ...serverReqs]));
+            }
+            if (data.detalles && Array.isArray(data.detalles)) {
+              const serverDets: DetalleRequerimiento[] = data.detalles;
+              const serverDetIds = new Set(serverDets.map((d) => d.id));
+              const pendingDets = pendingQueue
+                .flatMap((q) => q.detalles || [])
+                .filter((d) => !serverDetIds.has(d.id));
+              localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([...serverDets, ...pendingDets]));
+            }
+            if (data.users && Array.isArray(data.users)) {
+              const safeUsers = data.users.map((u: AppUser) => ({ ...u, passwordHash: '', salt: '' }));
+              localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(safeUsers));
+            }
+            if (data.areas && Array.isArray(data.areas)) {
+              localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(data.areas));
+            }
+            if (data.fundos && Array.isArray(data.fundos)) {
+              localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(data.fundos));
+            }
+            if (data.zonas && Array.isArray(data.zonas)) {
+              localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(data.zonas));
+            }
+            if (data.paraderos && Array.isArray(data.paraderos)) {
+              localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(data.paraderos));
+            }
+            if (data.comedores && Array.isArray(data.comedores)) {
+              localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(data.comedores));
+            }
+            if (data.revision) {
+              localStorage.setItem(LAST_REVISION_KEY, String(data.revision));
+            }
+          }
+        } catch {
+          // Express unreachable; continue to Cloud Firestore
+        }
       }
 
-      if (!res.ok || !ct.includes('application/json')) {
-        isOnline = false;
-        return false;
+      if (isFirestoreAuthenticated()) {
+        firestoreOk = await firestorePullAllNow();
       }
 
-      const data = await res.json();
-      isOnline = true;
-      lastSyncDate = new Date();
-
-      const pendingQueue = getSyncQueue();
-
-      if (data.requerimientos && Array.isArray(data.requerimientos)) {
-        const serverReqs: Requerimiento[] = data.requerimientos;
-        const serverIds = new Set(serverReqs.map((r) => r.id));
-        const pendingReqs = pendingQueue
-          .map((q) => q.requerimiento)
-          .filter((r) => !serverIds.has(r.id));
-        localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([...pendingReqs, ...serverReqs]));
+      const anySuccess = expressOk || firestoreOk;
+      isOnline = anySuccess;
+      if (anySuccess) {
+        lastSyncDate = new Date();
+        notifyListeners();
       }
-      if (data.detalles && Array.isArray(data.detalles)) {
-        const serverDets: DetalleRequerimiento[] = data.detalles;
-        const serverDetIds = new Set(serverDets.map((d) => d.id));
-        const pendingDets = pendingQueue
-          .flatMap((q) => q.detalles || [])
-          .filter((d) => !serverDetIds.has(d.id));
-        localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([...serverDets, ...pendingDets]));
-      }
-      if (data.users && Array.isArray(data.users)) {
-        const safeUsers = data.users.map((u: AppUser) => ({ ...u, passwordHash: '', salt: '' }));
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(safeUsers));
-      }
-      if (data.areas && Array.isArray(data.areas)) {
-        localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(data.areas));
-      }
-      if (data.fundos && Array.isArray(data.fundos)) {
-        localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(data.fundos));
-      }
-      if (data.zonas && Array.isArray(data.zonas)) {
-        localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(data.zonas));
-      }
-      if (data.paraderos && Array.isArray(data.paraderos)) {
-        localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(data.paraderos));
-      }
-      if (data.comedores && Array.isArray(data.comedores)) {
-        localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(data.comedores));
-      }
-      if (data.revision) {
-        localStorage.setItem(LAST_REVISION_KEY, String(data.revision));
-      }
-
-      notifyListeners();
-      return true;
+      return anySuccess;
     } catch {
       isOnline = false;
       return false;
@@ -571,12 +671,13 @@ let isFlushingQueue = false;
 
 export async function processPendingSyncQueue(): Promise<void> {
   const token = getAuthToken();
+  const fbConnected = isFirestoreAuthenticated();
+  const hasServerToken = Boolean(token && !token.startsWith('static.'));
   if (
     typeof window === 'undefined' ||
     isFlushingQueue ||
     !navigator.onLine ||
-    !token ||
-    token.startsWith('static.')
+    (!hasServerToken && !fbConnected)
   ) {
     return;
   }
@@ -587,39 +688,56 @@ export async function processPendingSyncQueue(): Promise<void> {
   let flushedAny = false;
   try {
     for (const item of queue) {
-      try {
-        firestoreSaveRequerimiento(item.requerimiento, item.detalles).catch(() => {});
-        const res = await apiFetch(
-          '/api/requerimientos',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getAuthHeaders(),
-            },
-            body: JSON.stringify({
-              requerimiento: item.requerimiento,
-              detalles: item.detalles,
-            }),
-            keepalive: true,
-          },
-          8000
-        );
-        if (res.ok) {
-          const json = await res.json().catch(() => ({}));
-          if (json.revision) {
-            localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
-          }
-          if (json.requerimiento) {
-            reconcileLocalRequirement(item.id, json.requerimiento, json.detalles);
-          }
-          removeFromSyncQueue(item.id);
-          flushedAny = true;
-        } else if (res.status === 400) {
-          removeFromSyncQueue(item.id);
+      let firestoreOk = false;
+      let expressOk = false;
+
+      if (fbConnected) {
+        try {
+          firestoreOk = await firestoreSaveRequerimiento(item.requerimiento, item.detalles);
+        } catch {
+          firestoreOk = false;
         }
-      } catch {
-        // Reintento en la próxima pasada
+      }
+
+      if (hasServerToken) {
+        try {
+          const res = await apiFetch(
+            '/api/requerimientos',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+              },
+              body: JSON.stringify({
+                requerimiento: item.requerimiento,
+                detalles: item.detalles,
+              }),
+              keepalive: true,
+            },
+            8000
+          );
+          if (res.ok) {
+            const json = await res.json().catch(() => ({}));
+            if (json.revision) {
+              localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
+            }
+            if (json.requerimiento) {
+              reconcileLocalRequirement(item.id, json.requerimiento, json.detalles);
+            }
+            expressOk = true;
+          } else if (res.status === 400) {
+            removeFromSyncQueue(item.id);
+            continue;
+          }
+        } catch {
+          // Reintento en la próxima pasada
+        }
+      }
+
+      if (expressOk || firestoreOk) {
+        removeFromSyncQueue(item.id);
+        flushedAny = true;
       }
     }
     if (flushedAny) {
@@ -790,68 +908,88 @@ async function pushRequerimientoToCloud(
   syncedToServer: boolean;
   authError?: string;
 }> {
-  // 2. Persistir en Firebase Cloud Firestore en paralelo (si hay sesión Firebase verificada)
-  firestoreSaveRequerimiento(newRequerimiento, newDetalles).catch((err) => {
-    console.warn('[Firestore] Conexión ocupada o no verificada:', err);
-  });
+  const token = getAuthToken();
+  const hasServerToken = Boolean(token && !token.startsWith('static.'));
+  const fbConnected = isFirestoreAuthenticated();
 
-  // 3. Persistir en el servidor web Express (fuente principal multi-dispositivo)
-  try {
-    const res = await apiFetch(
-      '/api/requerimientos',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
+  // Ejecutar en paralelo Firebase Cloud Firestore y el servidor Express cuando apliquen
+  const firestorePromise: Promise<boolean> = fbConnected
+    ? firestoreSaveRequerimiento(newRequerimiento, newDetalles).catch((err) => {
+        console.warn('[Firestore] Error guardando en Firestore:', err);
+        return false;
+      })
+    : Promise.resolve(false);
+
+  const expressPromise: Promise<{
+    ok: boolean;
+    authError?: string;
+    req?: Requerimiento;
+    dets?: DetalleRequerimiento[];
+  }> = hasServerToken
+    ? apiFetch(
+        '/api/requerimientos',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            requerimiento: newRequerimiento,
+            detalles: newDetalles,
+          }),
+          keepalive: true,
         },
-        body: JSON.stringify({
-          requerimiento: newRequerimiento,
-          detalles: newDetalles,
-        }),
-        keepalive: true,
-      },
-      8000
-    );
+        8000
+      )
+        .then(async (res) => {
+          const ct = (res.headers.get('content-type') || '').toLowerCase();
+          if (res.ok && ct.includes('application/json')) {
+            const json = await res.json();
+            if (json.revision) {
+              localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
+            }
+            return {
+              ok: true,
+              req: (json.requerimiento || newRequerimiento) as Requerimiento,
+              dets: Array.isArray(json.detalles)
+                ? (json.detalles as DetalleRequerimiento[])
+                : newDetalles,
+            };
+          }
+          if (res.status === 401 || res.status === 403) {
+            const errJson = ct.includes('application/json') ? await res.json().catch(() => ({})) : {};
+            return {
+              ok: false,
+              authError:
+                errJson?.error ||
+                'Sesión expirada en el servidor web. Vuelva a iniciar sesión para sincronizar.',
+            };
+          }
+          return { ok: false };
+        })
+        .catch(() => ({ ok: false }))
+    : Promise.resolve({ ok: false });
 
-    const ct = (res.headers.get('content-type') || '').toLowerCase();
-    if (res.ok && ct.includes('application/json')) {
-      const json = await res.json();
-      if (json.revision) {
-        localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
-      }
-      removeFromSyncQueue(newRequerimiento.id);
-      const authReq: Requerimiento = json.requerimiento || newRequerimiento;
-      const authDets: DetalleRequerimiento[] = Array.isArray(json.detalles)
-        ? json.detalles
-        : newDetalles;
-      reconcileLocalRequirement(newRequerimiento.id, authReq, authDets);
-      return {
-        requerimiento: authReq,
-        detalles: authDets,
-        syncedToServer: true,
-      };
-    }
+  const [firestoreOk, expressResult] = await Promise.all([firestorePromise, expressPromise]);
 
-    if (res.status === 401 || res.status === 403) {
-      const errJson = ct.includes('application/json') ? await res.json().catch(() => ({})) : {};
-      return {
-        requerimiento: newRequerimiento,
-        detalles: newDetalles,
-        syncedToServer: false,
-        authError:
-          errJson?.error ||
-          'Sesión expirada en el servidor web. Vuelva a iniciar sesión para sincronizar.',
-      };
-    }
-  } catch {
-    // Queda en Outbox para reintento automático al recuperar conexión
+  if (expressResult.ok || firestoreOk) {
+    removeFromSyncQueue(newRequerimiento.id);
+    const authReq = expressResult.req || newRequerimiento;
+    const authDets = expressResult.dets || newDetalles;
+    reconcileLocalRequirement(newRequerimiento.id, authReq, authDets);
+    return {
+      requerimiento: authReq,
+      detalles: authDets,
+      syncedToServer: true,
+    };
   }
 
   return {
     requerimiento: newRequerimiento,
     detalles: newDetalles,
     syncedToServer: false,
+    ...(expressResult.authError ? { authError: expressResult.authError } : {}),
   };
 }
 
@@ -891,26 +1029,32 @@ export function updateRequerimientoEstado(
   const reqs = getStoredRequerimientos();
   const timestamp = new Date().toISOString();
   const userLabel = usuario || 'Admin / Transporte';
+  let targetDocId = id;
+  let updatedHistoryForFirestore: Requerimiento['historialTrazabilidad'] | undefined;
 
   const updated = reqs.map((r) => {
     if (r.id === id || r.numeroRequerimiento === id) {
+      targetDocId = r.id;
       const history = r.historialTrazabilidad || [];
       const isAnulando = nuevoEstado === 'ANULADO';
+      const nextHistory = [
+        ...history,
+        {
+          fecha: timestamp,
+          usuario: userLabel,
+          accion: `ESTADO: ${nuevoEstado}`,
+          detalle: motivo || `Estado operacional actualizado a ${nuevoEstado}.`,
+        },
+      ].slice(-50);
+      updatedHistoryForFirestore = nextHistory;
       return {
         ...r,
         estado: nuevoEstado,
+        updatedAt: timestamp,
         fechaAnulacion: isAnulando ? timestamp : r.fechaAnulacion,
         usuarioAnulacion: isAnulando ? userLabel : r.usuarioAnulacion,
         motivoAnulacion: isAnulando ? (motivo || 'Anulado/borrado de la programación') : r.motivoAnulacion,
-        historialTrazabilidad: [
-          ...history,
-          {
-            fecha: timestamp,
-            usuario: userLabel,
-            accion: `ESTADO: ${nuevoEstado}`,
-            detalle: motivo || `Estado operacional actualizado a ${nuevoEstado}.`,
-          },
-        ],
+        historialTrazabilidad: nextHistory,
       };
     }
     return r;
@@ -920,7 +1064,17 @@ export function updateRequerimientoEstado(
   broadcastLocalChange();
 
   // Actualizar en Firebase Firestore
-  firestoreUpdateRequerimientoEstado(id, nuevoEstado).catch((err) => {
+  firestoreUpdateRequerimientoEstado(targetDocId, nuevoEstado, {
+    updatedAt: timestamp,
+    ...(nuevoEstado === 'ANULADO'
+      ? {
+          fechaAnulacion: timestamp,
+          usuarioAnulacion: userLabel,
+          motivoAnulacion: motivo || 'Anulado/borrado de la programación',
+        }
+      : {}),
+    ...(updatedHistoryForFirestore ? { historialTrazabilidad: updatedHistoryForFirestore } : {}),
+  }).catch((err) => {
     console.warn('[Firestore] Error actualizando estado en Firestore:', err);
   });
 
@@ -963,27 +1117,31 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
     const fechaHoraAnulacion = new Date().toISOString();
     const userLabel = usuario || 'Usuario / Admin';
     const motivoText = motivo || 'Anulado/borrado de la programación diaria';
+    let updatedHistoryForFirestore: Requerimiento['historialTrazabilidad'] | undefined;
 
     // Para mantener la trazabilidad histórica de los días:
     // Se preserva el registro intacto en el historial marcado como ANULADO con toda su auditoría
     const updatedReqs = reqs.map((r) => {
       if (r.id === target.id || r.numeroRequerimiento === target.numeroRequerimiento) {
         const history = r.historialTrazabilidad || [];
+        const nextHistory = [
+          ...history,
+          {
+            fecha: fechaHoraAnulacion,
+            usuario: userLabel,
+            accion: 'ANULADO / BORRADO',
+            detalle: `${motivoText}. Registrado originalmente para la fecha ${r.fecha} (${r.totalPersonas} personas solicitadas).`,
+          },
+        ].slice(-50);
+        updatedHistoryForFirestore = nextHistory;
         return {
           ...r,
           estado: 'ANULADO' as const,
+          updatedAt: fechaHoraAnulacion,
           fechaAnulacion: fechaHoraAnulacion,
           usuarioAnulacion: userLabel,
           motivoAnulacion: motivoText,
-          historialTrazabilidad: [
-            ...history,
-            {
-              fecha: fechaHoraAnulacion,
-              usuario: userLabel,
-              accion: 'ANULADO / BORRADO',
-              detalle: `${motivoText}. Registrado originalmente para la fecha ${r.fecha} (${r.totalPersonas} personas solicitadas).`,
-            },
-          ],
+          historialTrazabilidad: nextHistory,
         };
       }
       return r;
@@ -993,7 +1151,13 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
     broadcastLocalChange();
 
     // Actualizar en Firebase Firestore conservando el documento en historial
-    firestoreUpdateRequerimientoEstado(target.id, 'ANULADO').catch((err) => {
+    firestoreUpdateRequerimientoEstado(target.id, 'ANULADO', {
+      updatedAt: fechaHoraAnulacion,
+      fechaAnulacion: fechaHoraAnulacion,
+      usuarioAnulacion: userLabel,
+      motivoAnulacion: motivoText,
+      ...(updatedHistoryForFirestore ? { historialTrazabilidad: updatedHistoryForFirestore } : {}),
+    }).catch((err) => {
       console.warn('[Firestore] Error actualizando anulación en Firestore:', err);
     });
 

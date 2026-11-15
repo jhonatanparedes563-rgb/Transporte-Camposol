@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Check,
   Calendar,
@@ -7,10 +7,17 @@ import {
   Home,
   Users,
   PlusCircle,
-  ArrowLeft,
-  Copy,
+  Cloud,
+  RefreshCw,
 } from 'lucide-react';
 import { Requerimiento } from '../types';
+import {
+  connectCloudSyncWithGoogle,
+  getCloudSyncStatus,
+  syncWithServerNow,
+  subscribeToDataChanges,
+} from '../services/storageService';
+import { subscribeToFirebaseAuth } from '../services/firestoreService';
 
 interface Step4ConfirmationProps {
   requerimiento: Requerimiento;
@@ -25,11 +32,59 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
   requerimiento,
   syncedToServer = true,
   syncNotice,
-  onViewRequirement,
   onNewRequirement,
   onGoHome,
 }) => {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isSynced, setIsSynced] = useState(syncedToServer);
+  const [cloudStatus, setCloudStatus] = useState(() => getCloudSyncStatus());
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectError, setConnectError] = useState('');
+
+  useEffect(() => {
+    setIsSynced(syncedToServer);
+  }, [syncedToServer, requerimiento.id]);
+
+  useEffect(() => {
+    const refresh = () => {
+      const st = getCloudSyncStatus();
+      setCloudStatus(st);
+      if (st.pendingOutboxCount === 0 && (st.firebaseConnected || st.hasServerSession)) {
+        setIsSynced(true);
+      }
+    };
+    refresh();
+    const unsubData = subscribeToDataChanges(refresh);
+    const unsubAuth = subscribeToFirebaseAuth(refresh);
+    return () => {
+      unsubData();
+      unsubAuth();
+    };
+  }, []);
+
+  const handleConnectAndSync = async () => {
+    setConnectError('');
+    setIsConnecting(true);
+    try {
+      const st = getCloudSyncStatus();
+      if (!st.firebaseConnected) {
+        const res = await connectCloudSyncWithGoogle();
+        if (!res.success) {
+          setConnectError(res.error || 'No se pudo conectar con Google Cloud.');
+          return;
+        }
+      } else {
+        await syncWithServerNow(true);
+      }
+      const after = getCloudSyncStatus();
+      setCloudStatus(after);
+      if (after.pendingOutboxCount === 0 || after.firebaseConnected || after.hasServerSession) {
+        setIsSynced(true);
+      }
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   const copyNumber = () => {
     navigator.clipboard.writeText(requerimiento.numeroRequerimiento);
@@ -64,12 +119,43 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
         <h2 className="text-xl sm:text-2xl font-bold text-[#1B3A57] tracking-tight">
           ¡Requerimiento registrado!
         </h2>
-        <p className={`text-xs sm:text-sm font-medium ${syncedToServer ? 'text-slate-500' : 'text-amber-700'}`}>
-          {syncedToServer
-            ? 'Guardado en la web y transmitido a Procesos de Recepción.'
-            : syncNotice || 'Guardado en el teléfono; se enviará a la web en cuanto haya conexión.'}
+        <p className={`text-xs sm:text-sm font-medium ${isSynced ? 'text-[#2F7D18]' : 'text-amber-700'}`}>
+          {isSynced
+            ? 'Guardado en línea y transmitido en tiempo real a Procesos.'
+            : syncNotice || 'Pendiente de conexión en línea con la nube o el servidor web.'}
         </p>
       </div>
+
+      {!isSynced && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-left space-y-2">
+          <div className="text-[11px] font-semibold text-amber-900 leading-snug">
+            Para trabajar 100% en línea y reflejar este requerimiento al instante en la web, envía ahora o vincula tu cuenta Google Cloud:
+          </div>
+          {connectError && (
+            <div className="text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl px-2.5 py-1.5">
+              {connectError}
+            </div>
+          )}
+          <button
+            type="button"
+            id="btn-step4-sync-cloud"
+            onClick={handleConnectAndSync}
+            disabled={isConnecting}
+            className="w-full py-2.5 px-3 bg-[#1B3A57] hover:bg-[#132B42] text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            {isConnecting ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Cloud className="w-3.5 h-3.5" />
+            )}
+            <span>
+              {cloudStatus.firebaseConnected || cloudStatus.hasServerSession
+                ? 'Enviar ahora a la web'
+                : 'Conectar Nube Google y enviar ahora'}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Ticket Number Badge */}
       <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#EAF7E4] border border-[#C6E9B4] rounded-full">

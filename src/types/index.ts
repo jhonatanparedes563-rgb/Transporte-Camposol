@@ -164,6 +164,8 @@ export interface Requerimiento {
   observaciones: string;
   usuario: string; // Nombre visible del solicitante
   userId?: string; // ID único del trabajador solicitante
+  firebaseUid?: string; // UID de sesión Firebase Auth del creador
+  firebaseEmail?: string; // Correo de sesión Firebase Auth
   userUsername?: string; // Nombre de usuario (login) del solicitante
   userRole?: UserRole; // Rol asignado
   fechaRegistro: string; // ISO timestamp
@@ -186,6 +188,9 @@ export interface DetalleRequerimiento {
   id: string;
   requerimientoId: string;
   numeroRequerimiento: string;
+  userId?: string;
+  firebaseUid?: string;
+  firebaseEmail?: string;
   comedor: string; // Parcela o comedor
   parcela?: string;
   paradero: string;

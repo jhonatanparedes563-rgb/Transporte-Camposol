@@ -4,14 +4,23 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
+  getDocFromServer,
   getDocs,
+  getDocsFromServer,
   onSnapshot,
   writeBatch,
   query,
   where,
   Unsubscribe,
 } from 'firebase/firestore';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  User as FirebaseUser,
+} from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
 import {
   Requerimiento,
@@ -86,6 +95,27 @@ function hasVerifiedFirebaseAuth(): FirebaseUser | null {
   return user && user.emailVerified ? user : null;
 }
 
+export function isFirestoreAuthenticated(): boolean {
+  return Boolean(hasVerifiedFirebaseAuth());
+}
+
+export function getFirebaseUserInfo(): {
+  connected: boolean;
+  uid: string | null;
+  email: string | null;
+  displayName: string | null;
+  isBootstrappedAdmin: boolean;
+} {
+  const u = hasVerifiedFirebaseAuth();
+  return {
+    connected: Boolean(u),
+    uid: u?.uid ?? null,
+    email: u?.email ?? null,
+    displayName: u?.displayName ?? null,
+    isBootstrappedAdmin: Boolean(u?.email && u.email.toLowerCase() === 'jhonatanparedes563@gmail.com'),
+  };
+}
+
 function sanitizeUserForFirestore(user: AppUser): Omit<AppUser, 'passwordHash' | 'salt'> {
   const clean: Record<string, unknown> = {
     id: user.id,
@@ -106,9 +136,26 @@ function sanitizeUserForFirestore(user: AppUser): Omit<AppUser, 'passwordHash' |
   return clean as Omit<AppUser, 'passwordHash' | 'salt'>;
 }
 
-function sanitizeRequerimientoForFirestore(req: Requerimiento, fallbackUid: string): Requerimiento {
+function sanitizeRequerimientoForFirestore(
+  req: Requerimiento,
+  fbUser: FirebaseUser,
+  preserveExistingFirebaseOwner: boolean = false
+): Requerimiento {
   const clean = JSON.parse(JSON.stringify(req)) as Record<string, unknown>;
-  clean.userId = String(clean.userId || fallbackUid).slice(0, 128);
+  clean.userId = String(clean.userId || fbUser.uid).slice(0, 128);
+  clean.firebaseUid =
+    preserveExistingFirebaseOwner && typeof clean.firebaseUid === 'string' && clean.firebaseUid.trim()
+      ? clean.firebaseUid.trim().slice(0, 128)
+      : fbUser.uid;
+  const emailVal =
+    preserveExistingFirebaseOwner && typeof clean.firebaseEmail === 'string' && clean.firebaseEmail.trim()
+      ? clean.firebaseEmail.trim()
+      : fbUser.email || '';
+  if (emailVal) {
+    clean.firebaseEmail = emailVal.slice(0, 120);
+  } else {
+    delete clean.firebaseEmail;
+  }
   clean.observaciones = String(clean.observaciones || '').slice(0, 500);
   clean.usuario = String(clean.usuario || '').slice(0, 120);
   clean.totalPersonas = Math.min(Math.max(Number(clean.totalPersonas) || 1, 1), 5000);
@@ -119,9 +166,27 @@ function sanitizeRequerimientoForFirestore(req: Requerimiento, fallbackUid: stri
   return clean as unknown as Requerimiento;
 }
 
-function sanitizeDetalleForFirestore(det: DetalleRequerimiento, userId: string): Record<string, unknown> {
+function sanitizeDetalleForFirestore(
+  det: DetalleRequerimiento,
+  userId: string,
+  fbUser: FirebaseUser,
+  preserveExistingFirebaseOwner: boolean = false
+): Record<string, unknown> {
   const clean = JSON.parse(JSON.stringify(det)) as Record<string, unknown>;
   clean.userId = userId;
+  clean.firebaseUid =
+    preserveExistingFirebaseOwner && typeof clean.firebaseUid === 'string' && clean.firebaseUid.trim()
+      ? clean.firebaseUid.trim().slice(0, 128)
+      : fbUser.uid;
+  const emailVal =
+    preserveExistingFirebaseOwner && typeof clean.firebaseEmail === 'string' && clean.firebaseEmail.trim()
+      ? clean.firebaseEmail.trim()
+      : fbUser.email || '';
+  if (emailVal) {
+    clean.firebaseEmail = emailVal.slice(0, 120);
+  } else {
+    delete clean.firebaseEmail;
+  }
   clean.paradero = String(clean.paradero || '').slice(0, 120);
   clean.comedor = String(clean.comedor || '').slice(0, 60);
   clean.cantidad = Math.min(Math.max(Number(clean.cantidad) || 1, 1), 500);
@@ -144,8 +209,37 @@ type OnDataUpdate = (data: {
 }) => void;
 
 let updateCallback: OnDataUpdate | null = null;
+let onConnectedCallback: ((info: ReturnType<typeof getFirebaseUserInfo>) => void) | null = null;
+const authStatusSubscribers = new Set<(info: ReturnType<typeof getFirebaseUserInfo>) => void>();
 let pendingUpdates: Parameters<OnDataUpdate>[0] = {};
 let updateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function notifyAuthSubscribers() {
+  const info = getFirebaseUserInfo();
+  authStatusSubscribers.forEach((cb) => {
+    try {
+      cb(info);
+    } catch {
+      // ignore
+    }
+  });
+}
+
+export function subscribeToFirebaseAuth(
+  cb: (info: ReturnType<typeof getFirebaseUserInfo>) => void
+): () => void {
+  authStatusSubscribers.add(cb);
+  cb(getFirebaseUserInfo());
+  return () => {
+    authStatusSubscribers.delete(cb);
+  };
+}
+
+export function registerFirebaseConnectedCallback(
+  cb: (info: ReturnType<typeof getFirebaseUserInfo>) => void
+): void {
+  onConnectedCallback = cb;
+}
 
 function scheduleDebouncedUpdate(data: Parameters<OnDataUpdate>[0]) {
   pendingUpdates = { ...pendingUpdates, ...data };
@@ -159,7 +253,7 @@ function scheduleDebouncedUpdate(data: Parameters<OnDataUpdate>[0]) {
       pendingUpdates = {};
       updateCallback(payload);
     }
-  }, 100);
+  }, 80);
 }
 
 export function registerFirestoreSyncCallback(cb: OnDataUpdate) {
@@ -177,14 +271,36 @@ function cleanupListeners() {
   unsubscribers = [];
 }
 
+function filterRequerimientosList(rawReqs: Requerimiento[]): Requerimiento[] {
+  const cleaned = rawReqs.filter((r) => {
+    const isLegacyDemo = r.id?.startsWith('req-uuid-') || /-ops-1\d\d$/.test(r.id || '');
+    return !isLegacyDemo;
+  });
+  cleaned.sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
+  return cleaned;
+}
+
+function filterDetallesList(rawDets: DetalleRequerimiento[]): DetalleRequerimiento[] {
+  return rawDets.filter((det) => {
+    const isLegacyDemo =
+      det.id?.startsWith('det-001-') ||
+      det.id?.startsWith('det-002-') ||
+      det.id?.startsWith('det-003-') ||
+      det.id?.startsWith('det-179040001') ||
+      /-ops-1\d\d$/.test(det.requerimientoId || '');
+    return !isLegacyDemo;
+  });
+}
+
 function attachVerifiedListeners(firebaseUser: FirebaseUser) {
   cleanupListeners();
-  const isBootstrappedAdmin = firebaseUser.email === 'jhonatanparedes563@gmail.com';
+  const isBootstrappedAdmin =
+    (firebaseUser.email || '').toLowerCase() === 'jhonatanparedes563@gmail.com';
 
-  // 1. Requerimientos (scoped to owner unless bootstrapped admin)
+  // 1. Requerimientos (scoped to owner firebaseUid unless bootstrapped admin)
   const reqQuery = isBootstrappedAdmin
     ? collection(db, 'requerimientos')
-    : query(collection(db, 'requerimientos'), where('userId', '==', firebaseUser.uid));
+    : query(collection(db, 'requerimientos'), where('firebaseUid', '==', firebaseUser.uid));
 
   const unsubReq = onSnapshot(
     reqQuery,
@@ -192,14 +308,9 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
       if (!snapshot.empty || !snapshot.metadata.fromCache) {
         const reqs: Requerimiento[] = [];
         snapshot.forEach((d) => {
-          const r = d.data() as Requerimiento;
-          const isLegacyDemo = r.id?.startsWith('req-uuid-') || /-ops-1\d\d$/.test(r.id || '');
-          if (!isLegacyDemo) {
-            reqs.push(r);
-          }
+          reqs.push(d.data() as Requerimiento);
         });
-        reqs.sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
-        scheduleDebouncedUpdate({ requerimientos: reqs });
+        scheduleDebouncedUpdate({ requerimientos: filterRequerimientosList(reqs) });
       }
     },
     (err) => {
@@ -208,10 +319,10 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
   );
   unsubscribers.push(unsubReq);
 
-  // 2. Detalles (scoped to owner unless bootstrapped admin)
+  // 2. Detalles (scoped to owner firebaseUid unless bootstrapped admin)
   const detQuery = isBootstrappedAdmin
     ? collection(db, 'detalles')
-    : query(collection(db, 'detalles'), where('userId', '==', firebaseUser.uid));
+    : query(collection(db, 'detalles'), where('firebaseUid', '==', firebaseUser.uid));
 
   const unsubDet = onSnapshot(
     detQuery,
@@ -219,18 +330,9 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
       if (!snapshot.empty || !snapshot.metadata.fromCache) {
         const dets: DetalleRequerimiento[] = [];
         snapshot.forEach((d) => {
-          const det = d.data() as DetalleRequerimiento;
-          const isLegacyDemo =
-            det.id?.startsWith('det-001-') ||
-            det.id?.startsWith('det-002-') ||
-            det.id?.startsWith('det-003-') ||
-            det.id?.startsWith('det-179040001') ||
-            /-ops-1\d\d$/.test(det.requerimientoId || '');
-          if (!isLegacyDemo) {
-            dets.push(det);
-          }
+          dets.push(d.data() as DetalleRequerimiento);
         });
-        scheduleDebouncedUpdate({ detalles: dets });
+        scheduleDebouncedUpdate({ detalles: filterDetallesList(dets) });
       }
     },
     (err) => {
@@ -239,7 +341,7 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
   );
   unsubscribers.push(unsubDet);
 
-  // 3. Metadatos y catálogos maestros (single document get/snapshot allowed for verified users)
+  // 3. Metadatos y catálogos maestros
   const metaDoc = doc(db, 'system_metadata', 'master_data');
   const unsubMeta = onSnapshot(
     metaDoc,
@@ -265,23 +367,162 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
     }
   );
   unsubscribers.push(unsubMeta);
+
+  // 4. Usuarios (solo Admin en la nube)
+  if (isBootstrappedAdmin) {
+    const unsubUsers = onSnapshot(
+      collection(db, 'users'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const cloudUsers: AppUser[] = [];
+          snapshot.forEach((d) => {
+            const u = d.data() as AppUser;
+            cloudUsers.push({
+              ...u,
+              passwordHash: '',
+              salt: '',
+            });
+          });
+          if (cloudUsers.length > 0) {
+            scheduleDebouncedUpdate({ users: cloudUsers });
+          }
+        }
+      },
+      (err) => {
+        console.warn('[Firestore] Aviso leyendo usuarios:', err);
+      }
+    );
+    unsubscribers.push(unsubUsers);
+  }
+
+  if (onConnectedCallback) {
+    try {
+      onConnectedCallback(getFirebaseUserInfo());
+    } catch {
+      // ignore
+    }
+  }
 }
 
-/**
- * Inicializa observador de Firebase Auth. Sólo adjunta listeners en Firestore
- * cuando existe una sesión Firebase Auth verificada.
- */
 export async function initializeFirestoreSync(): Promise<void> {
   if (isAuthListenerRegistered) return;
   isAuthListenerRegistered = true;
 
   onAuthStateChanged(auth, (firebaseUser) => {
+    notifyAuthSubscribers();
     if (firebaseUser && firebaseUser.emailVerified) {
       attachVerifiedListeners(firebaseUser);
     } else {
       cleanupListeners();
     }
   });
+}
+
+export async function connectWithGoogleFirebase(): Promise<{
+  success: boolean;
+  email?: string | null;
+  error?: string;
+}> {
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const cred = await signInWithPopup(auth, provider);
+    if (!cred.user || !cred.user.emailVerified) {
+      return {
+        success: false,
+        error: 'La cuenta de Google seleccionada no tiene un correo verificado.',
+      };
+    }
+    notifyAuthSubscribers();
+    attachVerifiedListeners(cred.user);
+    return { success: true, email: cred.user.email };
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code || '';
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      return { success: false, error: 'Inicio de sesión con Google cancelado.' };
+    }
+    if (code === 'auth/unauthorized-domain') {
+      return {
+        success: false,
+        error:
+          'Este dominio no está autorizado en Firebase Authentication (Authorized domains). Agregue su dominio de GitHub Pages en Firebase Console.',
+      };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg || 'No se pudo conectar con Google Cloud Firestore.' };
+  }
+}
+
+export async function disconnectGoogleFirebase(): Promise<void> {
+  cleanupListeners();
+  await signOut(auth);
+  notifyAuthSubscribers();
+}
+
+export async function firestorePullAllNow(): Promise<boolean> {
+  const fbUser = hasVerifiedFirebaseAuth();
+  if (!fbUser || !updateCallback) return false;
+
+  const isBootstrappedAdmin =
+    (fbUser.email || '').toLowerCase() === 'jhonatanparedes563@gmail.com';
+
+  try {
+    const reqQuery = isBootstrappedAdmin
+      ? collection(db, 'requerimientos')
+      : query(collection(db, 'requerimientos'), where('firebaseUid', '==', fbUser.uid));
+    const detQuery = isBootstrappedAdmin
+      ? collection(db, 'detalles')
+      : query(collection(db, 'detalles'), where('firebaseUid', '==', fbUser.uid));
+
+    const [reqSnap, detSnap, metaSnap, usersSnap] = await Promise.all([
+      getDocsFromServer(reqQuery).catch(() => getDocs(reqQuery)),
+      getDocsFromServer(detQuery).catch(() => getDocs(detQuery)),
+      getDocFromServer(doc(db, 'system_metadata', 'master_data')).catch(() =>
+        getDoc(doc(db, 'system_metadata', 'master_data'))
+      ),
+      isBootstrappedAdmin
+        ? getDocsFromServer(collection(db, 'users')).catch(() => getDocs(collection(db, 'users')))
+        : Promise.resolve(null),
+    ]);
+
+    const reqs: Requerimiento[] = [];
+    reqSnap.forEach((d) => reqs.push(d.data() as Requerimiento));
+
+    const dets: DetalleRequerimiento[] = [];
+    detSnap.forEach((d) => dets.push(d.data() as DetalleRequerimiento));
+
+    const payload: Parameters<OnDataUpdate>[0] = {
+      requerimientos: filterRequerimientosList(reqs),
+      detalles: filterDetallesList(dets),
+    };
+
+    if (metaSnap && metaSnap.exists()) {
+      const mData = metaSnap.data();
+      if (Array.isArray(mData.areas)) payload.areas = mData.areas;
+      if (Array.isArray(mData.fundos)) payload.fundos = mData.fundos;
+      if (Array.isArray(mData.zonas)) payload.zonas = mData.zonas;
+      if (Array.isArray(mData.paraderos)) payload.paraderos = mData.paraderos;
+      if (Array.isArray(mData.comedores)) payload.comedores = mData.comedores;
+      if (Array.isArray(mData.unidadesBus) && mData.unidadesBus.length > 0) {
+        payload.unidadesBus = mData.unidadesBus;
+      }
+    }
+
+    if (usersSnap && !usersSnap.empty) {
+      const cloudUsers: AppUser[] = [];
+      usersSnap.forEach((d) => {
+        const u = d.data() as AppUser;
+        cloudUsers.push({ ...u, passwordHash: '', salt: '' });
+      });
+      if (cloudUsers.length > 0) payload.users = cloudUsers;
+    }
+
+    updateCallback(payload);
+    return true;
+  } catch (err) {
+    console.warn('[Firestore] Error consultando datos en línea:', err);
+    return false;
+  }
 }
 
 async function seedInitialMasterData() {
@@ -303,13 +544,14 @@ async function seedInitialMasterData() {
 
 export async function firestoreSaveRequerimiento(
   req: Requerimiento,
-  detalles: DetalleRequerimiento[]
-): Promise<void> {
+  detalles: DetalleRequerimiento[],
+  preserveExistingFirebaseOwner: boolean = false
+): Promise<boolean> {
   const fbUser = hasVerifiedFirebaseAuth();
-  if (!fbUser) return;
+  if (!fbUser) return false;
 
   const path = `requerimientos/${req.id}`;
-  const cleanReq = sanitizeRequerimientoForFirestore(req, fbUser.uid);
+  const cleanReq = sanitizeRequerimientoForFirestore(req, fbUser, preserveExistingFirebaseOwner);
   const ownerId = cleanReq.userId || fbUser.uid;
   let attempt = 0;
   const maxAttempts = 3;
@@ -326,7 +568,10 @@ export async function firestoreSaveRequerimiento(
       const firstChunk = detalles.slice(0, CHUNK_SIZE);
       firstChunk.forEach((det) => {
         const detRef = doc(db, 'detalles', det.id);
-        firstBatch.set(detRef, sanitizeDetalleForFirestore(det, ownerId));
+        firstBatch.set(
+          detRef,
+          sanitizeDetalleForFirestore(det, ownerId, fbUser, preserveExistingFirebaseOwner)
+        );
       });
       batches.push(firstBatch.commit());
 
@@ -335,13 +580,16 @@ export async function firestoreSaveRequerimiento(
         const chunk = detalles.slice(i, i + CHUNK_SIZE);
         chunk.forEach((det) => {
           const detRef = doc(db, 'detalles', det.id);
-          nextBatch.set(detRef, sanitizeDetalleForFirestore(det, ownerId));
+          nextBatch.set(
+            detRef,
+            sanitizeDetalleForFirestore(det, ownerId, fbUser, preserveExistingFirebaseOwner)
+          );
         });
         batches.push(nextBatch.commit());
       }
 
       await Promise.all(batches);
-      return;
+      return true;
     } catch (err: unknown) {
       if (attempt >= maxAttempts) {
         handleFirestoreError(err, OperationType.WRITE, path);
@@ -349,28 +597,47 @@ export async function firestoreSaveRequerimiento(
       await new Promise((resolve) => setTimeout(resolve, attempt * 200 + Math.random() * 100));
     }
   }
+  return false;
 }
 
 export async function firestoreUpdateRequerimientoEstado(
   id: string,
-  estado: Requerimiento['estado']
-): Promise<void> {
-  if (!hasVerifiedFirebaseAuth()) return;
+  estado: Requerimiento['estado'],
+  extraFields?: {
+    updatedAt?: string;
+    fechaAnulacion?: string;
+    usuarioAnulacion?: string;
+    motivoAnulacion?: string;
+    historialTrazabilidad?: Requerimiento['historialTrazabilidad'];
+  }
+): Promise<boolean> {
+  if (!hasVerifiedFirebaseAuth()) return false;
   const path = `requerimientos/${id}`;
   try {
     const reqRef = doc(db, 'requerimientos', id);
-    await updateDoc(reqRef, {
+    const patch: Record<string, unknown> = {
       estado,
-      updatedAt: new Date().toISOString(),
-    });
+      updatedAt: (extraFields?.updatedAt || new Date().toISOString()).slice(0, 40),
+    };
+    if (extraFields?.fechaAnulacion) patch.fechaAnulacion = String(extraFields.fechaAnulacion).slice(0, 40);
+    if (extraFields?.usuarioAnulacion) patch.usuarioAnulacion = String(extraFields.usuarioAnulacion).slice(0, 120);
+    if (extraFields?.motivoAnulacion) patch.motivoAnulacion = String(extraFields.motivoAnulacion).slice(0, 300);
+    if (Array.isArray(extraFields?.historialTrazabilidad)) {
+      patch.historialTrazabilidad = extraFields.historialTrazabilidad.slice(-50);
+    }
+    await updateDoc(reqRef, patch);
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, path);
   }
 }
 
-export async function firestoreDeleteRequerimiento(id: string, numeroRequerimiento?: string): Promise<void> {
+export async function firestoreDeleteRequerimiento(
+  id: string,
+  numeroRequerimiento?: string
+): Promise<boolean> {
   const fbUser = hasVerifiedFirebaseAuth();
-  if (!fbUser) return;
+  if (!fbUser) return false;
   const path = `requerimientos/${id}`;
   try {
     await deleteDoc(doc(db, 'requerimientos', id));
@@ -382,7 +649,10 @@ export async function firestoreDeleteRequerimiento(id: string, numeroRequerimien
 
     detsSnapshot.forEach((d) => {
       const data = d.data() as DetalleRequerimiento;
-      if (data.requerimientoId === id || (numeroRequerimiento && data.numeroRequerimiento === numeroRequerimiento)) {
+      if (
+        data.requerimientoId === id ||
+        (numeroRequerimiento && data.numeroRequerimiento === numeroRequerimiento)
+      ) {
         batch.delete(d.ref);
         count++;
       }
@@ -391,26 +661,29 @@ export async function firestoreDeleteRequerimiento(id: string, numeroRequerimien
     if (count > 0) {
       await batch.commit();
     }
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
 
-export async function firestoreSaveUser(user: AppUser): Promise<void> {
-  if (!hasVerifiedFirebaseAuth()) return;
+export async function firestoreSaveUser(user: AppUser): Promise<boolean> {
+  if (!hasVerifiedFirebaseAuth()) return false;
   const path = `users/${user.id}`;
   try {
     await setDoc(doc(db, 'users', user.id), sanitizeUserForFirestore(user));
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
-export async function firestoreDeleteUser(userId: string): Promise<void> {
-  if (!hasVerifiedFirebaseAuth()) return;
+export async function firestoreDeleteUser(userId: string): Promise<boolean> {
+  if (!hasVerifiedFirebaseAuth()) return false;
   const path = `users/${userId}`;
   try {
     await deleteDoc(doc(db, 'users', userId));
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
@@ -423,8 +696,8 @@ export async function firestoreSaveMasterData(data: {
   paraderos?: MaestroParadero[];
   comedores?: MaestroComedor[];
   unidadesBus?: MaestroUnidadBus[];
-}): Promise<void> {
-  if (!hasVerifiedFirebaseAuth()) return;
+}): Promise<boolean> {
+  if (!hasVerifiedFirebaseAuth()) return false;
   const path = 'system_metadata/master_data';
   try {
     const metaRef = doc(db, 'system_metadata', 'master_data');
@@ -438,6 +711,7 @@ export async function firestoreSaveMasterData(data: {
       },
       { merge: true }
     );
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }

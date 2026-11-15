@@ -58,6 +58,8 @@ import {
   exportToCSV,
   syncWithServerNow,
   getSyncInfo,
+  connectCloudSyncWithGoogle,
+  getCloudSyncStatus,
 } from '../services/storageService';
 import { consolidarParaderos, exportarRequerimientoIndividualExcel } from '../services/excelExportService';
 import { getHorarioDisplay } from '../data/masterData';
@@ -200,6 +202,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   // Selected row IDs for batch actions
   const [selectedReqIds, setSelectedReqIds] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastShowCloudConnect, setToastShowCloudConnect] = useState(false);
   const [isManualSyncing, setIsManualSyncing] = useState(false);
   const [reqToDelete, setReqToDelete] = useState<Requerimiento | null>(null);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
@@ -224,9 +227,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [requerimientos]);
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, offerCloudConnect: boolean = false) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+    setToastShowCloudConnect(offerCloudConnect);
+    setTimeout(() => {
+      setToastMessage(null);
+      setToastShowCloudConnect(false);
+    }, offerCloudConnect ? 6500 : 3500);
   };
 
   const toggleExpandReq = (id: string) => {
@@ -297,10 +304,23 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     const success = await syncWithServerNow(true);
     onRefreshData();
     setIsManualSyncing(false);
+    const status = getCloudSyncStatus();
     if (success) {
-      showToast('¡Datos sincronizados exitosamente con la web!');
+      showToast('¡Datos sincronizados en línea con la web y la nube!');
+    } else if (!status.firebaseConnected) {
+      showToast('Conecta Google Cloud para sincronizar en tiempo real con otros dispositivos.', true);
     } else {
-      showToast('Servidor web activo (datos cargados localmente)');
+      showToast('No se pudo contactar al servidor en este momento.');
+    }
+  };
+
+  const handleConnectCloudFromToast = async () => {
+    const res = await connectCloudSyncWithGoogle();
+    onRefreshData();
+    if (res.success) {
+      showToast(`¡Nube Google conectada (${res.email})!`);
+    } else if (res.error) {
+      showToast(res.error);
     }
   };
 
@@ -650,9 +670,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     <div className="flex h-screen w-full bg-[#F3F6FA] text-[#1B3A57] overflow-hidden font-sans">
       {/* Toast alert */}
       {toastMessage && (
-        <div className="fixed top-4 right-6 z-50 bg-[#1B3A57] text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold border border-[#55A529]/50 animate-in fade-in slide-in-from-top-3 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-[#7CD64B]" />
+        <div className="fixed top-4 right-6 z-50 bg-[#1B3A57] text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-semibold border border-[#55A529]/50 animate-in fade-in slide-in-from-top-3 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-[#7CD64B] shrink-0" />
           <span>{toastMessage}</span>
+          {toastShowCloudConnect && (
+            <button
+              type="button"
+              onClick={handleConnectCloudFromToast}
+              className="ml-1 px-2.5 py-1 rounded-lg bg-[#55A529] hover:bg-[#468E20] text-white font-bold text-[11px] whitespace-nowrap cursor-pointer"
+            >
+              Conectar Nube Google
+            </button>
+          )}
         </div>
       )}
 
