@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "revision": 27,
-  "lastUpdated": "2026-11-15T01:20:39.182Z",
+  "revision": 29,
+  "lastUpdated": "2026-11-15T02:40:58.640Z",
   "requerimientos": [
     {
       "userRole": "usuario",
@@ -536,7 +536,7 @@
       "cultivo": "TODOS LOS CULTIVOS",
       "estado": "ACTIVO",
       "fechaCreacion": "2026-09-01T08:00:00Z",
-      "ultimoAcceso": "2026-11-15T01:20:38.961Z"
+      "ultimoAcceso": "2026-11-15T02:40:58.640Z"
     },
     {
       "id": "usr-rec-01",
@@ -608,7 +608,7 @@
       "cultivo": "ARÁNDANO",
       "estado": "ACTIVO",
       "fechaCreacion": "2026-09-01T08:00:00Z",
-      "ultimoAcceso": "2026-11-15T01:09:17.008Z"
+      "ultimoAcceso": "2026-11-15T02:40:58.533Z"
     }
   ],
   "areas": [

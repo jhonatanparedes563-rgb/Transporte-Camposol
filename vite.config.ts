@@ -19,12 +19,6 @@ export default defineConfig(() => {
           'app-icon-192-v4.png',
           'app-icon-512-v4.png',
           'app-icon-maskable-512-v4.png',
-          'camposol-emblem.png',
-          'camposol-emblem.svg',
-          'camposol-banner.png',
-          'pwa-192x192.png',
-          'pwa-512x512.png',
-          'pwa-maskable-512x512.png',
         ],
         manifest: {
           id: '/Transporte-Camposol/',
@@ -60,13 +54,53 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,woff,woff2}'],
-          globIgnores: ['**/assets/aistudio/**', 'assets/aistudio/**', 'server.cjs*'],
+          globPatterns: ['**/*.{js,css,ico,svg,jpg,woff,woff2}'],
+          globIgnores: [
+            '**/index.html',
+            '**/assets/aistudio/**',
+            'assets/aistudio/**',
+            'server.cjs*',
+            '**/vendor-xlsx*',
+            '**/vendor-charts*',
+            '**/AdminPortalLayout*',
+            '**/DatabaseManagementModal*',
+          ],
+          navigateFallback: null,
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           skipWaiting: true,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
           runtimeCaching: [
+            {
+              urlPattern: ({ request }) => request.mode === 'navigate',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'camposol-pages-v1',
+                networkTimeoutSeconds: 2,
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: ({ url, request }) =>
+                url.origin === self.location.origin &&
+                !url.pathname.includes('/api/') &&
+                (request.destination === 'script' ||
+                  request.destination === 'style' ||
+                  request.destination === 'image'),
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'camposol-assets-v1',
+                expiration: {
+                  maxEntries: 60,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',

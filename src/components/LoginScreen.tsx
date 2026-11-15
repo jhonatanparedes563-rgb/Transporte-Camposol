@@ -66,8 +66,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setErrorMessage('');
 
-    const cleanUser = username.trim();
-    const cleanPass = password.trim();
+    const cleanUser = username.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\u00A0/g, ' ').trim();
+    const cleanPass = password.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\u00A0/g, ' ').trim();
 
     if (!cleanUser || !cleanPass) {
       setErrorMessage('Por favor ingrese su usuario y contraseña.');
@@ -378,13 +378,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   {/* Campo trampa invisible anti-bots */}
                   <input
                     type="text"
-                    name="hp_guard_field"
+                    name="website_url_hp"
                     value={honeypot}
                     onChange={(e) => setHoneypot(e.target.value)}
                     tabIndex={-1}
-                    autoComplete="one-time-code"
+                    readOnly
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
                     aria-hidden="true"
-                    className="sr-only pointer-events-none"
+                    className="absolute -left-[9999px] w-px h-px opacity-0 pointer-events-none"
                   />
                   {/* Campo: Usuario ampliado */}
                   <div className="relative pt-2">
