@@ -1352,7 +1352,40 @@ async function startServer() {
 
       const idx = db.users.findIndex((u) => u.id === id);
       if (idx === -1) {
-        return res.status(404).json({ error: 'Usuario no encontrado.' });
+        if (!/^[a-zA-Z0-9_\-]{4,128}$/.test(id)) {
+          return res.status(400).json({ error: 'Identificador de usuario inválido.' });
+        }
+        const cleanUsername = sanitizeText(updates.usuario, 32).toLowerCase();
+        const nombre = sanitizeText(updates.nombre, 120);
+        if (!nombre || nombre.length < 2 || !isValidUsername(cleanUsername)) {
+          return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+        if (db.users.some((u) => u.usuario.toLowerCase() === cleanUsername)) {
+          return res.status(409).json({ error: `El usuario "${cleanUsername}" ya está en uso.` });
+        }
+        const rol: UserRole =
+          updates.rol === 'admin' || updates.rol === 'receptor' ? updates.rol : 'usuario';
+        const initialPass =
+          typeof updates.nuevaContrasena === 'string' && updates.nuevaContrasena.trim().length >= 8
+            ? updates.nuevaContrasena.trim()
+            : crypto.randomBytes(16).toString('hex');
+        const restoredUser: AppUser = {
+          id,
+          nombre,
+          usuario: cleanUsername,
+          email: sanitizeText(updates.email || `${cleanUsername}@camposol.com.pe`, 120).toLowerCase(),
+          passwordHash: hashPasswordScrypt(initialPass),
+          salt: 'scrypt',
+          rol,
+          area: sanitizeText(updates.area || 'PRODUCCIÓN', 80),
+          fundo: sanitizeText(updates.fundo || 'TODOS LOS FUNDOS', 80),
+          cultivo: sanitizeText(updates.cultivo || (rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'), 60),
+          estado: updates.estado === 'INACTIVO' ? 'INACTIVO' : 'ACTIVO',
+          fechaCreacion: updates.fechaCreacion || new Date().toISOString(),
+        };
+        db.users.push(restoredUser);
+        persistDb(db);
+        return res.json({ success: true, user: sanitizeUser(restoredUser), revision: db.revision });
       }
 
       const target = { ...db.users[idx] };

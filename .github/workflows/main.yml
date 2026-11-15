@@ -27,10 +27,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
       - name: Install dependencies
-        run: npm install
+        run: npm ci --prefer-offline --no-audit --no-fund || npm install --no-audit --no-fund
       - name: Build
-        run: npm run build
+        run: npx vite build && rm -rf dist/assets/aistudio
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact

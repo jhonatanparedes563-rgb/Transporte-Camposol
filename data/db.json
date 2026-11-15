@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "revision": 20,
-  "lastUpdated": "2026-11-15T01:09:17.008Z",
+  "revision": 27,
+  "lastUpdated": "2026-11-15T01:20:39.182Z",
   "requerimientos": [
     {
       "userRole": "usuario",
@@ -536,7 +536,7 @@
       "cultivo": "TODOS LOS CULTIVOS",
       "estado": "ACTIVO",
       "fechaCreacion": "2026-09-01T08:00:00Z",
-      "ultimoAcceso": "2026-11-15T01:09:16.913Z"
+      "ultimoAcceso": "2026-11-15T01:20:38.961Z"
     },
     {
       "id": "usr-rec-01",

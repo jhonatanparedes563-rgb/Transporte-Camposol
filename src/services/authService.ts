@@ -137,26 +137,76 @@ export function getAuthHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+const STATIC_CREDS_STORAGE_KEY = 'camposol_static_creds_v1';
+
+type StaticCredMap = Record<string, { passwordHash: string; salt: string }>;
+
+function readStaticCreds(): StaticCredMap {
+  try {
+    const raw = localStorage.getItem(STATIC_CREDS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeStaticCreds(map: StaticCredMap): void {
+  try {
+    localStorage.setItem(STATIC_CREDS_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
+
+function migrateLegacyHashesFromRawUsers(): void {
+  try {
+    const raw = localStorage.getItem(USERS_STORAGE_KEY);
+    if (!raw) return;
+    const users = JSON.parse(raw) as AppUser[];
+    if (!Array.isArray(users)) return;
+    const creds = readStaticCreds();
+    let changed = false;
+    for (const u of users) {
+      if (u && u.id && u.passwordHash && u.passwordHash.trim() && !creds[u.id]) {
+        creds[u.id] = { passwordHash: u.passwordHash, salt: u.salt || DEFAULT_SALT };
+        changed = true;
+      }
+    }
+    if (changed) {
+      writeStaticCreds(creds);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 // Obtener usuarios cacheados localmente (sin credenciales sensibles)
 export function getStoredUsers(): AppUser[] {
   try {
+    migrateLegacyHashesFromRawUsers();
     const raw = localStorage.getItem(USERS_STORAGE_KEY);
     if (!raw) {
-      return [];
+      return INITIAL_USERS.map(stripSensitiveFields);
     }
     const users: AppUser[] = JSON.parse(raw);
-    if (!Array.isArray(users)) {
-      return [];
+    if (!Array.isArray(users) || users.length === 0) {
+      return INITIAL_USERS.map(stripSensitiveFields);
     }
     return users.map(stripSensitiveFields);
   } catch {
-    return [];
+    return INITIAL_USERS.map(stripSensitiveFields);
   }
 }
 
 export function saveStoredUsers(users: AppUser[]): void {
   try {
+    migrateLegacyHashesFromRawUsers();
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users.map(stripSensitiveFields)));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('camposol_data_changed'));
+    }
   } catch {
     // ignore
   }
@@ -230,28 +280,47 @@ function getApiCandidates(endpoint: string): string[] {
   return candidates;
 }
 
-async function postJsonApi(
+async function fetchJsonApi(
   endpoint: string,
-  body: Record<string, unknown>
+  options: {
+    method?: string;
+    body?: Record<string, unknown>;
+    auth?: boolean;
+  } = {}
 ): Promise<{ reachableJson: boolean; res?: Response; data?: any }> {
+  const method = options.method || 'GET';
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (options.auth) {
+    Object.assign(headers, getAuthHeaders());
+  }
+
   for (const url of getApiCandidates(endpoint)) {
     try {
       const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        method,
+        headers,
+        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       });
       const ct = (res.headers.get('content-type') || '').toLowerCase();
       if (ct.includes('application/json')) {
         const data = await res.json().catch(() => ({}));
         return { reachableJson: true, res, data };
       }
-      // Si respondió 404/405 HTML (posible proxy de subruta o hosting estático), probar siguiente ruta
     } catch {
-      // Error de red en esta ruta
+      // Error de red o ruta no disponible en este origen
     }
   }
   return { reachableJson: false };
+}
+
+async function postJsonApi(
+  endpoint: string,
+  body: Record<string, unknown>
+): Promise<{ reachableJson: boolean; res?: Response; data?: any }> {
+  return fetchJsonApi(endpoint, { method: 'POST', body });
 }
 
 function checkStaticRateLimit(username: string): string | null {
@@ -372,25 +441,44 @@ export async function authenticateUser(
     return { success: false, error: cooldownMsg };
   }
 
-  const staticMatch = INITIAL_USERS.find((u) => u.usuario.toLowerCase() === cleanUsername);
+  migrateLegacyHashesFromRawUsers();
+  const credsMap = readStaticCreds();
+  const storedUsers = getStoredUsers();
+  const mergedCandidates: AppUser[] = [...storedUsers];
+  for (const seed of INITIAL_USERS) {
+    if (!mergedCandidates.some((u) => u.usuario.toLowerCase() === seed.usuario.toLowerCase())) {
+      mergedCandidates.push(seed);
+    }
+  }
+
+  const staticMatch = mergedCandidates.find((u) => u.usuario.toLowerCase() === cleanUsername);
   if (staticMatch) {
-    try {
-      const computed = await hashPassword(cleanPass, staticMatch.salt);
-      if (computed === staticMatch.passwordHash) {
-        if (staticMatch.estado !== 'ACTIVO') {
-          return {
-            success: false,
-            error: 'SU USUARIO SE ENCUENTRA INACTIVO. CONTACTE AL ADMINISTRADOR.',
-          };
+    const seedMatch = INITIAL_USERS.find(
+      (u) => u.id === staticMatch.id || u.usuario.toLowerCase() === cleanUsername
+    );
+    const cred = credsMap[staticMatch.id] || (seedMatch ? { passwordHash: seedMatch.passwordHash, salt: seedMatch.salt } : null);
+    if (cred && cred.passwordHash) {
+      try {
+        const computed = await hashPassword(cleanPass, cred.salt || DEFAULT_SALT);
+        if (computed === cred.passwordHash) {
+          if (staticMatch.estado !== 'ACTIVO') {
+            return {
+              success: false,
+              error: 'SU USUARIO SE ENCUENTRA INACTIVO. CONTACTE AL ADMINISTRADOR.',
+            };
+          }
+          recordStaticLoginFail(cleanUsername, true);
+          const safeUser = stripSensitiveFields({
+            ...staticMatch,
+            ultimoAcceso: new Date().toISOString(),
+          });
+          setAuthToken(`static.${safeUser.id}.${Date.now()}`);
+          setActiveSessionUser(safeUser);
+          return { success: true, user: safeUser };
         }
-        recordStaticLoginFail(cleanUsername, true);
-        const safeUser = stripSensitiveFields(staticMatch);
-        setAuthToken(`static.${safeUser.id}.${Date.now()}`);
-        setActiveSessionUser(safeUser);
-        return { success: true, user: safeUser };
+      } catch {
+        // ignore crypto error
       }
-    } catch {
-      // ignore crypto error
     }
   }
 
@@ -401,7 +489,17 @@ export async function authenticateUser(
   };
 }
 
-// Crear nuevo usuario (Solo Administrador vía API autenticada)
+const ADMIN_REQUIRED_MSG = 'Se requiere sesión de Administrador activa para realizar esta acción.';
+
+function getAuthorizedLocalAdmin(): AppUser | null {
+  const actor = getActiveSessionUser();
+  if (!actor || actor.rol !== 'admin' || actor.estado !== 'ACTIVO') {
+    return null;
+  }
+  return actor;
+}
+
+// Crear nuevo usuario (Solo Administrador vía API autenticada o modo estático verificado)
 export async function createNewUser(data: {
   nombre: string;
   usuario: string;
@@ -413,67 +511,163 @@ export async function createNewUser(data: {
   cultivo?: string;
   estado: UserStatus;
 }): Promise<{ success: boolean; user?: AppUser; error?: string }> {
-  try {
-    const res = await fetch('/api/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
-      body: JSON.stringify(data),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json?.success) {
-      return { success: false, error: json?.error || 'No se pudo crear el usuario.' };
-    }
+  const cleanUsername = data.usuario.trim().toLowerCase();
+  const cleanNombre = data.nombre.trim();
+  const cleanPass = data.contrasena.trim();
 
-    const safeUser = stripSensitiveFields(json.user);
-    const updated = [...getStoredUsers(), safeUser];
-    saveStoredUsers(updated);
-    firestoreSaveUser(safeUser).catch(() => {});
-
-    return { success: true, user: safeUser };
-  } catch {
-    return { success: false, error: 'Error de red al crear el usuario.' };
+  if (!cleanNombre || cleanNombre.length < 2) {
+    return { success: false, error: 'El nombre completo es obligatorio (mín. 2 caracteres).' };
   }
+  if (!/^[a-zA-Z0-9._\-]{3,32}$/.test(cleanUsername)) {
+    return { success: false, error: 'El usuario debe tener entre 3 y 32 caracteres válidos.' };
+  }
+  if (cleanPass.length < 8) {
+    return { success: false, error: 'La contraseña debe tener al menos 8 caracteres.' };
+  }
+
+  const token = getAuthToken();
+  if (!isStaticToken(token)) {
+    const attempt = await fetchJsonApi('/api/users', {
+      method: 'POST',
+      auth: true,
+      body: data as unknown as Record<string, unknown>,
+    });
+
+    if (attempt.reachableJson && attempt.res) {
+      if (!attempt.res.ok || !attempt.data?.success) {
+        return { success: false, error: attempt.data?.error || 'No se pudo crear el usuario.' };
+      }
+      const safeUser = stripSensitiveFields(attempt.data.user);
+      const existing = getStoredUsers();
+      saveStoredUsers([...existing, safeUser]);
+      firestoreSaveUser(safeUser).catch(() => {});
+      return { success: true, user: safeUser };
+    }
+  }
+
+  const localAdmin = getAuthorizedLocalAdmin();
+  if (!localAdmin) return { success: false, error: ADMIN_REQUIRED_MSG };
+
+  const currentUsers = getStoredUsers();
+  if (currentUsers.some((u) => u.usuario.toLowerCase() === cleanUsername)) {
+    return { success: false, error: `El usuario "${cleanUsername}" ya existe en el sistema.` };
+  }
+
+  const newId = `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+  const passwordHash = await hashPassword(cleanPass, DEFAULT_SALT);
+  const creds = readStaticCreds();
+  creds[newId] = { passwordHash, salt: DEFAULT_SALT };
+  writeStaticCreds(creds);
+
+  const safeUser = stripSensitiveFields({
+    id: newId,
+    nombre: cleanNombre,
+    usuario: cleanUsername,
+    email: (data.email || `${cleanUsername}@camposol.com.pe`).trim().toLowerCase(),
+    passwordHash: '',
+    salt: '',
+    rol: data.rol,
+    area: data.area || 'PRODUCCIÓN',
+    fundo: data.fundo || 'AGRICULTOR 2',
+    cultivo: data.cultivo || (data.rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'),
+    estado: data.estado || 'ACTIVO',
+    fechaCreacion: new Date().toISOString(),
+  });
+
+  saveStoredUsers([...currentUsers, safeUser]);
+  firestoreSaveUser(safeUser).catch(() => {});
+  return { success: true, user: safeUser };
 }
 
-// Actualizar usuario existente (Solo Administrador vía API autenticada)
+// Actualizar usuario existente (Solo Administrador vía API autenticada o modo estático verificado)
 export async function updateExistingUser(
   userId: string,
   updates: Partial<Omit<AppUser, 'id' | 'passwordHash' | 'salt'>> & { nuevaContrasena?: string }
 ): Promise<{ success: boolean; user?: AppUser; error?: string }> {
-  try {
-    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+  const token = getAuthToken();
+  if (!isStaticToken(token)) {
+    const attempt = await fetchJsonApi(`/api/users/${encodeURIComponent(userId)}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
-      body: JSON.stringify(updates),
+      auth: true,
+      body: updates as unknown as Record<string, unknown>,
     });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json?.success) {
-      return { success: false, error: json?.error || 'No se pudo actualizar el usuario.' };
+
+    if (attempt.reachableJson && attempt.res) {
+      if (!attempt.res.ok || !attempt.data?.success) {
+        return { success: false, error: attempt.data?.error || 'No se pudo actualizar el usuario.' };
+      }
+
+      const safeUser = stripSensitiveFields(attempt.data.user);
+      const list = getStoredUsers();
+      const existsLocally = list.some((u) => u.id === userId);
+      const updatedList = existsLocally
+        ? list.map((u) => (u.id === userId ? safeUser : u))
+        : [...list, safeUser];
+      saveStoredUsers(updatedList);
+      firestoreSaveUser(safeUser).catch(() => {});
+
+      const currentSession = getActiveSessionUser();
+      if (currentSession && currentSession.id === userId) {
+        setActiveSessionUser(safeUser);
+      }
+
+      return { success: true, user: safeUser };
     }
-
-    const safeUser = stripSensitiveFields(json.user);
-    const updatedList = getStoredUsers().map((u) => (u.id === userId ? safeUser : u));
-    saveStoredUsers(updatedList);
-    firestoreSaveUser(safeUser).catch(() => {});
-
-    const currentSession = getActiveSessionUser();
-    if (currentSession && currentSession.id === userId) {
-      setActiveSessionUser(safeUser);
-    }
-
-    return { success: true, user: safeUser };
-  } catch {
-    return { success: false, error: 'Error de red al actualizar usuario.' };
   }
+
+  const localAdmin = getAuthorizedLocalAdmin();
+  if (!localAdmin) return { success: false, error: ADMIN_REQUIRED_MSG };
+
+  const currentUsers = getStoredUsers();
+  const target = currentUsers.find((u) => u.id === userId);
+  if (!target) {
+    return { success: false, error: 'Usuario no encontrado.' };
+  }
+
+  const cleanUsername = updates.usuario ? updates.usuario.trim().toLowerCase() : target.usuario;
+  if (!/^[a-zA-Z0-9._\-]{3,32}$/.test(cleanUsername)) {
+    return { success: false, error: 'Nombre de usuario con formato inválido.' };
+  }
+  if (currentUsers.some((u) => u.id !== userId && u.usuario.toLowerCase() === cleanUsername)) {
+    return { success: false, error: `El usuario "${cleanUsername}" ya está en uso.` };
+  }
+  if (target.id === localAdmin.id && updates.estado === 'INACTIVO') {
+    return { success: false, error: 'No puedes desactivar tu propia cuenta de administrador.' };
+  }
+
+  if (updates.nuevaContrasena && updates.nuevaContrasena.trim()) {
+    const np = updates.nuevaContrasena.trim();
+    if (np.length < 8) {
+      return { success: false, error: 'La contraseña debe tener al menos 8 caracteres.' };
+    }
+    const creds = readStaticCreds();
+    creds[userId] = { passwordHash: await hashPassword(np, DEFAULT_SALT), salt: DEFAULT_SALT };
+    writeStaticCreds(creds);
+  }
+
+  const safeUser = stripSensitiveFields({
+    ...target,
+    ...updates,
+    id: target.id,
+    usuario: cleanUsername,
+    nombre: updates.nombre !== undefined ? updates.nombre.trim() : target.nombre,
+    email: updates.email !== undefined ? updates.email.trim().toLowerCase() : target.email,
+    passwordHash: '',
+    salt: '',
+  });
+
+  saveStoredUsers(currentUsers.map((u) => (u.id === userId ? safeUser : u)));
+  firestoreSaveUser(safeUser).catch(() => {});
+
+  const currentSession = getActiveSessionUser();
+  if (currentSession && currentSession.id === userId) {
+    setActiveSessionUser(safeUser);
+  }
+
+  return { success: true, user: safeUser };
 }
 
-// Activar o Desactivar usuario (Solo Administrador vía API autenticada)
+// Activar o Desactivar usuario (Solo Administrador)
 export async function toggleUserStatus(
   userId: string
 ): Promise<{ success: boolean; newStatus?: UserStatus; error?: string }> {
@@ -489,7 +683,7 @@ export async function toggleUserStatus(
   return { success: true, newStatus: res.user.estado };
 }
 
-// Eliminar usuario del sistema (Solo Administrador vía API autenticada)
+// Eliminar usuario del sistema (Solo Administrador vía API autenticada o modo estático verificado)
 export async function deleteStoredUser(
   userId: string,
   currentAdminId?: string
@@ -498,26 +692,42 @@ export async function deleteStoredUser(
     return { success: false, error: 'No puedes eliminar tu propia cuenta de administrador en sesión.' };
   }
 
-  try {
-    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+  const token = getAuthToken();
+  if (!isStaticToken(token)) {
+    const attempt = await fetchJsonApi(`/api/users/${encodeURIComponent(userId)}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      auth: true,
     });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json?.success) {
-      return { success: false, error: json?.error || 'No fue posible eliminar el usuario.' };
-    }
 
-    const remaining = getStoredUsers().filter((u) => u.id !== userId);
-    saveStoredUsers(remaining);
-    firestoreDeleteUser(userId).catch(() => {});
-    return { success: true };
-  } catch {
-    return { success: false, error: 'Error de red al eliminar usuario.' };
+    if (attempt.reachableJson && attempt.res) {
+      if (!attempt.res.ok || !attempt.data?.success) {
+        return { success: false, error: attempt.data?.error || 'No fue posible eliminar el usuario.' };
+      }
+
+      const remaining = getStoredUsers().filter((u) => u.id !== userId);
+      saveStoredUsers(remaining);
+      firestoreDeleteUser(userId).catch(() => {});
+      return { success: true };
+    }
   }
+
+  const localAdmin = getAuthorizedLocalAdmin();
+  if (!localAdmin) return { success: false, error: ADMIN_REQUIRED_MSG };
+  if (userId === localAdmin.id) {
+    return { success: false, error: 'No puedes eliminar tu propia cuenta de administrador en sesión.' };
+  }
+
+  const creds = readStaticCreds();
+  delete creds[userId];
+  writeStaticCreds(creds);
+
+  const remaining = getStoredUsers().filter((u) => u.id !== userId);
+  saveStoredUsers(remaining);
+  firestoreDeleteUser(userId).catch(() => {});
+  return { success: true };
 }
 
-// Restablecer contraseña de usuario (Solo Administrador vía API autenticada)
+// Restablecer contraseña de usuario (Solo Administrador vía API autenticada o modo estático verificado)
 export async function resetUserPassword(
   userId: string,
   nuevaContrasena: string
@@ -527,23 +737,34 @@ export async function resetUserPassword(
     return { success: false, error: 'La nueva contraseña debe tener al menos 8 caracteres.' };
   }
 
-  try {
-    const res = await fetch(`/api/users/${encodeURIComponent(userId)}/reset-password`, {
+  const token = getAuthToken();
+  if (!isStaticToken(token)) {
+    const attempt = await fetchJsonApi(`/api/users/${encodeURIComponent(userId)}/reset-password`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
-      body: JSON.stringify({ nuevaContrasena: cleanPass }),
+      auth: true,
+      body: { nuevaContrasena: cleanPass },
     });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json?.success) {
-      return { success: false, error: json?.error || 'No se pudo restablecer la contraseña.' };
+
+    if (attempt.reachableJson && attempt.res) {
+      if (!attempt.res.ok || !attempt.data?.success) {
+        return { success: false, error: attempt.data?.error || 'No se pudo restablecer la contraseña.' };
+      }
+      return { success: true };
     }
-    return { success: true };
-  } catch {
-    return { success: false, error: 'Error de red al restablecer contraseña.' };
   }
+
+  const localAdmin = getAuthorizedLocalAdmin();
+  if (!localAdmin) return { success: false, error: ADMIN_REQUIRED_MSG };
+
+  const target = getStoredUsers().find((u) => u.id === userId);
+  if (!target) {
+    return { success: false, error: 'Usuario no encontrado.' };
+  }
+
+  const creds = readStaticCreds();
+  creds[userId] = { passwordHash: await hashPassword(cleanPass, DEFAULT_SALT), salt: DEFAULT_SALT };
+  writeStaticCreds(creds);
+  return { success: true };
 }
 
 // Solicitar recuperación segura de contraseña (sin enumeración ni inicio de sesión directo)
@@ -551,6 +772,10 @@ export async function requestPasswordRecovery(
   identifier: string,
   honeypot: string = ''
 ): Promise<{ success: boolean; error?: string; message?: string }> {
+  if (honeypot.trim().length > 0) {
+    return { success: false, error: 'Solicitud rechazada por validación de seguridad.' };
+  }
+
   const clean = identifier.trim().toLowerCase();
   if (!clean) {
     return {
@@ -559,27 +784,28 @@ export async function requestPasswordRecovery(
     };
   }
 
-  try {
-    const res = await fetch('/api/auth/recover-request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: clean, _hp: honeypot }),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json?.success) {
+  const attempt = await postJsonApi('/api/auth/recover-request', {
+    identifier: clean,
+    _hp: honeypot,
+  });
+
+  if (attempt.reachableJson && attempt.res) {
+    if (!attempt.res.ok || !attempt.data?.success) {
       return {
         success: false,
-        error: json?.error || 'No se pudo procesar la solicitud en este momento.',
+        error: attempt.data?.error || 'No se pudo procesar la solicitud en este momento.',
       };
     }
     return {
       success: true,
-      message: json.message,
-    };
-  } catch {
-    return {
-      success: false,
-      error: 'Se requiere conexión a internet para enviar una solicitud de recuperación.',
+      message: attempt.data.message,
     };
   }
+
+  // En despliegue estático sin backend API, devolver respuesta uniforme sin enumeración ni fuga de datos
+  return {
+    success: true,
+    message:
+      'Si los datos corresponden a una cuenta activa de CAMPOSOL, comuníquese con el Administrador del Sistema de Transporte para restablecer su acceso de forma segura.',
+  };
 }
