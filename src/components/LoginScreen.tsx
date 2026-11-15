@@ -212,10 +212,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
       {/* CONTENEDOR PRINCIPAL RESPONSIVO (Móvil + PC / Laptop) */}
       <div className="relative z-20 w-full flex-1 lg:flex-none max-w-6xl mx-auto lg:px-10 lg:py-8 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
-        {/* Columna Izquierda (PC / Laptop): Identidad formal sobre el paisaje */}
-        <div className="hidden lg:flex lg:col-span-7 flex-col justify-center text-white pr-4">
-          <div className="flex items-center gap-4">
-            <div className="w-18 h-18 rounded-2xl overflow-hidden bg-[#04443A] ring-1 ring-white/35 shadow-lg shrink-0 flex items-center justify-center">
+        {/* Columna Izquierda (PC / Laptop): Identidad formal limpia y de alto impacto */}
+        <div className="hidden lg:flex lg:col-span-7 flex-col justify-center text-white pr-6">
+          <div className="flex items-center gap-6">
+            <div className="w-28 h-28 xl:w-32 xl:h-32 rounded-3xl overflow-hidden bg-[#04443A] ring-2 ring-white/45 shadow-[0_18px_40px_rgba(0,0,0,0.38)] shrink-0 flex items-center justify-center">
               <img
                 src={getPublicAssetUrl('app-icon-512-v4.png')}
                 onError={(e) => {
@@ -229,26 +229,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="border-l-2 border-white/80 pl-4 py-1">
-              <div className="text-2xl font-extrabold tracking-wide text-white leading-none drop-shadow-xs">
+            <div className="border-l-2 border-white/85 pl-6 py-1.5">
+              <div className="text-4xl xl:text-[42px] font-black tracking-tight text-white leading-none drop-shadow-md">
                 CAMPOSOL
               </div>
-              <div className="text-sm font-semibold text-[#ECFDF5] mt-1 drop-shadow-xs">
+              <div className="text-lg xl:text-xl font-semibold text-[#D1FAE5] mt-2 tracking-wide drop-shadow-sm">
                 Transporte de Personal
               </div>
             </div>
           </div>
 
-          <div className="mt-7 max-w-xl">
+          <div className="mt-8 max-w-lg">
             <div
               role="heading"
               aria-level={2}
-              className="text-4xl font-extrabold text-white leading-[1.12] tracking-tight drop-shadow-sm"
+              className="text-3xl xl:text-[34px] font-bold text-white/95 leading-tight tracking-tight drop-shadow-md"
             >
-              Gestión formal y eficiente del transporte agrícola
-            </div>
-            <div className="mt-3 text-base text-white/90 leading-relaxed max-w-lg drop-shadow-xs">
-              Coordina requerimientos, asigna unidades por zona y supervisa la programación diaria de ingreso y salida en campo y planta.
+              Gestión ágil y precisa de traslados en campo.
             </div>
           </div>
         </div>
