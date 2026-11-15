@@ -378,13 +378,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   {/* Campo trampa invisible anti-bots */}
                   <input
                     type="text"
-                    name="website"
+                    name="hp_guard_field"
                     value={honeypot}
                     onChange={(e) => setHoneypot(e.target.value)}
                     tabIndex={-1}
-                    autoComplete="off"
+                    autoComplete="one-time-code"
                     aria-hidden="true"
-                    className="sr-only"
+                    className="sr-only pointer-events-none"
                   />
                   {/* Campo: Usuario ampliado */}
                   <div className="relative pt-2">

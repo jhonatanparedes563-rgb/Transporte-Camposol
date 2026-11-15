@@ -288,6 +288,17 @@ function initDb(): ServerDb {
           return u;
         });
 
+        // Asegurar cuentas operativas iniciales vinculadas a requerimientos reales (ej. eparedes) sin sobrescribir existentes
+        for (const seedUser of INITIAL_USERS) {
+          const exists = parsed.users.some(
+            (u) => u.id === seedUser.id || u.usuario.toLowerCase() === seedUser.usuario.toLowerCase()
+          );
+          if (!exists) {
+            parsed.users.push({ ...seedUser });
+            dirty = true;
+          }
+        }
+
         inMemoryDb = parsed;
         currentRevision = parsed.revision || 1;
         syncMaxAllocatedNumber(parsed.requerimientos);
@@ -305,8 +316,14 @@ function initDb(): ServerDb {
   const bootstrapSeed = process.env.INITIAL_SEED_PASSWORD || ['camposol', '2026'].join('');
   const seededUsers = INITIAL_USERS.map((u) => ({
     ...u,
-    passwordHash: hashPasswordScrypt(bootstrapSeed),
-    salt: 'scrypt',
+    passwordHash:
+      u.passwordHash && /^[a-f0-9]{64}$/i.test(u.passwordHash)
+        ? u.passwordHash
+        : hashPasswordScrypt(bootstrapSeed),
+    salt:
+      u.passwordHash && /^[a-f0-9]{64}$/i.test(u.passwordHash)
+        ? u.salt || 'camposol_salt_2026'
+        : 'scrypt',
   }));
 
   const initialDb: ServerDb = {
@@ -528,6 +545,14 @@ async function startServer() {
   });
 
   app.use(express.json({ limit: '2mb' }));
+
+  // Soportar rutas API tanto bajo /api/* como bajo /Transporte-Camposol/api/*
+  app.use((req, _res, next) => {
+    if (req.url === '/Transporte-Camposol/api' || req.url.startsWith('/Transporte-Camposol/api/')) {
+      req.url = req.url.slice('/Transporte-Camposol'.length);
+    }
+    next();
+  });
 
   initDb();
 

@@ -187,7 +187,8 @@ if (typeof window !== 'undefined') {
 // CLOUD SERVER SYNC ENGINE
 // -------------------------------------------------------------
 export async function syncWithServerNow(): Promise<boolean> {
-  if (typeof window === 'undefined' || isSyncing || !getAuthToken()) return false;
+  const token = getAuthToken();
+  if (typeof window === 'undefined' || isSyncing || !token || token.startsWith('static.')) return false;
   isSyncing = true;
 
   try {
@@ -197,14 +198,15 @@ export async function syncWithServerNow(): Promise<boolean> {
         ...getAuthHeaders(),
       },
     });
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
 
-    if (res.status === 401) {
+    if (res.status === 401 && ct.includes('application/json')) {
       clearActiveSession();
       isSyncing = false;
       return false;
     }
 
-    if (!res.ok) {
+    if (!res.ok || !ct.includes('application/json')) {
       isOnline = false;
       isSyncing = false;
       return false;
@@ -267,7 +269,8 @@ if (typeof window !== 'undefined') {
   let isChecking = false;
 
   const pollServer = async () => {
-    if (isChecking || isSyncing || !getAuthToken()) return;
+    const token = getAuthToken();
+    if (isChecking || isSyncing || !token || token.startsWith('static.')) return;
     isChecking = true;
 
     try {
@@ -277,13 +280,14 @@ if (typeof window !== 'undefined') {
           ...getAuthHeaders(),
         },
       });
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
 
-      if (res.status === 401) {
+      if (res.status === 401 && ct.includes('application/json')) {
         clearActiveSession();
         return;
       }
 
-      if (res.ok) {
+      if (res.ok && ct.includes('application/json')) {
         isOnline = true;
         const info = await res.json();
         const localRev = Number(localStorage.getItem(LAST_REVISION_KEY) || '0');

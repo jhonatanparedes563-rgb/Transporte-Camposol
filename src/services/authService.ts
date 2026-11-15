@@ -91,6 +91,20 @@ export const INITIAL_USERS: AppUser[] = [
     estado: 'ACTIVO',
     fechaCreacion: '2026-09-01T08:00:00Z',
   },
+  {
+    id: 'usr-1790015788736-kxw1',
+    nombre: 'Esther Paredes Rodríguez',
+    usuario: 'eparedes',
+    email: 'eparedes@camposol.com.pe',
+    passwordHash: 'b523dee8452452e32dd5bd63b3b158264e31f6fadb6ed88008b14eaf8a3c00d6',
+    salt: DEFAULT_SALT,
+    rol: 'usuario',
+    area: 'PRODUCCIÓN',
+    fundo: 'AGRICULTOR 1',
+    cultivo: 'ARÁNDANO',
+    estado: 'ACTIVO',
+    fechaCreacion: '2026-09-01T08:00:00Z',
+  },
 ];
 
 function stripSensitiveFields(user: AppUser): AppUser {
@@ -193,42 +207,137 @@ export function logoutSession(): void {
   }
 }
 
+const STATIC_FAIL_KEY = 'camposol_static_login_fails_v1';
+
+function isStaticToken(token: string | null): boolean {
+  return Boolean(token && token.startsWith('static.'));
+}
+
+function getApiCandidates(endpoint: string): string[] {
+  const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const candidates = [clean];
+  const baseUrl =
+    typeof import.meta !== 'undefined' && (import.meta as any).env?.BASE_URL
+      ? String((import.meta as any).env.BASE_URL)
+      : '/';
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  if (normalizedBase && normalizedBase !== '') {
+    const prefixed = `${normalizedBase}${clean}`;
+    if (!candidates.includes(prefixed)) {
+      candidates.push(prefixed);
+    }
+  }
+  return candidates;
+}
+
+async function postJsonApi(
+  endpoint: string,
+  body: Record<string, unknown>
+): Promise<{ reachableJson: boolean; res?: Response; data?: any }> {
+  for (const url of getApiCandidates(endpoint)) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('application/json')) {
+        const data = await res.json().catch(() => ({}));
+        return { reachableJson: true, res, data };
+      }
+      // Si respondió 404/405 HTML (posible proxy de subruta o hosting estático), probar siguiente ruta
+    } catch {
+      // Error de red en esta ruta
+    }
+  }
+  return { reachableJson: false };
+}
+
+function checkStaticRateLimit(username: string): string | null {
+  try {
+    const raw = sessionStorage.getItem(STATIC_FAIL_KEY);
+    if (!raw) return null;
+    const map = JSON.parse(raw) as Record<string, { count: number; resetAt: number }>;
+    const rec = map[username];
+    if (rec && Date.now() <= rec.resetAt && rec.count >= 8) {
+      const mins = Math.max(1, Math.ceil((rec.resetAt - Date.now()) / 60000));
+      return `Demasiados intentos fallidos. Por seguridad, espere ${mins} min e intente nuevamente.`;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function recordStaticLoginFail(username: string, reset: boolean = false): void {
+  try {
+    const raw = sessionStorage.getItem(STATIC_FAIL_KEY);
+    const map: Record<string, { count: number; resetAt: number }> = raw ? JSON.parse(raw) : {};
+    if (reset) {
+      delete map[username];
+    } else {
+      const cur = map[username];
+      if (!cur || Date.now() > cur.resetAt) {
+        map[username] = { count: 1, resetAt: Date.now() + 10 * 60 * 1000 };
+      } else {
+        cur.count += 1;
+      }
+    }
+    sessionStorage.setItem(STATIC_FAIL_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
+
 // Validar sesión activa en segundo plano contra el servidor
 export async function verifySessionWithServer(): Promise<AppUser | null> {
   const token = getAuthToken();
   if (!token) return null;
-  try {
-    const res = await fetch('/api/auth/session', {
-      headers: {
-        ...getAuthHeaders(),
-        'Cache-Control': 'no-cache',
-      },
-    });
-    if (res.status === 401 || res.status === 403) {
-      clearActiveSession();
-      return null;
-    }
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.user) {
-        const sanitized = stripSensitiveFields(data.user);
-        setActiveSessionUser(sanitized);
-        return sanitized;
-      }
-    }
-    return getActiveSessionUser();
-  } catch {
-    // Si está sin conexión en campo, mantener la sesión local válida hasta recuperar red
+  if (isStaticToken(token)) {
     return getActiveSessionUser();
   }
+  for (const url of getApiCandidates('/api/auth/session')) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          ...getAuthHeaders(),
+          'Cache-Control': 'no-cache',
+        },
+      });
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (!ct.includes('application/json')) continue;
+
+      if (res.status === 401 || res.status === 403) {
+        clearActiveSession();
+        return null;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.user) {
+          const sanitized = stripSensitiveFields(data.user);
+          setActiveSessionUser(sanitized);
+          return sanitized;
+        }
+      }
+      return getActiveSessionUser();
+    } catch {
+      // Si está sin conexión en campo, mantener la sesión local válida hasta recuperar red
+    }
+  }
+  return getActiveSessionUser();
 }
 
-// Inicio de sesión estricto contra servidor (con respaldo offline SHA-256 sólo si no hay red)
+// Inicio de sesión estricto contra servidor Express (y respaldo SHA-256 verificado sólo si el host es estático/sin backend o sin red)
 export async function authenticateUser(
   usuario: string,
   contrasena: string,
   honeypot: string = ''
 ): Promise<{ success: boolean; user?: AppUser; error?: string }> {
+  if (honeypot.trim().length > 0) {
+    return { success: false, error: 'Solicitud rechazada por validación de seguridad.' };
+  }
+
   const cleanUsername = usuario.trim().toLowerCase();
   const cleanPass = contrasena.trim();
 
@@ -236,19 +345,14 @@ export async function authenticateUser(
     return { success: false, error: 'Ingrese su usuario y contraseña.' };
   }
 
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        usuario: cleanUsername,
-        contrasena: cleanPass,
-        _hp: honeypot,
-      }),
-    });
+  const apiAttempt = await postJsonApi('/api/auth/login', {
+    usuario: cleanUsername,
+    contrasena: cleanPass,
+    _hp: honeypot,
+  });
 
-    const data = await res.json().catch(() => ({}));
-
+  if (apiAttempt.reachableJson && apiAttempt.res) {
+    const { res, data } = apiAttempt;
     if (res.ok && data?.success && data?.user && data?.token) {
       const safeUser = stripSensitiveFields(data.user);
       setAuthToken(data.token);
@@ -258,36 +362,43 @@ export async function authenticateUser(
 
     return {
       success: false,
-      error: data?.error || 'Usuario o contraseña incorrectos. Verifique sus datos e intente nuevamente.',
-    };
-  } catch {
-    // Fallback estrictamente cuando no hay conectividad de red con el servidor
-    if (typeof navigator !== 'undefined' && navigator.onLine) {
-      return {
-        success: false,
-        error: 'No se pudo conectar con el servicio de autenticación. Intente nuevamente.',
-      };
-    }
-
-    const offlineMatch = INITIAL_USERS.find((u) => u.usuario.toLowerCase() === cleanUsername);
-    if (offlineMatch && offlineMatch.estado === 'ACTIVO') {
-      try {
-        const computed = await hashPassword(cleanPass, offlineMatch.salt);
-        if (computed === offlineMatch.passwordHash) {
-          const safeUser = stripSensitiveFields(offlineMatch);
-          setActiveSessionUser(safeUser);
-          return { success: true, user: safeUser };
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    return {
-      success: false,
-      error: 'Sin conexión a internet. Conéctese a la red para iniciar sesión por primera vez.',
+      error: data?.error || 'Usuario o contraseña incorrectos. Verifique sus credenciales e intente nuevamente.',
     };
   }
+
+  // Solo si el servidor backend no existe en este entorno (ej. despliegue estático / offline sin API JSON)
+  const cooldownMsg = checkStaticRateLimit(cleanUsername);
+  if (cooldownMsg) {
+    return { success: false, error: cooldownMsg };
+  }
+
+  const staticMatch = INITIAL_USERS.find((u) => u.usuario.toLowerCase() === cleanUsername);
+  if (staticMatch) {
+    try {
+      const computed = await hashPassword(cleanPass, staticMatch.salt);
+      if (computed === staticMatch.passwordHash) {
+        if (staticMatch.estado !== 'ACTIVO') {
+          return {
+            success: false,
+            error: 'SU USUARIO SE ENCUENTRA INACTIVO. CONTACTE AL ADMINISTRADOR.',
+          };
+        }
+        recordStaticLoginFail(cleanUsername, true);
+        const safeUser = stripSensitiveFields(staticMatch);
+        setAuthToken(`static.${safeUser.id}.${Date.now()}`);
+        setActiveSessionUser(safeUser);
+        return { success: true, user: safeUser };
+      }
+    } catch {
+      // ignore crypto error
+    }
+  }
+
+  recordStaticLoginFail(cleanUsername, false);
+  return {
+    success: false,
+    error: 'Usuario o contraseña incorrectos. Verifique sus datos e intente nuevamente.',
+  };
 }
 
 // Crear nuevo usuario (Solo Administrador vía API autenticada)

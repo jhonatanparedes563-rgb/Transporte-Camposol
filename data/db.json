@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "revision": 16,
-  "lastUpdated": "2026-11-15T00:16:45.027Z",
+  "revision": 20,
+  "lastUpdated": "2026-11-15T01:09:17.008Z",
   "requerimientos": [
     {
       "userRole": "usuario",
@@ -536,7 +536,7 @@
       "cultivo": "TODOS LOS CULTIVOS",
       "estado": "ACTIVO",
       "fechaCreacion": "2026-09-01T08:00:00Z",
-      "ultimoAcceso": "2026-11-15T00:16:21.700Z"
+      "ultimoAcceso": "2026-11-15T01:09:16.913Z"
     },
     {
       "id": "usr-rec-01",
@@ -594,6 +594,21 @@
       "cultivo": "ESPÁRRAGO",
       "estado": "ACTIVO",
       "fechaCreacion": "2026-09-01T08:00:00Z"
+    },
+    {
+      "id": "usr-1790015788736-kxw1",
+      "nombre": "Esther Paredes Rodríguez",
+      "usuario": "eparedes",
+      "email": "eparedes@camposol.com.pe",
+      "passwordHash": "scrypt$2919a6437e481868f9e8321923fc2568$fb4f006d74611b7b16c4af3df09f6a89fd5bc0a30e0c3c0a623eb7391d1a674dcecf9564c7f72cb18016823f31fdc2895871ebbc5e71194fffa3dc534936f316",
+      "salt": "scrypt",
+      "rol": "usuario",
+      "area": "PRODUCCIÓN",
+      "fundo": "AGRICULTOR 1",
+      "cultivo": "ARÁNDANO",
+      "estado": "ACTIVO",
+      "fechaCreacion": "2026-09-01T08:00:00Z",
+      "ultimoAcceso": "2026-11-15T01:09:17.008Z"
     }
   ],
   "areas": [
