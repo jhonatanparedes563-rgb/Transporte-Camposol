@@ -10,6 +10,9 @@ import {
   Mail,
   Send,
   CheckCircle2,
+  Calendar,
+  Route,
+  Users,
 } from 'lucide-react';
 import {
   authenticateUser,
@@ -212,10 +215,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
       {/* CONTENEDOR PRINCIPAL RESPONSIVO (Móvil + PC / Laptop) */}
       <div className="relative z-20 w-full flex-1 lg:flex-none max-w-6xl mx-auto lg:px-10 lg:py-8 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
-        {/* Columna Izquierda (PC / Laptop): Identidad formal limpia y de alto impacto */}
-        <div className="hidden lg:flex lg:col-span-7 flex-col justify-center text-white pr-6">
-          <div className="flex items-center gap-6">
-            <div className="w-28 h-28 xl:w-32 xl:h-32 rounded-3xl overflow-hidden bg-[#04443A] ring-2 ring-white/45 shadow-[0_18px_40px_rgba(0,0,0,0.38)] shrink-0 flex items-center justify-center">
+        {/* Columna Izquierda (PC / Laptop): Identidad visual de alto impacto */}
+        <div className="hidden lg:flex lg:col-span-7 flex-col items-center justify-center text-white pr-4 select-none">
+          {/* Lockup superior: Logo grande + CAMPOSOL | Transporte de Personal */}
+          <div className="flex items-center gap-5">
+            <div className="w-22 h-22 xl:w-26 xl:h-26 rounded-[22px] overflow-hidden bg-[#04443A] ring-2 ring-[#A3E635]/75 shadow-[0_14px_34px_rgba(0,0,0,0.48)] shrink-0 flex items-center justify-center">
               <img
                 src={getPublicAssetUrl('app-icon-512-v4.png')}
                 onError={(e) => {
@@ -229,23 +233,114 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="border-l-2 border-white/85 pl-6 py-1.5">
-              <div className="text-4xl xl:text-[42px] font-black tracking-tight text-white leading-none drop-shadow-md">
+            <div className="border-l-2 border-white/85 pl-5 py-1">
+              <div className="text-3xl xl:text-[38px] font-black tracking-tight text-white leading-none drop-shadow-md">
                 CAMPOSOL
               </div>
-              <div className="text-lg xl:text-xl font-semibold text-[#D1FAE5] mt-2 tracking-wide drop-shadow-sm">
+              <div className="text-base xl:text-[19px] font-semibold text-white/95 mt-1.5 tracking-wide drop-shadow-sm">
                 Transporte de Personal
               </div>
             </div>
           </div>
 
-          <div className="mt-8 max-w-lg">
-            <div
-              role="heading"
-              aria-level={2}
-              className="text-3xl xl:text-[34px] font-bold text-white/95 leading-tight tracking-tight drop-shadow-md"
+          {/* Bloque Hero Central: Titular + Bus Vector + Banner Lima */}
+          <div className="mt-7 flex flex-col items-center text-center">
+            <div className="flex items-end justify-center gap-3 xl:gap-4">
+              <div
+                role="heading"
+                aria-level={2}
+                className="text-3xl xl:text-[40px] font-black italic text-white leading-[1.06] tracking-tight text-right drop-shadow-[0_3px_12px_rgba(0,0,0,0.5)]"
+              >
+                <div>Gestiona tu</div>
+                <div>requerimiento de</div>
+              </div>
+
+              {/* Bus corporativo con arco dinámico verde lima */}
+              <svg
+                viewBox="0 0 180 96"
+                className="w-30 xl:w-38 h-auto shrink-0 drop-shadow-[0_6px_14px_rgba(0,0,0,0.4)] -mb-1"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 46 C 32 8, 96 4, 152 24 C 102 14, 42 20, 20 52 Z"
+                  fill="#9CF000"
+                />
+                <circle cx="14" cy="24" r="2.2" fill="#9CF000" />
+                <path
+                  d="M36 42 C 36 33, 44 28, 58 28 L 148 28 C 160 28, 166 34, 167 45 L 169 68 C 169 74, 164 78, 158 78 L 149 78 A 10 10 0 0 1 129 78 L 70 78 A 10 10 0 0 1 50 78 L 41 78 C 36 78, 34 74, 34 68 Z"
+                  fill="#FFFFFF"
+                />
+                <path
+                  d="M44 37 L 136 36 C 143 36, 146 40, 146 47 L 146 57 L 42 57 L 42 41 C 42 38, 43 37, 44 37 Z"
+                  fill="#0B2E26"
+                />
+                <path
+                  d="M150 36 L 161 36 C 163 39, 164 44, 164 55 L 150 55 Z"
+                  fill="#0B2E26"
+                />
+                <rect x="72" y="36" width="2.5" height="21" fill="#FFFFFF" opacity="0.7" />
+                <rect x="108" y="36" width="2.5" height="21" fill="#FFFFFF" opacity="0.7" />
+                <circle cx="60" cy="78" r="8" fill="#0B2E26" stroke="#FFFFFF" strokeWidth="2.5" />
+                <circle cx="60" cy="78" r="3" fill="#CBD5E1" />
+                <circle cx="139" cy="78" r="8" fill="#0B2E26" stroke="#FFFFFF" strokeWidth="2.5" />
+                <circle cx="139" cy="78" r="3" fill="#CBD5E1" />
+              </svg>
+            </div>
+
+            {/* Banner Verde Lima Destacado */}
+            <div className="mt-2.5 px-7 xl:px-9 py-2 xl:py-2.5 rounded-2xl bg-[linear-gradient(180deg,#C8FF38_0%,#8CE600_100%)] border border-[#E5FF94]/90 shadow-[0_12px_28px_rgba(0,0,0,0.38)] -skew-x-6">
+              <div className="text-2xl xl:text-[34px] font-black italic tracking-tight text-[#071D0B] leading-none whitespace-nowrap">
+                Transporte de Personal
+              </div>
+            </div>
+
+            {/* Arco sutil inferior */}
+            <svg
+              viewBox="0 0 260 16"
+              className="w-52 xl:w-64 h-3.5 mt-2.5 drop-shadow-xs"
+              aria-hidden="true"
             >
-              Gestión ágil y precisa de traslados en campo.
+              <path
+                d="M10 14 Q 130 0 250 14 Q 130 6 10 14 Z"
+                fill="#A3E635"
+              />
+            </svg>
+          </div>
+
+          {/* Fila inferior de 3 pasos simples */}
+          <div className="mt-7 flex items-center justify-center gap-4 xl:gap-6">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-full bg-[#11421E]/90 border-2 border-[#A3E635] shadow-[0_0_14px_rgba(163,230,53,0.42)] flex items-center justify-center shrink-0">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-xs xl:text-[13.5px] font-bold text-white leading-tight drop-shadow-sm">
+                Solicita el servicio
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-white/35 shrink-0" />
+
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-full bg-[#11421E]/90 border-2 border-[#A3E635] shadow-[0_0_14px_rgba(163,230,53,0.42)] flex items-center justify-center shrink-0">
+                <Route className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-xs xl:text-[13.5px] font-bold text-white leading-tight drop-shadow-sm">
+                Define recorridos
+                <br />y horarios
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-white/35 shrink-0" />
+
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-full bg-[#11421E]/90 border-2 border-[#A3E635] shadow-[0_0_14px_rgba(163,230,53,0.42)] flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-xs xl:text-[13.5px] font-bold text-white leading-tight drop-shadow-sm">
+                Confirma tu
+                <br />
+                programación
+              </div>
             </div>
           </div>
         </div>
