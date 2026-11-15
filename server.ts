@@ -23,7 +23,7 @@ interface AuthenticatedRequest extends Request {
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
 const SECRET_FILE = path.join(DATA_DIR, '.session-secret');
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días operativos con renovación deslizante
 const VALID_ESTADOS: EstadoRequerimiento[] = [
   'PENDIENTE',
   'EN REVISIÓN',
@@ -257,7 +257,7 @@ setInterval(() => {
       sseClients.delete(client);
     }
   }
-}, 25_000).unref();
+}, 20_000).unref();
 
 // -------------------------------------------------------------
 // ANTI-BOT RATE LIMITERS & DEDUP GUARDS
@@ -372,10 +372,17 @@ async function startServer() {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
 
     const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
-    const isAllowedOrigin =
+    const rawHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
+    const isSameHostOrigin = Boolean(
       origin &&
-      (/^https:\/\/[a-z0-9\-]+\.github\.io$/i.test(origin) ||
-        /^https:\/\/[a-z0-9\-]+\.run\.app$/i.test(origin) ||
+        rawHost &&
+        (origin.toLowerCase() === `https://${rawHost}` || origin.toLowerCase() === `http://${rawHost}`)
+    );
+    const isAllowedOrigin =
+      Boolean(origin) &&
+      (isSameHostOrigin ||
+        /^https:\/\/[a-z0-9\-]+\.github\.io$/i.test(origin) ||
+        /^https:\/\/[a-z0-9\-]+(\.[a-z0-9\-]+)*\.run\.app$/i.test(origin) ||
         /^https:\/\/[a-z0-9\-]+\.web\.app$/i.test(origin) ||
         /^https:\/\/[a-z0-9\-]+\.firebaseapp\.com$/i.test(origin) ||
         /^http:\/\/localhost(:\d+)?$/i.test(origin) ||
@@ -471,7 +478,8 @@ async function startServer() {
     dbStore.saveUsers(meta.users, false);
 
     const token = signSessionToken(user);
-    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const fwdProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
+    const isHttps = req.secure || fwdProto.includes('https');
     res.cookie('camposol_token', token, {
       httpOnly: true,
       sameSite: isHttps ? 'none' : 'lax',
@@ -494,6 +502,15 @@ async function startServer() {
 
   app.get('/api/auth/session', requireAuth, (req: AuthenticatedRequest, res) => {
     const refreshedToken = signSessionToken(req.authUser!);
+    const fwdProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
+    const isHttps = req.secure || fwdProto.includes('https');
+    res.cookie('camposol_token', refreshedToken, {
+      httpOnly: true,
+      sameSite: isHttps ? 'none' : 'lax',
+      secure: isHttps,
+      maxAge: SESSION_TTL_MS,
+      path: '/',
+    });
     res.json({
       success: true,
       user: req.authUser,

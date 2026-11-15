@@ -347,10 +347,33 @@ export function setActiveSessionUser(user: AppUser): void {
   }
 }
 
-export function clearActiveSession(): void {
+const SESSION_NOTICE_KEY = 'camposol_session_notice_v1';
+
+export function consumeSessionNotice(): string | null {
+  try {
+    const msg = sessionStorage.getItem(SESSION_NOTICE_KEY);
+    if (msg) {
+      sessionStorage.removeItem(SESSION_NOTICE_KEY);
+      return msg;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearActiveSession(invalidationReason?: string): void {
   try {
     localStorage.removeItem(SESSION_STORAGE_KEY);
     localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    if (invalidationReason) {
+      sessionStorage.setItem(SESSION_NOTICE_KEY, invalidationReason);
+    }
+    if (invalidationReason && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('camposol_session_invalidated', { detail: { reason: invalidationReason } })
+      );
+    }
   } catch {
     // ignore
   }
@@ -369,12 +392,18 @@ export function logoutSession(): void {
 }
 
 const STATIC_FAIL_KEY = 'camposol_static_login_fails_v1';
-const REMOTE_API_ORIGIN =
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL
+const CONFIGURED_API_ORIGIN =
+  typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL
     ? String((import.meta as any).env.VITE_API_BASE_URL).replace(/\/+$/, '')
-    : '') || 'https://ais-pre-cghjpgayljir3wow2e665v-731508762433.us-east1.run.app';
+    : '';
+const FALLBACK_REMOTE_API_ORIGIN =
+  CONFIGURED_API_ORIGIN || 'https://ais-pre-cghjpgayljir3wow2e665v-731508762433.us-east1.run.app';
 
 let cachedWorkingApiPrefix: string | null = null;
+
+export function resetWorkingApiPrefix(): void {
+  cachedWorkingApiPrefix = null;
+}
 
 export function markWorkingApiUrl(fullUrl: string, endpoint: string): void {
   const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -383,33 +412,42 @@ export function markWorkingApiUrl(fullUrl: string, endpoint: string): void {
   }
 }
 
-function isStaticToken(token: string | null): boolean {
+export function isStaticToken(token: string | null): boolean {
   return Boolean(token && token.startsWith('static.'));
+}
+
+export function isCookieCheckResponse(res: Response, ct: string): boolean {
+  if (res.url && res.url.includes('__cookie_check')) return true;
+  if (res.redirected && ct.includes('text/html') && res.url && res.url.includes('return_url=')) return true;
+  return false;
 }
 
 export function getApiCandidates(endpoint: string): string[] {
   const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const candidates: string[] = [];
 
-  if (cachedWorkingApiPrefix !== null) {
-    candidates.push(`${cachedWorkingApiPrefix}${clean}`);
-  }
-
-  const isStaticGhPages =
-    typeof window !== 'undefined' &&
-    window.location.hostname.toLowerCase().endsWith('.github.io') &&
-    Boolean(REMOTE_API_ORIGIN);
-
-  if (isStaticGhPages) {
-    const remoteUrl = `${REMOTE_API_ORIGIN}${clean}`;
-    if (!candidates.includes(remoteUrl)) {
-      candidates.push(remoteUrl);
+  const pushUnique = (u: string) => {
+    if (u && !candidates.includes(u)) {
+      candidates.push(u);
     }
+  };
+
+  if (cachedWorkingApiPrefix !== null) {
+    pushUnique(`${cachedWorkingApiPrefix}${clean}`);
   }
 
-  if (!candidates.includes(clean)) {
-    candidates.push(clean);
+  const host = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+  const isStaticHost =
+    host.endsWith('.github.io') ||
+    host.endsWith('.web.app') ||
+    host.endsWith('.firebaseapp.com') ||
+    host.endsWith('.pages.dev');
+
+  if (isStaticHost && FALLBACK_REMOTE_API_ORIGIN) {
+    pushUnique(`${FALLBACK_REMOTE_API_ORIGIN}${clean}`);
   }
+
+  pushUnique(clean);
 
   const baseUrl =
     typeof import.meta !== 'undefined' && (import.meta as any).env?.BASE_URL
@@ -417,17 +455,15 @@ export function getApiCandidates(endpoint: string): string[] {
       : '/';
   const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   if (normalizedBase && normalizedBase !== '') {
-    const prefixed = `${normalizedBase}${clean}`;
-    if (!candidates.includes(prefixed)) {
-      candidates.push(prefixed);
-    }
+    pushUnique(`${normalizedBase}${clean}`);
   }
 
-  if (typeof window !== 'undefined' && REMOTE_API_ORIGIN && window.location.origin !== REMOTE_API_ORIGIN) {
-    const remoteUrl = `${REMOTE_API_ORIGIN}${clean}`;
-    if (!candidates.includes(remoteUrl)) {
-      candidates.push(remoteUrl);
-    }
+  if (
+    typeof window !== 'undefined' &&
+    CONFIGURED_API_ORIGIN &&
+    window.location.origin !== CONFIGURED_API_ORIGIN
+  ) {
+    pushUnique(`${CONFIGURED_API_ORIGIN}${clean}`);
   }
 
   return candidates;
@@ -440,7 +476,7 @@ async function fetchJsonApi(
     body?: Record<string, unknown>;
     auth?: boolean;
   } = {}
-): Promise<{ reachableJson: boolean; res?: Response; data?: any }> {
+): Promise<{ reachableJson: boolean; cookieCheckRequired?: boolean; res?: Response; data?: any }> {
   const method = options.method || 'GET';
   const headers: Record<string, string> = {};
   if (options.body !== undefined) {
@@ -449,6 +485,8 @@ async function fetchJsonApi(
   if (options.auth) {
     Object.assign(headers, getAuthHeaders());
   }
+
+  let cookieCheckRequired = false;
 
   for (const url of getApiCandidates(endpoint)) {
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -463,6 +501,9 @@ async function fetchJsonApi(
       });
       if (timer) clearTimeout(timer);
       const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (isCookieCheckResponse(res, ct)) {
+        cookieCheckRequired = true;
+      }
       if (ct.includes('application/json')) {
         markWorkingApiUrl(url, endpoint);
         const data = await res.json().catch(() => ({}));
@@ -479,13 +520,13 @@ async function fetchJsonApi(
       // Error de red, CORS, timeout o ruta no disponible en este origen
     }
   }
-  return { reachableJson: false };
+  return { reachableJson: false, cookieCheckRequired };
 }
 
 async function postJsonApi(
   endpoint: string,
   body: Record<string, unknown>
-): Promise<{ reachableJson: boolean; res?: Response; data?: any }> {
+): Promise<{ reachableJson: boolean; cookieCheckRequired?: boolean; res?: Response; data?: any }> {
   return fetchJsonApi(endpoint, { method: 'POST', body });
 }
 
@@ -525,35 +566,67 @@ function recordStaticLoginFail(username: string, reset: boolean = false): void {
   }
 }
 
+export async function recoverServerSessionIfPossible(
+  options: { clearIfExpired?: boolean } = {}
+): Promise<{
+  hasValidServerToken: boolean;
+  expiredOnExpress: boolean;
+  cookieCheckRequired: boolean;
+}> {
+  const { clearIfExpired = true } = options;
+  const token = getAuthToken();
+  if (token && !isStaticToken(token)) {
+    return { hasValidServerToken: true, expiredOnExpress: false, cookieCheckRequired: false };
+  }
+
+  const sessionAttempt = await fetchJsonApi('/api/auth/session', { method: 'GET' });
+  if (sessionAttempt.cookieCheckRequired) {
+    return { hasValidServerToken: false, expiredOnExpress: false, cookieCheckRequired: true };
+  }
+
+  if (sessionAttempt.reachableJson && sessionAttempt.res?.ok && sessionAttempt.data?.user) {
+    if (typeof sessionAttempt.data.token === 'string' && sessionAttempt.data.token) {
+      setAuthToken(sessionAttempt.data.token);
+    }
+    const sanitized = stripSensitiveFields(sessionAttempt.data.user);
+    setActiveSessionUser(sanitized);
+    return { hasValidServerToken: true, expiredOnExpress: false, cookieCheckRequired: false };
+  }
+
+  if (sessionAttempt.reachableJson && (sessionAttempt.res?.status === 401 || sessionAttempt.res?.status === 403)) {
+    const sameOriginHealth = await fetchJsonApi('/api/health', { method: 'GET' });
+    const isSameOrigin =
+      sameOriginHealth.reachableJson &&
+      sameOriginHealth.res?.ok &&
+      typeof window !== 'undefined' &&
+      (!CONFIGURED_API_ORIGIN || !sameOriginHealth.res.url.startsWith(CONFIGURED_API_ORIGIN));
+
+    if (isSameOrigin) {
+      if (clearIfExpired) {
+        clearActiveSession(
+          'Su sesión anterior estaba en modo local sin conexión al servidor web. Inicie sesión nuevamente para activar la sincronización en tiempo real.'
+        );
+      }
+      return { hasValidServerToken: false, expiredOnExpress: true, cookieCheckRequired: false };
+    }
+  }
+
+  return { hasValidServerToken: false, expiredOnExpress: false, cookieCheckRequired: false };
+}
+
 // Validar sesión activa en segundo plano contra el servidor
 export async function verifySessionWithServer(): Promise<AppUser | null> {
   const token = getAuthToken();
   if (!token) return null;
-  if (isStaticToken(token)) {
-    // Intentar recuperar/actualizar sesión real desde cookie HTTP-only si el servidor ya está activo
-    const sessionAttempt = await fetchJsonApi('/api/auth/session', { method: 'GET' });
-    if (sessionAttempt.reachableJson && sessionAttempt.res?.ok && sessionAttempt.data?.user) {
-      if (typeof sessionAttempt.data.token === 'string' && sessionAttempt.data.token) {
-        setAuthToken(sessionAttempt.data.token);
-      }
-      const sanitized = stripSensitiveFields(sessionAttempt.data.user);
-      setActiveSessionUser(sanitized);
-      return sanitized;
-    }
 
-    // Si existe servidor API activo en este origen (mismo dominio) y rechazó sesión (401), exigir login real
-    const sameOriginHealth = await fetchJsonApi('/api/health', { method: 'GET' });
-    if (sameOriginHealth.reachableJson && sameOriginHealth.res?.ok) {
-      const isSameOrigin =
-        typeof window !== 'undefined' &&
-        (!REMOTE_API_ORIGIN || !sameOriginHealth.res.url.startsWith(REMOTE_API_ORIGIN));
-      if (isSameOrigin && sessionAttempt.reachableJson && sessionAttempt.res?.status === 401) {
-        clearActiveSession();
-        return null;
-      }
+  if (isStaticToken(token)) {
+    const recovery = await recoverServerSessionIfPossible();
+    if (recovery.expiredOnExpress) {
+      return null;
     }
     return getActiveSessionUser();
   }
+
   for (const url of getApiCandidates('/api/auth/session')) {
     try {
       const res = await fetch(url, {
@@ -564,11 +637,18 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
         },
       });
       const ct = (res.headers.get('content-type') || '').toLowerCase();
-      if (!ct.includes('application/json')) continue;
+      if (!ct.includes('application/json')) {
+        if (cachedWorkingApiPrefix !== null && url.startsWith(cachedWorkingApiPrefix)) {
+          cachedWorkingApiPrefix = null;
+        }
+        continue;
+      }
       markWorkingApiUrl(url, '/api/auth/session');
 
       if (res.status === 401 || res.status === 403) {
-        clearActiveSession();
+        clearActiveSession(
+          'Su sesión en el servidor web expiró o fue cerrada. Inicie sesión nuevamente para continuar enviando datos en línea.'
+        );
         return null;
       }
       if (res.ok) {
@@ -584,6 +664,9 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
       }
       return getActiveSessionUser();
     } catch {
+      if (cachedWorkingApiPrefix !== null && url.startsWith(cachedWorkingApiPrefix)) {
+        cachedWorkingApiPrefix = null;
+      }
       // Si está sin conexión en campo, mantener la sesión local válida hasta recuperar red
     }
   }
@@ -607,11 +690,27 @@ export async function authenticateUser(
     return { success: false, error: 'Ingrese su usuario y contraseña.' };
   }
 
-  const apiAttempt = await postJsonApi('/api/auth/login', {
+  let apiAttempt = await postJsonApi('/api/auth/login', {
     usuario: cleanUsername,
     contrasena: cleanPass,
     _hp: honeypot,
   });
+
+  if (!apiAttempt.reachableJson && !apiAttempt.cookieCheckRequired && typeof navigator !== 'undefined' && navigator.onLine) {
+    await new Promise((r) => setTimeout(r, 600));
+    apiAttempt = await postJsonApi('/api/auth/login', {
+      usuario: cleanUsername,
+      contrasena: cleanPass,
+      _hp: honeypot,
+    });
+  }
+
+  if (apiAttempt.cookieCheckRequired) {
+    return {
+      success: false,
+      error: 'La autorización de cookies del navegador requiere actualizar la página. Recargue la pestaña e intente nuevamente.',
+    };
+  }
 
   if (apiAttempt.reachableJson && apiAttempt.res) {
     const { res, data } = apiAttempt;
@@ -625,6 +724,15 @@ export async function authenticateUser(
     return {
       success: false,
       error: data?.error || 'Usuario o contraseña incorrectos. Verifique sus credenciales e intente nuevamente.',
+    };
+  }
+
+  const host = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+  const isHostedBackendOrigin = host.endsWith('.run.app') || host === 'localhost' || host === '127.0.0.1';
+  if (isHostedBackendOrigin && typeof navigator !== 'undefined' && navigator.onLine) {
+    return {
+      success: false,
+      error: 'No se pudo conectar con el servidor web para iniciar sesión en línea. Verifique su conexión o recargue la página e intente nuevamente.',
     };
   }
 

@@ -54,6 +54,12 @@ export default function App() {
       loadData();
     });
 
+    const handleSessionInvalidated = () => {
+      setCurrentUser(null);
+      setSelectedRequirement(null);
+    };
+    window.addEventListener('camposol_session_invalidated', handleSessionInvalidated);
+
     if (getCurrentSession()) {
       verifySessionWithServer().then((verifiedUser) => {
         if (!verifiedUser) {
@@ -67,6 +73,7 @@ export default function App() {
 
     return () => {
       unsubscribe();
+      window.removeEventListener('camposol_session_invalidated', handleSessionInvalidated);
     };
   }, []);
 

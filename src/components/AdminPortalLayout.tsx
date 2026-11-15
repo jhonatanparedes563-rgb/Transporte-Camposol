@@ -57,6 +57,7 @@ import {
   deleteBatchRequerimientos,
   exportToCSV,
   syncWithServerNow,
+  syncWithServerDetailed,
   getSyncInfo,
   ensureDateRangeLoaded,
 } from '../services/storageService';
@@ -302,11 +303,15 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
   const handleManualSync = async () => {
     setIsManualSyncing(true);
-    const success = await syncWithServerNow(true);
+    const result = await syncWithServerDetailed(true);
     onRefreshData();
     setIsManualSyncing(false);
-    if (success) {
+    if (result.ok) {
       showToast('¡Datos sincronizados en línea con el servidor web!');
+    } else if (result.reason === 'cookie_check') {
+      showToast('Autorización del navegador vencida. Recargue la pestaña (F5) y reintente.');
+    } else if (result.reason === 'session_expired' || result.reason === 'no_session') {
+      showToast('Su sesión en el servidor web expiró. Inicie sesión nuevamente para sincronizar.');
     } else {
       showToast('No se pudo contactar al servidor en este momento.');
     }

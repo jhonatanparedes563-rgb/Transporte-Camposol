@@ -44,6 +44,10 @@ import {
   clearActiveSession,
   getApiCandidates,
   markWorkingApiUrl,
+  isStaticToken,
+  isCookieCheckResponse,
+  resetWorkingApiPrefix,
+  recoverServerSessionIfPossible,
 } from './authService';
 import {
   idbLoadSnapshot,
@@ -499,9 +503,11 @@ async function apiFetch(
         markWorkingApiUrl(url, endpoint);
         return res;
       }
+      resetWorkingApiPrefix();
       lastRes = res;
     } catch (err) {
       if (timer) clearTimeout(timer);
+      resetWorkingApiPrefix();
       lastErr = err;
     }
   }
@@ -657,7 +663,7 @@ function ensureRealtimeSseConnected(): void {
 
 async function syncDeltaSince(sinceRev: number): Promise<boolean> {
   const token = getAuthToken();
-  if (!token || token.startsWith('static.')) return false;
+  if (!token || isStaticToken(token)) return false;
 
   try {
     const res = await apiFetch(
@@ -671,6 +677,13 @@ async function syncDeltaSince(sinceRev: number): Promise<boolean> {
       6000
     );
     const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if ((res.status === 401 || res.status === 403) && ct.includes('application/json')) {
+      clearActiveSession(
+        'Su sesión en el servidor web expiró o fue cerrada. Inicie sesión nuevamente para continuar sincronizando.'
+      );
+      closeRealtimeSse();
+      return false;
+    }
     if (!res.ok || !ct.includes('application/json')) return false;
 
     const delta = await res.json();
@@ -681,8 +694,9 @@ async function syncDeltaSince(sinceRev: number): Promise<boolean> {
     for (const ev of delta.events) {
       applyDeltaEvent(ev);
     }
-    if (delta.currentRevision) {
-      localStorage.setItem(LAST_REVISION_KEY, String(delta.currentRevision));
+    const nextRev = delta.revision || delta.currentRevision;
+    if (nextRev) {
+      localStorage.setItem(LAST_REVISION_KEY, String(nextRev));
     }
     lastSyncDate = new Date();
     isOnline = true;
@@ -692,7 +706,9 @@ async function syncDeltaSince(sinceRev: number): Promise<boolean> {
   }
 }
 
-let inFlightSyncPromise: Promise<boolean> | null = null;
+export type SyncOutcomeReason = 'ok' | 'no_session' | 'session_expired' | 'cookie_check' | 'network';
+
+let inFlightSyncPromise: Promise<{ ok: boolean; reason: SyncOutcomeReason }> | null = null;
 
 // -------------------------------------------------------------
 // CLOUD SERVER & FIRESTORE SYNC ENGINE
@@ -718,21 +734,16 @@ export function getCloudSyncStatus() {
     lastSync: lastSyncDate,
     firebaseConnected: fb.connected,
     firebaseEmail: fb.email,
-    hasServerSession: Boolean(token && !token.startsWith('static.')),
+    hasServerSession: Boolean(token && !isStaticToken(token)),
     pendingOutboxCount: getSyncQueue().length,
   };
 }
 
-export async function syncWithServerNow(force: boolean = false): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
-  const token = getAuthToken();
-  const fbConnected = isFirestoreAuthenticated();
-  const hasServerToken = Boolean(token && !token.startsWith('static.'));
-
-  if (!hasServerToken && !fbConnected) {
-    closeRealtimeSse();
-    return false;
-  }
+export async function syncWithServerDetailed(force: boolean = false): Promise<{
+  ok: boolean;
+  reason: SyncOutcomeReason;
+}> {
+  if (typeof window === 'undefined') return { ok: false, reason: 'network' };
 
   if (inFlightSyncPromise) {
     if (!force) return inFlightSyncPromise;
@@ -744,11 +755,40 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
   }
   isSyncing = true;
 
-  const runSync = async (): Promise<boolean> => {
+  const runSync = async (): Promise<{ ok: boolean; reason: SyncOutcomeReason }> => {
+    let token = getAuthToken();
+    const fbConnected = isFirestoreAuthenticated();
+    let hasServerToken = Boolean(token && !isStaticToken(token));
+
+    if (!hasServerToken && !fbConnected) {
+      const recovery = await recoverServerSessionIfPossible({ clearIfExpired: true });
+      if (recovery.hasValidServerToken) {
+        token = getAuthToken();
+        hasServerToken = Boolean(token && !isStaticToken(token));
+      } else if (recovery.cookieCheckRequired) {
+        closeRealtimeSse();
+        return { ok: false, reason: 'cookie_check' };
+      } else if (recovery.expiredOnExpress) {
+        closeRealtimeSse();
+        return { ok: false, reason: 'session_expired' };
+      } else {
+        closeRealtimeSse();
+        return { ok: false, reason: 'no_session' };
+      }
+    }
+
     let expressOk = false;
     let firestoreOk = false;
+    let failReason: SyncOutcomeReason = 'network';
     try {
-      await processPendingSyncQueue();
+      const queueStatus = await processPendingSyncQueueInternal();
+      if (queueStatus === 'session_expired') {
+        closeRealtimeSse();
+        return { ok: false, reason: 'session_expired' };
+      }
+      if (queueStatus === 'cookie_check') {
+        failReason = 'cookie_check';
+      }
 
       if (hasServerToken) {
         try {
@@ -760,9 +800,14 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
           });
           const ct = (res.headers.get('content-type') || '').toLowerCase();
 
-          if (res.status === 401 && ct.includes('application/json')) {
-            clearActiveSession();
+          if (isCookieCheckResponse(res, ct)) {
+            failReason = 'cookie_check';
+          } else if ((res.status === 401 || res.status === 403) && ct.includes('application/json')) {
+            clearActiveSession(
+              'Su sesión en el servidor web expiró o fue cerrada. Inicie sesión nuevamente para continuar sincronizando.'
+            );
             closeRealtimeSse();
+            failReason = 'session_expired';
           } else if (res.ok && ct.includes('application/json')) {
             const data = await res.json();
             expressOk = true;
@@ -814,7 +859,7 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
         }
       }
 
-      if (isFirestoreAuthenticated()) {
+      if (isFirestoreAuthenticated() && failReason !== 'session_expired') {
         firestoreOk = await firestorePullAllNow();
       }
 
@@ -823,11 +868,12 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
       if (anySuccess) {
         lastSyncDate = new Date();
         notifyListeners();
+        return { ok: true, reason: 'ok' };
       }
-      return anySuccess;
+      return { ok: false, reason: failReason };
     } catch {
       isOnline = false;
-      return false;
+      return { ok: false, reason: failReason };
     } finally {
       isSyncing = false;
       inFlightSyncPromise = null;
@@ -836,6 +882,11 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
 
   inFlightSyncPromise = runSync();
   return inFlightSyncPromise;
+}
+
+export async function syncWithServerNow(force: boolean = false): Promise<boolean> {
+  const res = await syncWithServerDetailed(force);
+  return res.ok;
 }
 
 const loadedRangesCache = new Map<string, number>();
@@ -944,9 +995,25 @@ if (typeof window !== 'undefined') {
       isChecking ||
       isSyncing ||
       !token ||
-      token.startsWith('static.') ||
       (typeof document !== 'undefined' && document.visibilityState === 'hidden')
     ) {
+      return;
+    }
+
+    if (isStaticToken(token)) {
+      pollTick++;
+      if (forceCheck || pollTick % 12 === 1) {
+        isChecking = true;
+        try {
+          const rec = await recoverServerSessionIfPossible({ clearIfExpired: true });
+          if (rec.hasValidServerToken) {
+            await processPendingSyncQueue();
+            await syncWithServerNow(true);
+          }
+        } finally {
+          isChecking = false;
+        }
+      }
       return;
     }
 
@@ -971,8 +1038,10 @@ if (typeof window !== 'undefined') {
       );
       const ct = (res.headers.get('content-type') || '').toLowerCase();
 
-      if (res.status === 401 && ct.includes('application/json')) {
-        clearActiveSession();
+      if ((res.status === 401 || res.status === 403) && ct.includes('application/json')) {
+        clearActiveSession(
+          'Su sesión en el servidor web expiró o fue cerrada. Inicie sesión nuevamente para continuar sincronizando.'
+        );
         closeRealtimeSse();
         return;
       }
@@ -1156,23 +1225,34 @@ function reconcileLocalRequirement(
 
 let isFlushingQueue = false;
 
-export async function processPendingSyncQueue(): Promise<void> {
-  const token = getAuthToken();
-  const fbConnected = isFirestoreAuthenticated();
-  const hasServerToken = Boolean(token && !token.startsWith('static.'));
-  if (
-    typeof window === 'undefined' ||
-    isFlushingQueue ||
-    !navigator.onLine ||
-    (!hasServerToken && !fbConnected)
-  ) {
-    return;
+async function processPendingSyncQueueInternal(): Promise<SyncOutcomeReason> {
+  if (typeof window === 'undefined' || isFlushingQueue || !navigator.onLine) {
+    return 'ok';
   }
   const queue = getSyncQueue();
-  if (queue.length === 0) return;
+  if (queue.length === 0) return 'ok';
+
+  let token = getAuthToken();
+  const fbConnected = isFirestoreAuthenticated();
+  let hasServerToken = Boolean(token && !isStaticToken(token));
+
+  if (!hasServerToken && !fbConnected) {
+    const recovery = await recoverServerSessionIfPossible({ clearIfExpired: true });
+    if (recovery.hasValidServerToken) {
+      token = getAuthToken();
+      hasServerToken = Boolean(token && !isStaticToken(token));
+    } else if (recovery.cookieCheckRequired) {
+      return 'cookie_check';
+    } else if (recovery.expiredOnExpress) {
+      return 'session_expired';
+    } else {
+      return 'no_session';
+    }
+  }
 
   isFlushingQueue = true;
   let flushedAny = false;
+  let stopReason: SyncOutcomeReason = 'ok';
   try {
     for (const item of queue) {
       let firestoreOk = false;
@@ -1204,7 +1284,12 @@ export async function processPendingSyncQueue(): Promise<void> {
             },
             8000
           );
-          if (res.ok) {
+          const ct = (res.headers.get('content-type') || '').toLowerCase();
+          if (isCookieCheckResponse(res, ct)) {
+            stopReason = 'cookie_check';
+            break;
+          }
+          if (res.ok && ct.includes('application/json')) {
             const json = await res.json().catch(() => ({}));
             if (json.revision) {
               localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
@@ -1214,11 +1299,19 @@ export async function processPendingSyncQueue(): Promise<void> {
               reconcileLocalRequirement(item.id, json.requerimiento, json.detalles);
             }
             expressOk = true;
+          } else if ((res.status === 401 || res.status === 403) && ct.includes('application/json')) {
+            clearActiveSession(
+              'Su sesión en el servidor web expiró. Inicie sesión nuevamente para enviar los requerimientos pendientes.'
+            );
+            closeRealtimeSse();
+            stopReason = 'session_expired';
+            break;
           } else if (res.status === 400) {
             removeFromSyncQueue(item.id);
             continue;
           }
         } catch {
+          stopReason = 'network';
           // Reintento en la próxima pasada
         }
       }
@@ -1229,10 +1322,20 @@ export async function processPendingSyncQueue(): Promise<void> {
       }
     }
     if (flushedAny) {
-      await syncWithServerNow(true);
+      lastSyncDate = new Date();
+      isOnline = true;
+      notifyListeners();
     }
   } finally {
     isFlushingQueue = false;
+  }
+  return stopReason;
+}
+
+export async function processPendingSyncQueue(): Promise<void> {
+  const status = await processPendingSyncQueueInternal();
+  if (status === 'ok' && getSyncQueue().length === 0) {
+    return;
   }
 }
 
@@ -1392,11 +1495,31 @@ async function pushRequerimientoToCloud(
   requerimiento: Requerimiento;
   detalles: DetalleRequerimiento[];
   syncedToServer: boolean;
+  syncReason?: SyncOutcomeReason;
   authError?: string;
 }> {
-  const token = getAuthToken();
-  const hasServerToken = Boolean(token && !token.startsWith('static.'));
+  let token = getAuthToken();
+  let hasServerToken = Boolean(token && !isStaticToken(token));
   const fbConnected = isFirestoreAuthenticated();
+
+  let preReason: SyncOutcomeReason | undefined;
+  let preAuthError: string | undefined;
+
+  if (!hasServerToken && !fbConnected) {
+    const recovery = await recoverServerSessionIfPossible({ clearIfExpired: false });
+    if (recovery.hasValidServerToken) {
+      token = getAuthToken();
+      hasServerToken = Boolean(token && !isStaticToken(token));
+    } else if (recovery.cookieCheckRequired) {
+      preReason = 'cookie_check';
+      preAuthError = 'La autorización del navegador requiere recargar la página para enviar el requerimiento en línea.';
+    } else if (recovery.expiredOnExpress) {
+      preReason = 'session_expired';
+      preAuthError = 'Su sesión está en modo local. Toque "Reconectar sesión" para enviar este requerimiento en línea a la web.';
+    } else {
+      preReason = 'no_session';
+    }
+  }
 
   // Ejecutar en paralelo Firebase Cloud Firestore y el servidor Express cuando apliquen
   const firestorePromise: Promise<boolean> = fbConnected
@@ -1408,6 +1531,7 @@ async function pushRequerimientoToCloud(
 
   const expressPromise: Promise<{
     ok: boolean;
+    reason?: SyncOutcomeReason;
     authError?: string;
     req?: Requerimiento;
     dets?: DetalleRequerimiento[];
@@ -1430,6 +1554,13 @@ async function pushRequerimientoToCloud(
       )
         .then(async (res) => {
           const ct = (res.headers.get('content-type') || '').toLowerCase();
+          if (isCookieCheckResponse(res, ct)) {
+            return {
+              ok: false,
+              reason: 'cookie_check' as SyncOutcomeReason,
+              authError: 'La autorización del navegador requiere recargar la página para enviar datos en línea.',
+            };
+          }
           if (res.ok && ct.includes('application/json')) {
             const json = await res.json();
             if (json.revision) {
@@ -1443,19 +1574,20 @@ async function pushRequerimientoToCloud(
                 : newDetalles,
             };
           }
-          if (res.status === 401 || res.status === 403) {
-            const errJson = ct.includes('application/json') ? await res.json().catch(() => ({})) : {};
+          if ((res.status === 401 || res.status === 403) && ct.includes('application/json')) {
+            const errJson = await res.json().catch(() => ({}));
             return {
               ok: false,
+              reason: 'session_expired' as SyncOutcomeReason,
               authError:
                 errJson?.error ||
-                'Sesión expirada en el servidor web. Vuelva a iniciar sesión para sincronizar.',
+                'Sesión expirada en el servidor web. Toque "Reconectar sesión" para enviar el requerimiento.',
             };
           }
-          return { ok: false };
+          return { ok: false, reason: 'network' as SyncOutcomeReason };
         })
-        .catch(() => ({ ok: false }))
-    : Promise.resolve({ ok: false });
+        .catch(() => ({ ok: false, reason: 'network' as SyncOutcomeReason }))
+    : Promise.resolve({ ok: false, reason: preReason, authError: preAuthError });
 
   const [firestoreOk, expressResult] = await Promise.all([firestorePromise, expressPromise]);
 
@@ -1468,6 +1600,7 @@ async function pushRequerimientoToCloud(
       requerimiento: authReq,
       detalles: authDets,
       syncedToServer: true,
+      syncReason: 'ok',
     };
   }
 
@@ -1475,7 +1608,10 @@ async function pushRequerimientoToCloud(
     requerimiento: newRequerimiento,
     detalles: newDetalles,
     syncedToServer: false,
-    ...(expressResult.authError ? { authError: expressResult.authError } : {}),
+    syncReason: expressResult.reason || preReason || 'network',
+    ...(expressResult.authError || preAuthError
+      ? { authError: expressResult.authError || preAuthError }
+      : {}),
   };
 }
 
@@ -1500,6 +1636,7 @@ export async function saveNewRequerimientoAsync(
   requerimiento: Requerimiento;
   detalles: DetalleRequerimiento[];
   syncedToServer: boolean;
+  syncReason?: SyncOutcomeReason;
   authError?: string;
 }> {
   const created = buildAndPersistLocalRequerimiento(draft, currentUser);
@@ -1586,7 +1723,15 @@ export function updateRequerimientoEstado(
     keepalive: true,
   })
     .then(async (res) => {
-      if (res.ok) {
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if ((res.status === 401 || res.status === 403) && ct.includes('application/json')) {
+        clearActiveSession(
+          'Su sesión en el servidor web expiró. Inicie sesión nuevamente para guardar el cambio de estado.'
+        );
+        closeRealtimeSse();
+        return;
+      }
+      if (res.ok && ct.includes('application/json')) {
         const json = await res.json();
         if (json.revision) {
           localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
@@ -1673,7 +1818,15 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
       keepalive: true,
     })
       .then(async (res) => {
-        if (res.ok) {
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if ((res.status === 401 || res.status === 403) && ct.includes('application/json')) {
+          clearActiveSession(
+            'Su sesión en el servidor web expiró. Inicie sesión nuevamente para guardar la anulación en el servidor.'
+          );
+          closeRealtimeSse();
+          return;
+        }
+        if (res.ok && ct.includes('application/json')) {
           const json = await res.json();
           if (json.revision) {
             localStorage.setItem(LAST_REVISION_KEY, String(json.revision));

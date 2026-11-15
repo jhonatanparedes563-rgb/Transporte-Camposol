@@ -20,7 +20,7 @@ import { getHorarioDisplay } from '../data/masterData';
 import {
   getCloudSyncStatus,
   processPendingSyncQueue,
-  syncWithServerNow,
+  syncWithServerDetailed,
   subscribeToDataChanges,
 } from '../services/storageService';
 import busBannerImg from '../assets/images/camposol_bus_banner_light_1794665350151.jpg';
@@ -44,6 +44,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   const [bannerImgFailed, setBannerImgFailed] = useState(false);
   const [syncStatus, setSyncStatus] = useState(() => getCloudSyncStatus());
   const [isSendingOutbox, setIsSendingOutbox] = useState(false);
+  const [outboxHint, setOutboxHint] = useState('');
 
   useEffect(() => {
     const refresh = () => setSyncStatus(getCloudSyncStatus());
@@ -57,10 +58,21 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
 
   const handleFlushPendingOutbox = async () => {
     setIsSendingOutbox(true);
+    setOutboxHint('');
     try {
       await processPendingSyncQueue();
-      await syncWithServerNow(true);
-      setSyncStatus(getCloudSyncStatus());
+      const res = await syncWithServerDetailed(true);
+      const updated = getCloudSyncStatus();
+      setSyncStatus(updated);
+      if (updated.pendingOutboxCount > 0 && !res.ok) {
+        if (res.reason === 'cookie_check') {
+          setOutboxHint('Recargue la página para autorizar el envío en línea.');
+        } else if (res.reason === 'session_expired' || res.reason === 'no_session') {
+          setOutboxHint('Sesión local vencida. Vuelva a iniciar sesión para enviar.');
+        } else {
+          setOutboxHint('Sin conexión con el servidor web en este momento.');
+        }
+      }
     } finally {
       setIsSendingOutbox(false);
     }
@@ -190,7 +202,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
                 : `${syncStatus.pendingOutboxCount} requerimientos por enviar a la web`}
             </div>
             <div className="text-[10px]! text-amber-800 leading-tight">
-              Se enviará automáticamente al recuperar conexión.
+              {outboxHint || 'Se enviará automáticamente al recuperar conexión.'}
             </div>
           </div>
           <button

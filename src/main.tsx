@@ -99,6 +99,15 @@ if (typeof window !== 'undefined' && import.meta.env.PROD) {
       })
       .catch(() => {});
   }
+} else if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((regs) => {
+      regs.forEach((reg) => {
+        reg.unregister().catch(() => {});
+      });
+    })
+    .catch(() => {});
 }
 
 createRoot(document.getElementById('root')!).render(

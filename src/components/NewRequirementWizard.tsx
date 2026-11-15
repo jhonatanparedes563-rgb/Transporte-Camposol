@@ -10,6 +10,7 @@ import {
   getStoredRequirementDraft,
   saveStoredRequirementDraft,
   clearStoredRequirementDraft,
+  SyncOutcomeReason,
 } from '../services/storageService';
 
 interface NewRequirementWizardProps {
@@ -45,6 +46,7 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   const [createdRequirement, setCreatedRequirement] = useState<Requerimiento | null>(null);
   const [syncedToServer, setSyncedToServer] = useState<boolean>(true);
   const [syncNotice, setSyncNotice] = useState<string>('');
+  const [syncReason, setSyncReason] = useState<SyncOutcomeReason | undefined>(undefined);
   const submitLockRef = useRef(false);
 
   const todayDate = getLocalTodayDate();
@@ -122,6 +124,7 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
       clearStoredRequirementDraft();
       setCreatedRequirement(result.requerimiento);
       setSyncedToServer(result.syncedToServer);
+      setSyncReason(result.syncReason);
       setSyncNotice(result.authError || '');
       onSuccess(result.requerimiento);
       setCurrentStep(4);
@@ -138,6 +141,7 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
     submitLockRef.current = false;
     setSubmitError('');
     setSyncedToServer(true);
+    setSyncReason(undefined);
     setSyncNotice('');
     clearStoredRequirementDraft();
     setDraft(buildInitialDraft());
@@ -252,6 +256,7 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
         <Step4Confirmation
           requerimiento={createdRequirement}
           syncedToServer={syncedToServer}
+          syncReason={syncReason}
           syncNotice={syncNotice}
           onViewRequirement={(req) => onViewRequirement(req)}
           onNewRequirement={handleResetForNew}
