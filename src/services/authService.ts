@@ -416,6 +416,18 @@ export function isStaticToken(token: string | null): boolean {
   return Boolean(token && token.startsWith('static.'));
 }
 
+export function isHostedExpressOrigin(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  return host.endsWith('.run.app') || host === 'localhost' || host === '127.0.0.1';
+}
+
+export function notifyCookieCheckRequired(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('camposol_cookie_check_required'));
+  }
+}
+
 export function isCookieCheckResponse(res: Response, ct: string): boolean {
   if (res.url && res.url.includes('__cookie_check')) return true;
   if (res.redirected && ct.includes('text/html') && res.url && res.url.includes('return_url=')) return true;
@@ -581,6 +593,7 @@ export async function recoverServerSessionIfPossible(
 
   const sessionAttempt = await fetchJsonApi('/api/auth/session', { method: 'GET' });
   if (sessionAttempt.cookieCheckRequired) {
+    notifyCookieCheckRequired();
     return { hasValidServerToken: false, expiredOnExpress: false, cookieCheckRequired: true };
   }
 
@@ -594,14 +607,21 @@ export async function recoverServerSessionIfPossible(
   }
 
   if (sessionAttempt.reachableJson && (sessionAttempt.res?.status === 401 || sessionAttempt.res?.status === 403)) {
-    const sameOriginHealth = await fetchJsonApi('/api/health', { method: 'GET' });
-    const isSameOrigin =
-      sameOriginHealth.reachableJson &&
-      sameOriginHealth.res?.ok &&
-      typeof window !== 'undefined' &&
-      (!CONFIGURED_API_ORIGIN || !sameOriginHealth.res.url.startsWith(CONFIGURED_API_ORIGIN));
+    if (clearIfExpired) {
+      clearActiveSession(
+        'Su sesión anterior estaba en modo local sin conexión al servidor web. Inicie sesión nuevamente para activar la sincronización en tiempo real.'
+      );
+    }
+    return { hasValidServerToken: false, expiredOnExpress: true, cookieCheckRequired: false };
+  }
 
-    if (isSameOrigin) {
+  if (isHostedExpressOrigin() && typeof navigator !== 'undefined' && navigator.onLine) {
+    const healthAttempt = await fetchJsonApi('/api/health', { method: 'GET' });
+    if (healthAttempt.cookieCheckRequired) {
+      notifyCookieCheckRequired();
+      return { hasValidServerToken: false, expiredOnExpress: false, cookieCheckRequired: true };
+    }
+    if (healthAttempt.reachableJson && healthAttempt.res?.ok) {
       if (clearIfExpired) {
         clearActiveSession(
           'Su sesión anterior estaba en modo local sin conexión al servidor web. Inicie sesión nuevamente para activar la sincronización en tiempo real.'
@@ -620,13 +640,14 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
   if (!token) return null;
 
   if (isStaticToken(token)) {
-    const recovery = await recoverServerSessionIfPossible();
+    const recovery = await recoverServerSessionIfPossible({ clearIfExpired: true });
     if (recovery.expiredOnExpress) {
       return null;
     }
     return getActiveSessionUser();
   }
 
+  let sawCookieCheck = false;
   for (const url of getApiCandidates('/api/auth/session')) {
     try {
       const res = await fetch(url, {
@@ -637,6 +658,10 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
         },
       });
       const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (isCookieCheckResponse(res, ct)) {
+        sawCookieCheck = true;
+        continue;
+      }
       if (!ct.includes('application/json')) {
         if (cachedWorkingApiPrefix !== null && url.startsWith(cachedWorkingApiPrefix)) {
           cachedWorkingApiPrefix = null;
@@ -669,6 +694,9 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
       }
       // Si está sin conexión en campo, mantener la sesión local válida hasta recuperar red
     }
+  }
+  if (sawCookieCheck) {
+    notifyCookieCheckRequired();
   }
   return getActiveSessionUser();
 }
@@ -706,6 +734,7 @@ export async function authenticateUser(
   }
 
   if (apiAttempt.cookieCheckRequired) {
+    notifyCookieCheckRequired();
     return {
       success: false,
       error: 'La autorización de cookies del navegador requiere actualizar la página. Recargue la pestaña e intente nuevamente.',
@@ -727,9 +756,7 @@ export async function authenticateUser(
     };
   }
 
-  const host = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
-  const isHostedBackendOrigin = host.endsWith('.run.app') || host === 'localhost' || host === '127.0.0.1';
-  if (isHostedBackendOrigin && typeof navigator !== 'undefined' && navigator.onLine) {
+  if (isHostedExpressOrigin() && typeof navigator !== 'undefined' && navigator.onLine) {
     return {
       success: false,
       error: 'No se pudo conectar con el servidor web para iniciar sesión en línea. Verifique su conexión o recargue la página e intente nuevamente.',

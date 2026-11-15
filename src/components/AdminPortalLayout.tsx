@@ -60,7 +60,13 @@ import {
   syncWithServerDetailed,
   getSyncInfo,
   ensureDateRangeLoaded,
+  getCloudSyncStatus,
+  getRequirementSyncState,
+  connectCloudSyncWithGoogle,
+  processPendingSyncQueue,
+  subscribeToDataChanges,
 } from '../services/storageService';
+import { clearActiveSession } from '../services/authService';
 import { consolidarParaderos, exportarRequerimientoIndividualExcel } from '../services/excelExportService';
 import { getHorarioDisplay } from '../data/masterData';
 import { MasterDataManagementScreen } from './MasterDataManagementScreen';
@@ -208,6 +214,8 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   const [selectedReqIds, setSelectedReqIds] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+  const [cloudStatus, setCloudStatus] = useState(() => getCloudSyncStatus());
   const [reqToDelete, setReqToDelete] = useState<Requerimiento | null>(null);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
 
@@ -217,6 +225,12 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   const [showExportModal, setShowExportModal] = useState(false);
   const [copiedReqId, setCopiedReqId] = useState<string | null>(null);
   const [showFiltersBar, setShowFiltersBar] = useState<boolean>(true);
+
+  useEffect(() => {
+    const refreshCloud = () => setCloudStatus(getCloudSyncStatus());
+    refreshCloud();
+    return subscribeToDataChanges(refreshCloud);
+  }, []);
 
   const areas = useMemo(() => getStoredAreas(), []);
   const fundos = useMemo(() => getStoredFundos(), []);
@@ -303,17 +317,54 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
   const handleManualSync = async () => {
     setIsManualSyncing(true);
-    const result = await syncWithServerDetailed(true);
-    onRefreshData();
-    setIsManualSyncing(false);
-    if (result.ok) {
-      showToast('¡Datos sincronizados en línea con el servidor web!');
-    } else if (result.reason === 'cookie_check') {
-      showToast('Autorización del navegador vencida. Recargue la pestaña (F5) y reintente.');
-    } else if (result.reason === 'session_expired' || result.reason === 'no_session') {
-      showToast('Su sesión en el servidor web expiró. Inicie sesión nuevamente para sincronizar.');
-    } else {
-      showToast('No se pudo contactar al servidor en este momento.');
+    try {
+      await processPendingSyncQueue(true);
+      const result = await syncWithServerDetailed(true);
+      onRefreshData();
+      const after = getCloudSyncStatus();
+      setCloudStatus(after);
+
+      if (result.ok && after.state === 'Sincronizado') {
+        showToast(`¡Datos sincronizados en línea con ${after.projectId}!`);
+      } else if (after.state === 'Error' && after.lastError) {
+        showToast(after.lastError);
+      } else if (result.ok && after.state === 'Pendiente') {
+        showToast(
+          after.pendingOutboxCount > 0 || after.masterPendingCount > 0
+            ? 'Hay cambios locales pendientes de envío a la nube.'
+            : 'Sincronizado parcialmente; conecte Google para sincronizar en tiempo real.'
+        );
+      } else if (result.reason === 'cookie_check') {
+        showToast('Autorización del navegador vencida. Recargue la pestaña (F5) y reintente.');
+      } else if (result.reason === 'session_expired') {
+        clearActiveSession(
+          'Su sesión en el servidor web expiró o estaba en modo local. Inicie sesión nuevamente para sincronizar en tiempo real.'
+        );
+      } else if (result.reason === 'no_session') {
+        showToast('Conecte su cuenta Google en el botón de estado para sincronizar con tdp-camposol.');
+      } else {
+        showToast(after.lastError || 'No se pudo contactar al servidor en este momento.');
+      }
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
+
+  const handleConnectGoogleCloud = async () => {
+    setIsConnectingGoogle(true);
+    try {
+      const res = await connectCloudSyncWithGoogle();
+      if (res.success) {
+        await processPendingSyncQueue(true);
+        onRefreshData();
+        const after = getCloudSyncStatus();
+        setCloudStatus(after);
+        showToast(`Conectado a Firebase (${after.projectId}) como ${res.email}`);
+      } else if (res.error) {
+        showToast(res.error);
+      }
+    } finally {
+      setIsConnectingGoogle(false);
     }
   };
 
@@ -943,8 +994,51 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             </div>
           </div>
 
-          {/* Top Right Header Elements (Estilo limpio sin etiquetas de telemetría) */}
+          {/* Top Right Header Elements */}
           <div className="flex items-center gap-2">
+            <button
+              id="header-cloud-status-btn"
+              type="button"
+              onClick={() => {
+                if (!cloudStatus.firebaseConnected) {
+                  void handleConnectGoogleCloud();
+                } else {
+                  void handleManualSync();
+                }
+              }}
+              disabled={isConnectingGoogle || isManualSyncing}
+              title={
+                cloudStatus.lastError ||
+                (cloudStatus.firebaseConnected
+                  ? `${cloudStatus.projectId} · ${cloudStatus.firebaseEmail || ''}`
+                  : `Conectar con Google Cloud Firestore (${cloudStatus.projectId})`)
+              }
+              className={`h-9 px-3 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                cloudStatus.state === 'Sincronizado'
+                  ? 'bg-[#EAF7E4] border-[#C6E9B4] text-[#2F7D18] hover:bg-[#dcf2d2]'
+                  : cloudStatus.state === 'Error'
+                  ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
+                  : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
+              }`}
+            >
+              {cloudStatus.state === 'Sincronizado' ? (
+                <CloudCheck className="w-3.5 h-3.5 shrink-0" />
+              ) : cloudStatus.state === 'Error' ? (
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <Cloud className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span className="hidden md:inline">
+                {isConnectingGoogle
+                  ? 'Conectando...'
+                  : !cloudStatus.firebaseConnected && cloudStatus.state !== 'Sincronizado'
+                  ? `${cloudStatus.state} · Conectar Google`
+                  : cloudStatus.pendingOutboxCount > 0
+                  ? `${cloudStatus.state} (${cloudStatus.pendingOutboxCount})`
+                  : cloudStatus.state}
+              </span>
+            </button>
+
             <button
               id="header-sync-btn"
               type="button"
@@ -1852,6 +1946,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                       const isSelected = selectedReqIds.includes(req.id);
                       const detalles = getDetallesByRequerimientoId(req.id);
                       const paraderosCount = detalles.length;
+                      const reqSync = getRequirementSyncState(req.id);
 
                       return (
                         <React.Fragment key={req.id}>
@@ -1882,6 +1977,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                     · {formatHoraSimple(req.fechaRegistro)}
                                   </span>
                                 )}
+                                <span
+                                  title={reqSync.error || `Estado de nube: ${reqSync.status}`}
+                                  className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-semibold border ${
+                                    reqSync.status === 'Sincronizado'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : reqSync.status === 'Error'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                                  }`}
+                                >
+                                  {reqSync.status}
+                                </span>
                               </div>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap tabular-nums">

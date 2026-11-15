@@ -21,7 +21,13 @@ import {
   signOut,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+import {
+  db,
+  auth,
+  checkFirestoreServerConnection,
+  firebaseProjectId,
+  firebaseDatabaseId,
+} from '../lib/firebase';
 import {
   Requerimiento,
   DetalleRequerimiento,
@@ -109,9 +115,51 @@ export interface FirestoreErrorInfo {
   };
 }
 
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+let firestoreServerVerified = false;
+let lastFirestoreError: string | null = null;
+let masterDataExistsInCloud = false;
+
+export function hasMasterDataInFirestore(): boolean {
+  return masterDataExistsInCloud;
+}
+
+export function formatFriendlyFirestoreError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error || '');
+  let inner = raw;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.error === 'string') {
+      inner = parsed.error;
+    }
+  } catch {
+    // not JSON
+  }
+  const lower = inner.toLowerCase();
+  if (lower.includes('free daily read units')) {
+    return `Cuota diaria gratuita Spark excedida. Revise su base de datos en Firebase Console: https://console.firebase.google.com/project/${firebaseProjectId}/firestore/databases/${firebaseDatabaseId}/data?openUpgradeDialog=true`;
+  }
+  if (lower.includes('quota exceeded') || lower.includes('resource-exhausted')) {
+    return 'Cuota diaria gratuita del plan Spark de Firebase excedida. Se restablece al día siguiente.';
+  }
+  if (lower.includes('missing or insufficient permissions') || lower.includes('permission-denied')) {
+    return 'Permiso denegado en Cloud Firestore. Verifique las reglas de seguridad o inicie sesión con una cuenta Google autorizada.';
+  }
+  if (lower.includes('unauthorized-domain') || lower.includes('dominio no está autorizado')) {
+    return 'Dominio no autorizado en Firebase Authentication (Authorized domains) del proyecto tdp-camposol.';
+  }
+  if (lower.includes('the client is offline') || lower.includes('unavailable') || lower.includes('network') || lower.includes('failed to fetch')) {
+    return 'Sin conexión a internet para comunicar con Cloud Firestore.';
+  }
+  return inner || 'Error de comunicación con Cloud Firestore.';
+}
+
+function buildFirestoreErrorInfo(
+  error: unknown,
+  operationType: OperationType,
+  path: string | null
+): FirestoreErrorInfo {
   const user = auth.currentUser;
-  const errInfo: FirestoreErrorInfo = {
+  return {
     error: error instanceof Error ? error.message : String(error),
     operationType,
     path,
@@ -128,8 +176,24 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
         })) || [],
     },
   };
+}
+
+function recordFirestoreErrorState(
+  error: unknown,
+  operationType: OperationType,
+  path: string | null
+): string {
+  const errInfo = buildFirestoreErrorInfo(error, operationType, path);
   console.error('[Firestore Error]:', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  lastFirestoreError = formatFriendlyFirestoreError(errInfo.error);
+  firestoreServerVerified = false;
+  notifyAuthSubscribers();
+  return JSON.stringify(errInfo);
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const jsonMsg = recordFirestoreErrorState(error, operationType, path);
+  throw new Error(jsonMsg);
 }
 
 function hasVerifiedFirebaseAuth(): FirebaseUser | null {
@@ -147,6 +211,10 @@ export function getFirebaseUserInfo(): {
   email: string | null;
   displayName: string | null;
   isBootstrappedAdmin: boolean;
+  serverVerified: boolean;
+  lastError: string | null;
+  projectId: string;
+  databaseId: string;
 } {
   const u = hasVerifiedFirebaseAuth();
   return {
@@ -155,6 +223,10 @@ export function getFirebaseUserInfo(): {
     email: u?.email ?? null,
     displayName: u?.displayName ?? null,
     isBootstrappedAdmin: Boolean(u?.email && u.email.toLowerCase() === 'jhonatanparedes563@gmail.com'),
+    serverVerified: Boolean(u) && firestoreServerVerified,
+    lastError: lastFirestoreError,
+    projectId: firebaseProjectId,
+    databaseId: firebaseDatabaseId,
   };
 }
 
@@ -178,42 +250,124 @@ function sanitizeUserForFirestore(user: AppUser): Omit<AppUser, 'passwordHash' |
   return clean as Omit<AppUser, 'passwordHash' | 'salt'>;
 }
 
+function toValidFirestoreId(raw: unknown, fallback: string): string {
+  const cleaned = String(raw || '')
+    .replace(/[^a-zA-Z0-9_\-]/g, '_')
+    .slice(0, 128);
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
 function sanitizeRequerimientoForFirestore(
   req: Requerimiento,
   fbUser: FirebaseUser,
   preserveExistingFirebaseOwner: boolean = false,
   compactDetalles?: DetalleCompacto[]
 ): Requerimiento {
-  const clean = JSON.parse(JSON.stringify(req)) as Record<string, unknown>;
-  clean.userId = String(clean.userId || fbUser.uid).slice(0, 128);
-  clean.firebaseUid =
-    preserveExistingFirebaseOwner && typeof clean.firebaseUid === 'string' && clean.firebaseUid.trim()
-      ? clean.firebaseUid.trim().slice(0, 128)
-      : fbUser.uid;
+  const src = JSON.parse(JSON.stringify(req)) as Record<string, unknown>;
+  const safeId = toValidFirestoreId(src.id, `req-${Date.now()}`);
+  const safeUserId = toValidFirestoreId(src.userId, fbUser.uid);
+  const safeFirebaseUid =
+    preserveExistingFirebaseOwner && typeof src.firebaseUid === 'string' && src.firebaseUid.trim()
+      ? toValidFirestoreId(src.firebaseUid.trim(), fbUser.uid)
+      : toValidFirestoreId(fbUser.uid, fbUser.uid);
+
+  const validMovimiento =
+    src.movimiento === 'INGRESO' ||
+    src.movimiento === 'SALIDA' ||
+    src.movimiento === 'Programa personal por tarea'
+      ? src.movimiento
+      : 'Programa personal por tarea';
+
+  const validEstado =
+    src.estado === 'PENDIENTE' ||
+    src.estado === 'EN REVISIÓN' ||
+    src.estado === 'APROBADO' ||
+    src.estado === 'RECHAZADO' ||
+    src.estado === 'ATENDIDO' ||
+    src.estado === 'ANULADO'
+      ? src.estado
+      : 'PENDIENTE';
+
+  const numRaw = String(src.numeroRequerimiento || 'REQ-000001').trim();
+  const safeNumero = /^REQ-[0-9]+$/.test(numRaw) ? numRaw.slice(0, 32) : 'REQ-000001';
+  const fechaRaw = String(src.fecha || '').slice(0, 10);
+  const safeFecha = /^\d{4}-\d{2}-\d{2}$/.test(fechaRaw) ? fechaRaw : getRollingCutoffDateStr(0);
+
+  const out: Record<string, unknown> = {
+    id: safeId,
+    numeroRequerimiento: safeNumero,
+    fecha: safeFecha,
+    area: String(src.area || 'PRODUCCIÓN').trim().slice(0, 80) || 'PRODUCCIÓN',
+    fundo: String(src.fundo || 'AGRICULTOR 1').trim().slice(0, 80) || 'AGRICULTOR 1',
+    movimiento: validMovimiento,
+    horaRecojo: String(src.horaRecojo || '13:00').trim().slice(0, 40) || '13:00',
+    horaSalida: String(src.horaSalida || src.horaRecojo || '13:00').trim().slice(0, 40) || '13:00',
+    observaciones: String(src.observaciones || '').slice(0, 500),
+    usuario: String(src.usuario || fbUser.displayName || 'Supervisor').trim().slice(0, 120) || 'Supervisor',
+    userId: safeUserId,
+    firebaseUid: safeFirebaseUid,
+    fechaRegistro:
+      String(src.fechaRegistro || new Date().toISOString()).trim().slice(0, 40) ||
+      new Date().toISOString().slice(0, 40),
+    totalPersonas: Math.min(Math.max(Math.floor(Number(src.totalPersonas) || 1), 1), 5000),
+    estado: validEstado,
+  };
+
+  if (typeof src.cultivo === 'string' && src.cultivo.trim()) {
+    out.cultivo = src.cultivo.trim().slice(0, 60);
+  }
+  if (Array.isArray(src.parcelas)) {
+    out.parcelas = src.parcelas
+      .map((p) => String(p || '').trim().slice(0, 60))
+      .filter(Boolean)
+      .slice(0, 50);
+  }
+  if (typeof src.horaRecojoNorte === 'string' && src.horaRecojoNorte.trim()) {
+    out.horaRecojoNorte = src.horaRecojoNorte.trim().slice(0, 16);
+  }
+  if (typeof src.horaRecojoSur === 'string' && src.horaRecojoSur.trim()) {
+    out.horaRecojoSur = src.horaRecojoSur.trim().slice(0, 16);
+  }
   const emailVal =
-    preserveExistingFirebaseOwner && typeof clean.firebaseEmail === 'string' && clean.firebaseEmail.trim()
-      ? clean.firebaseEmail.trim()
+    preserveExistingFirebaseOwner && typeof src.firebaseEmail === 'string' && src.firebaseEmail.trim()
+      ? src.firebaseEmail.trim()
       : fbUser.email || '';
   if (emailVal) {
-    clean.firebaseEmail = emailVal.slice(0, 120);
-  } else {
-    delete clean.firebaseEmail;
+    out.firebaseEmail = emailVal.slice(0, 120);
   }
-  clean.observaciones = String(clean.observaciones || '').slice(0, 500);
-  clean.usuario = String(clean.usuario || '').slice(0, 120);
-  clean.totalPersonas = Math.min(Math.max(Number(clean.totalPersonas) || 1, 1), 5000);
-  if (Array.isArray(clean.parcelas)) clean.parcelas = clean.parcelas.slice(0, 50);
-  if (Array.isArray(clean.historialTrazabilidad)) {
-    clean.historialTrazabilidad = clean.historialTrazabilidad.slice(-50);
+  if (typeof src.userUsername === 'string' && src.userUsername.trim()) {
+    out.userUsername = src.userUsername.trim().slice(0, 64);
+  }
+  if (src.userRole === 'usuario' || src.userRole === 'admin' || src.userRole === 'receptor') {
+    out.userRole = src.userRole;
+  }
+  if (typeof src.updatedAt === 'string' && src.updatedAt.trim()) {
+    out.updatedAt = src.updatedAt.trim().slice(0, 40);
+  }
+  if (typeof src.fechaAnulacion === 'string' && src.fechaAnulacion.trim()) {
+    out.fechaAnulacion = src.fechaAnulacion.trim().slice(0, 40);
+  }
+  if (typeof src.usuarioAnulacion === 'string' && src.usuarioAnulacion.trim()) {
+    out.usuarioAnulacion = src.usuarioAnulacion.trim().slice(0, 120);
+  }
+  if (typeof src.motivoAnulacion === 'string' && src.motivoAnulacion.trim()) {
+    out.motivoAnulacion = src.motivoAnulacion.trim().slice(0, 300);
+  }
+  if (Array.isArray(src.historialTrazabilidad)) {
+    const cleanHist = src.historialTrazabilidad
+      .filter((h) => h && typeof h === 'object')
+      .slice(-50);
+    if (cleanHist.length > 0) {
+      out.historialTrazabilidad = cleanHist;
+    }
   }
   if (Array.isArray(compactDetalles) && compactDetalles.length > 0) {
-    clean.detallesCompactos = compactDetalles.slice(0, 250);
-  } else if (Array.isArray(clean.detallesCompactos)) {
-    clean.detallesCompactos = clean.detallesCompactos.slice(0, 250);
-  } else {
-    delete clean.detallesCompactos;
+    out.detallesCompactos = compactDetalles.slice(0, 250);
+  } else if (Array.isArray(src.detallesCompactos) && src.detallesCompactos.length > 0) {
+    out.detallesCompactos = src.detallesCompactos.filter((d) => d && typeof d === 'object').slice(0, 250);
   }
-  return clean as unknown as Requerimiento;
+
+  return out as unknown as Requerimiento;
 }
 
 function sanitizeDetalleForFirestore(
@@ -222,25 +376,42 @@ function sanitizeDetalleForFirestore(
   fbUser: FirebaseUser,
   preserveExistingFirebaseOwner: boolean = false
 ): Record<string, unknown> {
-  const clean = JSON.parse(JSON.stringify(det)) as Record<string, unknown>;
-  clean.userId = userId;
-  clean.firebaseUid =
-    preserveExistingFirebaseOwner && typeof clean.firebaseUid === 'string' && clean.firebaseUid.trim()
-      ? clean.firebaseUid.trim().slice(0, 128)
-      : fbUser.uid;
+  const src = JSON.parse(JSON.stringify(det)) as Record<string, unknown>;
+  const safeNumero =
+    typeof src.numeroRequerimiento === 'string' && /^REQ-[0-9]+$/.test(src.numeroRequerimiento.trim())
+      ? src.numeroRequerimiento.trim().slice(0, 32)
+      : 'REQ-000001';
+
+  const out: Record<string, unknown> = {
+    id: toValidFirestoreId(src.id, `det-${Date.now()}`),
+    requerimientoId: toValidFirestoreId(src.requerimientoId, 'req-0'),
+    numeroRequerimiento: safeNumero,
+    userId: toValidFirestoreId(userId, fbUser.uid),
+    firebaseUid:
+      preserveExistingFirebaseOwner && typeof src.firebaseUid === 'string' && src.firebaseUid.trim()
+        ? toValidFirestoreId(src.firebaseUid.trim(), fbUser.uid)
+        : toValidFirestoreId(fbUser.uid, fbUser.uid),
+    comedor: String(src.comedor || 'Comedor 1').trim().slice(0, 60) || 'Comedor 1',
+    paradero: String(src.paradero || 'PARADERO').trim().slice(0, 120) || 'PARADERO',
+    cantidad: Math.min(Math.max(Math.floor(Number(src.cantidad) || 1), 1), 500),
+  };
+
   const emailVal =
-    preserveExistingFirebaseOwner && typeof clean.firebaseEmail === 'string' && clean.firebaseEmail.trim()
-      ? clean.firebaseEmail.trim()
+    preserveExistingFirebaseOwner && typeof src.firebaseEmail === 'string' && src.firebaseEmail.trim()
+      ? src.firebaseEmail.trim()
       : fbUser.email || '';
-  if (emailVal) {
-    clean.firebaseEmail = emailVal.slice(0, 120);
-  } else {
-    delete clean.firebaseEmail;
+  if (emailVal) out.firebaseEmail = emailVal.slice(0, 120);
+  if (typeof src.parcela === 'string' && src.parcela.trim()) {
+    out.parcela = src.parcela.trim().slice(0, 60);
   }
-  clean.paradero = String(clean.paradero || '').slice(0, 120);
-  clean.comedor = String(clean.comedor || '').slice(0, 60);
-  clean.cantidad = Math.min(Math.max(Number(clean.cantidad) || 1, 1), 500);
-  return clean;
+  if (src.zona === 'NORTE' || src.zona === 'SUR') {
+    out.zona = src.zona;
+  }
+  if (typeof src.cultivo === 'string' && src.cultivo.trim()) {
+    out.cultivo = src.cultivo.trim().slice(0, 60);
+  }
+
+  return out;
 }
 
 let isAuthListenerRegistered = false;
@@ -269,9 +440,32 @@ type OnDataUpdate = (data: {
 
 let updateCallback: OnDataUpdate | null = null;
 let onConnectedCallback: ((info: ReturnType<typeof getFirebaseUserInfo>) => void) | null = null;
+let masterDataSeedProvider:
+  | (() => {
+      areas: MaestroArea[];
+      fundos: MaestroFundo[];
+      zonas: MaestroZona[];
+      paraderos: MaestroParadero[];
+      comedores: MaestroComedor[];
+      unidadesBus: MaestroUnidadBus[];
+    })
+  | null = null;
 const authStatusSubscribers = new Set<(info: ReturnType<typeof getFirebaseUserInfo>) => void>();
 let pendingUpdates: Parameters<OnDataUpdate>[0] = {};
 let updateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function registerMasterDataSeedProvider(
+  provider: () => {
+    areas: MaestroArea[];
+    fundos: MaestroFundo[];
+    zonas: MaestroZona[];
+    paraderos: MaestroParadero[];
+    comedores: MaestroComedor[];
+    unidadesBus: MaestroUnidadBus[];
+  }
+): void {
+  masterDataSeedProvider = provider;
+}
 
 function notifyAuthSubscribers() {
   const info = getFirebaseUserInfo();
@@ -453,6 +647,11 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
           }
         });
 
+        if (!snapshot.metadata.fromCache) {
+          firestoreServerVerified = true;
+          lastFirestoreError = null;
+          notifyAuthSubscribers();
+        }
         const cleanedReqs = filterRequerimientosList(reqs);
         scheduleDebouncedUpdate({
           requerimientos: cleanedReqs,
@@ -476,7 +675,7 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
       }
     },
     (err) => {
-      handleFirestoreError(err, OperationType.LIST, 'requerimientos');
+      recordFirestoreErrorState(err, OperationType.LIST, 'requerimientos');
     }
   );
   unsubscribers.push(unsubReq);
@@ -486,6 +685,12 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
   const unsubMeta = onSnapshot(
     metaDoc,
     (snap) => {
+      masterDataExistsInCloud = snap.exists();
+      if (!snap.metadata.fromCache) {
+        firestoreServerVerified = true;
+        lastFirestoreError = null;
+        notifyAuthSubscribers();
+      }
       if (snap.exists()) {
         const data = snap.data();
         scheduleDebouncedUpdate({
@@ -499,11 +704,11 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
             : {}),
         });
       } else if (isBootstrappedAdmin) {
-        seedInitialMasterData();
+        void seedInitialMasterData();
       }
     },
     (err) => {
-      handleFirestoreError(err, OperationType.GET, 'system_metadata/master_data');
+      recordFirestoreErrorState(err, OperationType.GET, 'system_metadata/master_data');
     }
   );
   unsubscribers.push(unsubMeta);
@@ -549,11 +754,18 @@ export async function initializeFirestoreSync(): Promise<void> {
   isAuthListenerRegistered = true;
 
   onAuthStateChanged(auth, (firebaseUser) => {
-    notifyAuthSubscribers();
     if (firebaseUser && firebaseUser.emailVerified) {
       attachVerifiedListeners(firebaseUser);
+      void checkFirestoreServerConnection().then((health) => {
+        firestoreServerVerified = health.ok;
+        lastFirestoreError = health.ok ? null : (health.error || null);
+        notifyAuthSubscribers();
+      });
     } else {
+      firestoreServerVerified = false;
+      lastFirestoreError = null;
       cleanupListeners();
+      notifyAuthSubscribers();
     }
   });
 }
@@ -562,6 +774,7 @@ export async function connectWithGoogleFirebase(): Promise<{
   success: boolean;
   email?: string | null;
   error?: string;
+  serverVerified?: boolean;
 }> {
   try {
     const provider = new GoogleAuthProvider();
@@ -573,28 +786,57 @@ export async function connectWithGoogleFirebase(): Promise<{
         error: 'La cuenta de Google seleccionada no tiene un correo verificado.',
       };
     }
+
+    const health = await checkFirestoreServerConnection();
+    firestoreServerVerified = health.ok;
+    lastFirestoreError = health.ok ? null : (health.error || null);
     notifyAuthSubscribers();
+
+    if (!health.ok && (health.permissionDenied || health.quotaExceeded)) {
+      return {
+        success: false,
+        email: cred.user.email,
+        error: health.error,
+        serverVerified: false,
+      };
+    }
+
     attachVerifiedListeners(cred.user);
-    return { success: true, email: cred.user.email };
+    return {
+      success: true,
+      email: cred.user.email,
+      serverVerified: health.ok,
+      ...(!health.ok && health.error ? { error: health.error } : {}),
+    };
   } catch (err: unknown) {
     const code = (err as { code?: string })?.code || '';
     if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
       return { success: false, error: 'Inicio de sesión con Google cancelado.' };
     }
-    if (code === 'auth/unauthorized-domain') {
+    if (code === 'auth/popup-blocked') {
       return {
         success: false,
-        error:
-          'Este dominio no está autorizado en Firebase Authentication (Authorized domains). Agregue su dominio de GitHub Pages en Firebase Console.',
+        error: 'El navegador bloqueó la ventana emergente de Google. Permita ventanas emergentes para este sitio e intente nuevamente.',
       };
     }
-    const msg = err instanceof Error ? err.message : String(err);
+    if (code === 'auth/unauthorized-domain') {
+      const originHost = typeof window !== 'undefined' ? window.location.hostname : '';
+      const msg = `Dominio "${originHost}" no autorizado en Firebase Authentication (proyecto ${firebaseProjectId}). Agréguelo en Authorized domains en Firebase Console.`;
+      lastFirestoreError = msg;
+      notifyAuthSubscribers();
+      return { success: false, error: msg };
+    }
+    const msg = formatFriendlyFirestoreError(err);
+    lastFirestoreError = msg;
+    notifyAuthSubscribers();
     return { success: false, error: msg || 'No se pudo conectar con Google Cloud Firestore.' };
   }
 }
 
 export async function disconnectGoogleFirebase(): Promise<void> {
   cleanupListeners();
+  firestoreServerVerified = false;
+  lastFirestoreError = null;
   await signOut(auth);
   notifyAuthSubscribers();
 }
@@ -613,14 +855,17 @@ export async function firestorePullAllNow(): Promise<boolean> {
       : query(collection(db, 'requerimientos'), where('firebaseUid', '==', fbUser.uid));
 
     const [reqSnap, metaSnap, usersSnap] = await Promise.all([
-      getDocsFromServer(reqQuery).catch(() => getDocs(reqQuery)),
-      getDocFromServer(doc(db, 'system_metadata', 'master_data')).catch(() =>
-        getDoc(doc(db, 'system_metadata', 'master_data'))
-      ),
+      getDocsFromServer(reqQuery),
+      getDocFromServer(doc(db, 'system_metadata', 'master_data')),
       isBootstrappedAdmin
-        ? getDocsFromServer(collection(db, 'users')).catch(() => getDocs(collection(db, 'users')))
+        ? getDocsFromServer(collection(db, 'users')).catch(() => null)
         : Promise.resolve(null),
     ]);
+
+    firestoreServerVerified = true;
+    lastFirestoreError = null;
+    masterDataExistsInCloud = metaSnap.exists();
+    notifyAuthSubscribers();
 
     const reqs: Requerimiento[] = [];
     reqSnap.forEach((d) => {
@@ -662,6 +907,9 @@ export async function firestorePullAllNow(): Promise<boolean> {
     updateCallback(payload);
     return true;
   } catch (err) {
+    lastFirestoreError = formatFriendlyFirestoreError(err);
+    firestoreServerVerified = false;
+    notifyAuthSubscribers();
     console.warn('[Firestore] Error consultando datos en línea:', err);
     return false;
   }
@@ -715,17 +963,23 @@ export async function firestoreFetchByDateRange(
 async function seedInitialMasterData() {
   if (!hasVerifiedFirebaseAuth()) return;
   try {
+    const provided = masterDataSeedProvider ? masterDataSeedProvider() : null;
     await setDoc(doc(db, 'system_metadata', 'master_data'), {
       id: 'master_data',
-      areas: MAESTRO_AREAS,
-      fundos: MAESTRO_FUNDOS,
-      zonas: MAESTRO_ZONAS,
-      paraderos: MAESTRO_PARADEROS,
-      comedores: MAESTRO_COMEDORES,
+      areas: provided?.areas?.length ? provided.areas : MAESTRO_AREAS,
+      fundos: provided?.fundos?.length ? provided.fundos : MAESTRO_FUNDOS,
+      zonas: provided?.zonas?.length ? provided.zonas : MAESTRO_ZONAS,
+      paraderos: provided?.paraderos?.length ? provided.paraderos : MAESTRO_PARADEROS,
+      comedores: provided?.comedores?.length ? provided.comedores : MAESTRO_COMEDORES,
+      ...(provided?.unidadesBus?.length ? { unidadesBus: provided.unidadesBus } : {}),
       lastUpdated: new Date().toISOString(),
     });
+    masterDataExistsInCloud = true;
+    firestoreServerVerified = true;
+    lastFirestoreError = null;
+    notifyAuthSubscribers();
   } catch (err) {
-    console.warn('[Firestore] No se pudieron sembrar maestros:', err);
+    recordFirestoreErrorState(err, OperationType.WRITE, 'system_metadata/master_data');
   }
 }
 
@@ -749,8 +1003,11 @@ export async function firestoreSaveRequerimiento(
     try {
       // Operación atómica de 1 sola escritura en Firestore para el 99.9% de casos (<= 250 paraderos)
       if (detalles.length <= 250) {
-        await setDoc(doc(db, 'requerimientos', req.id), cleanReq);
-        knownFirestoreReqIds.add(req.id);
+        await setDoc(doc(db, 'requerimientos', cleanReq.id), cleanReq);
+        knownFirestoreReqIds.add(cleanReq.id);
+        firestoreServerVerified = true;
+        lastFirestoreError = null;
+        notifyAuthSubscribers();
         return true;
       }
 
@@ -759,7 +1016,7 @@ export async function firestoreSaveRequerimiento(
       const batches = [];
       const overflowDets = detalles.slice(250);
       const firstBatch = writeBatch(db);
-      const reqRef = doc(db, 'requerimientos', req.id);
+      const reqRef = doc(db, 'requerimientos', cleanReq.id);
       firstBatch.set(reqRef, cleanReq);
 
       overflowDets.slice(0, CHUNK_SIZE).forEach((det) => {
@@ -784,13 +1041,16 @@ export async function firestoreSaveRequerimiento(
       }
 
       await Promise.all(batches);
-      knownFirestoreReqIds.add(req.id);
+      knownFirestoreReqIds.add(cleanReq.id);
+      firestoreServerVerified = true;
+      lastFirestoreError = null;
+      notifyAuthSubscribers();
       return true;
     } catch (err: unknown) {
       if (attempt >= maxAttempts) {
         handleFirestoreError(err, OperationType.WRITE, path);
       }
-      await new Promise((resolve) => setTimeout(resolve, attempt * 200 + Math.random() * 100));
+      await new Promise((resolve) => setTimeout(resolve, attempt * 250 + Math.random() * 120));
     }
   }
   return false;
@@ -897,16 +1157,22 @@ export async function firestoreSaveMasterData(data: {
   const path = 'system_metadata/master_data';
   try {
     const metaRef = doc(db, 'system_metadata', 'master_data');
-    const cleanData = JSON.parse(JSON.stringify(data));
-    await setDoc(
-      metaRef,
-      {
-        id: 'master_data',
-        ...cleanData,
-        lastUpdated: new Date().toISOString(),
-      },
-      { merge: true }
-    );
+    const allowedPayload: Record<string, unknown> = {
+      id: 'master_data',
+      lastUpdated: new Date().toISOString(),
+    };
+    if (Array.isArray(data.areas)) allowedPayload.areas = JSON.parse(JSON.stringify(data.areas)).slice(0, 200);
+    if (Array.isArray(data.fundos)) allowedPayload.fundos = JSON.parse(JSON.stringify(data.fundos)).slice(0, 200);
+    if (Array.isArray(data.zonas)) allowedPayload.zonas = JSON.parse(JSON.stringify(data.zonas)).slice(0, 200);
+    if (Array.isArray(data.paraderos)) allowedPayload.paraderos = JSON.parse(JSON.stringify(data.paraderos)).slice(0, 500);
+    if (Array.isArray(data.comedores)) allowedPayload.comedores = JSON.parse(JSON.stringify(data.comedores)).slice(0, 200);
+    if (Array.isArray(data.unidadesBus)) allowedPayload.unidadesBus = JSON.parse(JSON.stringify(data.unidadesBus)).slice(0, 100);
+
+    await setDoc(metaRef, allowedPayload, { merge: true });
+    masterDataExistsInCloud = true;
+    firestoreServerVerified = true;
+    lastFirestoreError = null;
+    notifyAuthSubscribers();
     return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);

@@ -1,12 +1,12 @@
 {
-  "projectId": "integral-vim-407523",
-  "appId": "1:966935736942:web:1ef387d1efcbcc69912c7f",
-  "apiKey": "AIzaSyAFIuthlD6HBpC91lFImWlBLS2h16t5AM0",
-  "authDomain": "integral-vim-407523.firebaseapp.com",
+  "projectId": "tdp-camposol",
+  "appId": "1:545430720314:web:a95e65b5a64da7f3ae8a03",
+  "apiKey": "AIzaSyBS7s5CAnoYn3QltQsGFocMhLa-lxpYJ8s",
+  "authDomain": "tdp-camposol.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-requerimientotdp-ea61a669-2fda-4cc9-9239-1a8eb36d2e18",
-  "storageBucket": "integral-vim-407523.firebasestorage.app",
-  "messagingSenderId": "966935736942",
+  "storageBucket": "tdp-camposol.firebasestorage.app",
+  "messagingSenderId": "545430720314",
   "measurementId": "",
-  "oAuthClientId": "966935736942-s3tnmnmhcerkl4v9jgehcl8neohqvg7c.apps.googleusercontent.com",
+  "oAuthClientId": "545430720314-okm8fpsdh3qo208mhrhnfc2j8fuvfvg0.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

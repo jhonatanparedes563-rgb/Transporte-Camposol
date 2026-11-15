@@ -23,6 +23,7 @@ interface AuthenticatedRequest extends Request {
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
 const SECRET_FILE = path.join(DATA_DIR, '.session-secret');
+const SERVER_BOOT_ID = `${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}`;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días operativos con renovación deslizante
 const VALID_ESTADOS: EstadoRequerimiento[] = [
   'PENDIENTE',
@@ -394,7 +395,7 @@ async function startServer() {
       res.setHeader('Vary', 'Origin');
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma, X-Requested-With');
       if (req.method === 'OPTIONS') {
         return res.status(204).end();
       }
@@ -412,6 +413,22 @@ async function startServer() {
     next();
   });
 
+  // Registro diagnóstico liviano para tráfico /api/* (sin credenciales, tokens ni PII)
+  app.use('/api', (req, res, next) => {
+    const start = Date.now();
+    const reqPath = req.path;
+    res.on('finish', () => {
+      if (reqPath === '/sync/version' && res.statusCode < 400) return;
+      const hasBearer = typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer ');
+      const hasCookie = typeof req.headers.cookie === 'string' && req.headers.cookie.includes('camposol_token=');
+      const origin = req.headers.origin || '-';
+      console.log(
+        `[API] ${req.method} /api${reqPath} -> ${res.statusCode} (${Date.now() - start}ms) bearer=${hasBearer} cookie=${hasCookie} origin=${origin}`
+      );
+    });
+    next();
+  });
+
   const store = getStore();
 
   // -------------------------------------------------------------
@@ -421,6 +438,7 @@ async function startServer() {
     res.json({
       status: 'ok',
       service: 'CAMPOSOL Transporte API',
+      bootId: SERVER_BOOT_ID,
       timestamp: new Date().toISOString(),
       stats: getStore().getTotalStats(),
     });
@@ -612,7 +630,7 @@ async function startServer() {
     sseClients.add(client);
 
     res.write(
-      `event: ready\ndata: ${JSON.stringify({ revision: getStore().getRevision(), connectedAt: new Date().toISOString() })}\n\n`
+      `event: ready\ndata: ${JSON.stringify({ revision: getStore().getRevision(), bootId: SERVER_BOOT_ID, connectedAt: new Date().toISOString() })}\n\n`
     );
 
     req.on('close', () => {
@@ -624,6 +642,7 @@ async function startServer() {
     const dbStore = getStore();
     res.json({
       revision: dbStore.getRevision(),
+      bootId: SERVER_BOOT_ID,
       lastUpdated: dbStore.getLastUpdated(),
       count: dbStore.getTotalStats().totalRequerimientos,
     });

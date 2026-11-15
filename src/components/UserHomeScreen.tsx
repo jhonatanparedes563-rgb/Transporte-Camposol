@@ -14,15 +14,19 @@ import {
   MapPin,
   Sprout,
   RefreshCw,
+  Cloud,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, AppUser } from '../types';
 import { getHorarioDisplay } from '../data/masterData';
 import {
   getCloudSyncStatus,
+  getRequirementSyncState,
   processPendingSyncQueue,
   syncWithServerDetailed,
   subscribeToDataChanges,
+  connectCloudSyncWithGoogle,
 } from '../services/storageService';
+import { clearActiveSession } from '../services/authService';
 import busBannerImg from '../assets/images/camposol_bus_banner_light_1794665350151.jpg';
 
 interface UserHomeScreenProps {
@@ -44,6 +48,7 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   const [bannerImgFailed, setBannerImgFailed] = useState(false);
   const [syncStatus, setSyncStatus] = useState(() => getCloudSyncStatus());
   const [isSendingOutbox, setIsSendingOutbox] = useState(false);
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
   const [outboxHint, setOutboxHint] = useState('');
 
   useEffect(() => {
@@ -60,21 +65,46 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
     setIsSendingOutbox(true);
     setOutboxHint('');
     try {
-      await processPendingSyncQueue();
+      await processPendingSyncQueue(true);
       const res = await syncWithServerDetailed(true);
       const updated = getCloudSyncStatus();
       setSyncStatus(updated);
-      if (updated.pendingOutboxCount > 0 && !res.ok) {
+      if (updated.state === 'Error' && updated.lastError) {
+        setOutboxHint(updated.lastError);
+      } else if (updated.pendingOutboxCount > 0 && !res.ok) {
         if (res.reason === 'cookie_check') {
           setOutboxHint('Recargue la página para autorizar el envío en línea.');
         } else if (res.reason === 'session_expired' || res.reason === 'no_session') {
-          setOutboxHint('Sesión local vencida. Vuelva a iniciar sesión para enviar.');
+          if (!updated.firebaseConnected) {
+            setOutboxHint('Conecte su cuenta Google o inicie sesión para enviar a la nube.');
+          } else {
+            clearActiveSession(
+              `Tiene ${updated.pendingOutboxCount} requerimiento(s) guardado(s) en su teléfono. Inicie sesión nuevamente para enviarlos automáticamente a la web.`
+            );
+          }
+          return;
         } else {
-          setOutboxHint('Sin conexión con el servidor web en este momento.');
+          setOutboxHint(updated.lastError || 'Sin conexión con el servidor web en este momento.');
         }
       }
     } finally {
       setIsSendingOutbox(false);
+    }
+  };
+
+  const handleConnectGoogleFromOutbox = async () => {
+    setIsConnectingGoogle(true);
+    setOutboxHint('');
+    try {
+      const res = await connectCloudSyncWithGoogle();
+      if (res.success) {
+        await processPendingSyncQueue(true);
+        setSyncStatus(getCloudSyncStatus());
+      } else if (res.error) {
+        setOutboxHint(res.error);
+      }
+    } finally {
+      setIsConnectingGoogle(false);
     }
   };
 
@@ -184,37 +214,123 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
             <strong className="font-bold text-[#1B3A57]">
               {currentUser?.nombre || 'Solicitante'}
             </strong>
+            {currentUser?.fundo ? (
+              <span className="ml-1.5 text-[10.5px]! font-semibold text-[#15803D]">
+                · {currentUser.fundo}
+              </span>
+            ) : null}
           </span>
-          {currentUser?.fundo && (
-            <span className="text-[10.5px]! font-semibold text-[#15803D] shrink-0 whitespace-nowrap">
-              {currentUser.fundo}
+          <button
+            type="button"
+            id="btn-home-sync-chip"
+            onClick={() => {
+              if (!syncStatus.firebaseConnected) {
+                void handleConnectGoogleFromOutbox();
+              } else {
+                void handleFlushPendingOutbox();
+              }
+            }}
+            disabled={isConnectingGoogle || isSendingOutbox}
+            title={
+              syncStatus.lastError ||
+              (syncStatus.firebaseConnected
+                ? `Conectado a ${syncStatus.projectId}`
+                : 'Tocar para conectar con Google Cloud Firestore')
+            }
+            className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px]! font-bold border transition-colors cursor-pointer disabled:opacity-60 ${
+              syncStatus.state === 'Sincronizado'
+                ? 'bg-[#EAF7E4] border-[#BFE6B3] text-[#15803D]'
+                : syncStatus.state === 'Error'
+                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                : 'bg-amber-50 border-amber-200 text-amber-800'
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                syncStatus.state === 'Sincronizado'
+                  ? 'bg-[#16A34A]'
+                  : syncStatus.state === 'Error'
+                  ? 'bg-rose-600'
+                  : 'bg-amber-500'
+              }`}
+            />
+            <span>
+              {isConnectingGoogle || isSendingOutbox
+                ? 'Sincronizando...'
+                : !syncStatus.firebaseConnected && syncStatus.state !== 'Sincronizado'
+                ? `${syncStatus.state} · Google`
+                : syncStatus.state}
             </span>
-          )}
+          </button>
         </div>
       </div>
 
-      {syncStatus.pendingOutboxCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-3.5 py-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)] shrink-0 flex items-center justify-between gap-2">
+      {(syncStatus.pendingOutboxCount > 0 ||
+        syncStatus.errorOutboxCount > 0 ||
+        syncStatus.state === 'Error') && (
+        <div
+          className={`rounded-2xl px-3.5 py-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)] shrink-0 flex items-center justify-between gap-2 border ${
+            syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
+              ? 'bg-rose-50 border-rose-200'
+              : 'bg-amber-50 border-amber-200'
+          }`}
+        >
           <div className="min-w-0">
-            <div className="text-[11.5px]! font-bold text-amber-900 leading-tight">
-              {syncStatus.pendingOutboxCount === 1
+            <div
+              className={`text-[11.5px]! font-bold leading-tight ${
+                syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
+                  ? 'text-rose-900'
+                  : 'text-amber-900'
+              }`}
+            >
+              {syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
+                ? syncStatus.pendingOutboxCount > 0
+                  ? `Error al enviar ${syncStatus.pendingOutboxCount} requerimiento(s)`
+                  : 'Error de sincronización con Firebase'
+                : syncStatus.pendingOutboxCount === 1
                 ? '1 requerimiento por enviar a la web'
                 : `${syncStatus.pendingOutboxCount} requerimientos por enviar a la web`}
             </div>
-            <div className="text-[10px]! text-amber-800 leading-tight">
-              {outboxHint || 'Se enviará automáticamente al recuperar conexión.'}
+            <div
+              className={`text-[10px]! leading-tight break-words ${
+                syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
+                  ? 'text-rose-700'
+                  : 'text-amber-800'
+              }`}
+            >
+              {outboxHint ||
+                syncStatus.lastError ||
+                'Se enviará automáticamente al recuperar conexión.'}
             </div>
           </div>
-          <button
-            type="button"
-            id="btn-home-flush-outbox"
-            onClick={handleFlushPendingOutbox}
-            disabled={isSendingOutbox}
-            className="shrink-0 px-2.5 py-1 rounded-full bg-white hover:bg-amber-100 border border-amber-300 text-amber-900 text-[10.5px]! font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer"
-          >
-            <RefreshCw className={`w-3 h-3 ${isSendingOutbox ? 'animate-spin' : ''}`} />
-            <span>Reintentar</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!syncStatus.firebaseConnected && (
+              <button
+                type="button"
+                id="btn-home-connect-google"
+                onClick={handleConnectGoogleFromOutbox}
+                disabled={isConnectingGoogle}
+                className="shrink-0 px-2.5 py-1 rounded-full bg-[#1B3A57] hover:bg-[#142c42] text-white text-[10.5px]! font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+              >
+                <Cloud className="w-3 h-3" />
+                <span>{isConnectingGoogle ? '...' : 'Google'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              id="btn-home-flush-outbox"
+              onClick={handleFlushPendingOutbox}
+              disabled={isSendingOutbox}
+              className={`shrink-0 px-2.5 py-1 rounded-full bg-white border text-[10.5px]! font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer ${
+                syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
+                  ? 'hover:bg-rose-100 border-rose-300 text-rose-900'
+                  : 'hover:bg-amber-100 border-amber-300 text-amber-900'
+              }`}
+            >
+              <RefreshCw className={`w-3 h-3 ${isSendingOutbox ? 'animate-spin' : ''}`} />
+              <span>Reintentar</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -359,9 +475,27 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
                 Tu última solicitud
               </span>
             </div>
-            <span className="px-2.5 py-0.5 rounded-full bg-[#E5F7DC] border border-[#C6E9B4] text-[#166534] font-mono text-[11px]! font-bold shrink-0">
-              {latestReq.numeroRequerimiento}
-            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {(() => {
+                const latestSync = getRequirementSyncState(latestReq.id);
+                return (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[9.5px]! font-bold border ${
+                      latestSync.status === 'Sincronizado'
+                        ? 'bg-[#EAF7E4] border-[#C6E9B4] text-[#15803D]'
+                        : latestSync.status === 'Error'
+                        ? 'bg-rose-50 border-rose-200 text-rose-700'
+                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                    }`}
+                  >
+                    {latestSync.status}
+                  </span>
+                );
+              })()}
+              <span className="px-2.5 py-0.5 rounded-full bg-[#E5F7DC] border border-[#C6E9B4] text-[#166534] font-mono text-[11px]! font-bold shrink-0">
+                {latestReq.numeroRequerimiento}
+              </span>
+            </div>
           </div>
 
           <div className="mt-2.5 bg-[#F7FAFC] border border-[#EDF2F7] rounded-xl px-2.5 min-[375px]:px-3 py-2 grid grid-cols-2 gap-2.5 items-center">

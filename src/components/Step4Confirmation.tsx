@@ -9,14 +9,18 @@ import {
   PlusCircle,
   RefreshCw,
   LogIn,
+  Cloud,
 } from 'lucide-react';
 import { Requerimiento } from '../types';
 import {
   getCloudSyncStatus,
+  getRequirementSyncState,
   processPendingSyncQueue,
   syncWithServerDetailed,
   subscribeToDataChanges,
+  connectCloudSyncWithGoogle,
   SyncOutcomeReason,
+  RequirementSyncState,
 } from '../services/storageService';
 import { clearActiveSession } from '../services/authService';
 
@@ -43,18 +47,33 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
   const [localReason, setLocalReason] = useState<SyncOutcomeReason | undefined>(syncReason);
   const [localNotice, setLocalNotice] = useState<string>(syncNotice || '');
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+  const [cloudStatus, setCloudStatus] = useState(() => getCloudSyncStatus());
+  const [reqSyncState, setReqSyncState] = useState<RequirementSyncState>(() =>
+    getRequirementSyncState(requerimiento.id)
+  );
 
   useEffect(() => {
     setIsSynced(syncedToServer);
     setLocalReason(syncReason);
     setLocalNotice(syncNotice || '');
+    setReqSyncState(getRequirementSyncState(requerimiento.id));
   }, [syncedToServer, syncReason, syncNotice, requerimiento.id]);
 
   useEffect(() => {
     const refresh = () => {
       const st = getCloudSyncStatus();
-      if (st.pendingOutboxCount === 0 && (st.firebaseConnected || st.hasServerSession)) {
+      const itemSt = getRequirementSyncState(requerimiento.id);
+      setCloudStatus(st);
+      setReqSyncState(itemSt);
+      if (itemSt.status === 'Sincronizado' && (st.firebaseConnected || st.hasServerSession)) {
         setIsSynced(true);
+        setLocalNotice('');
+      } else if (itemSt.status === 'Error') {
+        setIsSynced(false);
+        if (itemSt.error) setLocalNotice(itemSt.error);
+      } else if (itemSt.status === 'Pendiente') {
+        setIsSynced(false);
       }
     };
     refresh();
@@ -62,24 +81,33 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
     return () => {
       unsubData();
     };
-  }, []);
+  }, [requerimiento.id]);
 
   const handleRetrySync = async () => {
     setIsRetrying(true);
     try {
-      await processPendingSyncQueue();
+      await processPendingSyncQueue(true);
       const res = await syncWithServerDetailed(true);
       const after = getCloudSyncStatus();
-      if (res.ok && after.pendingOutboxCount === 0 && (after.firebaseConnected || after.hasServerSession)) {
+      const itemAfter = getRequirementSyncState(requerimiento.id);
+      setCloudStatus(after);
+      setReqSyncState(itemAfter);
+      if (itemAfter.status === 'Sincronizado' && res.ok) {
         setIsSynced(true);
         setLocalReason('ok');
         setLocalNotice('');
+      } else if (itemAfter.status === 'Error') {
+        setIsSynced(false);
+        setLocalReason('firestore_error');
+        setLocalNotice(itemAfter.error || after.lastError || 'Error al sincronizar con Firebase.');
       } else if (!res.ok) {
         setLocalReason(res.reason);
         if (res.reason === 'cookie_check') {
           setLocalNotice('La autorización del navegador requiere recargar la página para enviar datos en línea.');
         } else if (res.reason === 'session_expired' || res.reason === 'no_session') {
-          setLocalNotice('Su sesión está en modo local. Toque "Reconectar sesión" para enviar a la web.');
+          setLocalNotice('Conecte con Google o inicie sesión para sincronizar con tdp-camposol.');
+        } else if (after.lastError) {
+          setLocalNotice(after.lastError);
         }
       }
     } finally {
@@ -92,6 +120,38 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
       `El requerimiento ${requerimiento.numeroRequerimiento} está guardado de forma segura en su teléfono. Inicie sesión para enviarlo automáticamente a la web.`
     );
   };
+
+  const handleConnectGoogle = async () => {
+    setIsConnectingGoogle(true);
+    try {
+      const res = await connectCloudSyncWithGoogle();
+      if (res.success) {
+        await processPendingSyncQueue(true);
+        const after = getCloudSyncStatus();
+        const itemAfter = getRequirementSyncState(requerimiento.id);
+        setCloudStatus(after);
+        setReqSyncState(itemAfter);
+        if (itemAfter.status === 'Sincronizado') {
+          setIsSynced(true);
+          setLocalReason('ok');
+          setLocalNotice('');
+        } else if (itemAfter.status === 'Error') {
+          setLocalNotice(itemAfter.error || after.lastError || 'Error al sincronizar.');
+        }
+      } else if (res.error) {
+        setLocalNotice(res.error);
+      }
+    } finally {
+      setIsConnectingGoogle(false);
+    }
+  };
+
+  const effectiveSyncStatus =
+    reqSyncState.status === 'Error' || localReason === 'firestore_error'
+      ? 'Error'
+      : reqSyncState.status === 'Sincronizado' && isSynced
+      ? 'Sincronizado'
+      : 'Pendiente';
 
   const copyNumber = () => {
     navigator.clipboard.writeText(requerimiento.numeroRequerimiento);
@@ -121,17 +181,50 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
         </div>
       </div>
 
-      {/* Main Title & Subtitle */}
-      <div className="space-y-1">
+      {/* Main Title & Real Sync State */}
+      <div className="space-y-1.5">
         <h2 className="text-xl sm:text-2xl font-bold text-[#1B3A57] tracking-tight">
           ¡Requerimiento registrado!
         </h2>
-        <p className={`text-xs sm:text-sm font-medium ${isSynced ? 'text-[#2F7D18]' : 'text-amber-700'}`}>
-          {isSynced
-            ? 'Guardado en línea y transmitido en tiempo real a Procesos.'
-            : localNotice || 'Guardado en el teléfono; se enviará a la web en cuanto haya conexión.'}
+        <div className="flex justify-center">
+          <span
+            id="badge-step4-sync-status"
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+              effectiveSyncStatus === 'Sincronizado'
+                ? 'bg-[#EAF7E4] border-[#C6E9B4] text-[#2F7D18]'
+                : effectiveSyncStatus === 'Error'
+                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                : 'bg-amber-50 border-amber-200 text-amber-800'
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                effectiveSyncStatus === 'Sincronizado'
+                  ? 'bg-[#22A846]'
+                  : effectiveSyncStatus === 'Error'
+                  ? 'bg-rose-600'
+                  : 'bg-amber-500'
+              }`}
+            />
+            <span>Estado: {effectiveSyncStatus}</span>
+          </span>
+        </div>
+        <p
+          className={`text-xs sm:text-sm font-medium ${
+            effectiveSyncStatus === 'Sincronizado'
+              ? 'text-[#2F7D18]'
+              : effectiveSyncStatus === 'Error'
+              ? 'text-rose-700'
+              : 'text-amber-700'
+          }`}
+        >
+          {effectiveSyncStatus === 'Sincronizado'
+            ? 'Sincronizado en tiempo real con Firebase (tdp-camposol) y Procesos.'
+            : effectiveSyncStatus === 'Error'
+            ? reqSyncState.error || localNotice || cloudStatus.lastError || 'Error al sincronizar con la nube.'
+            : localNotice || 'Guardado en el teléfono; se enviará automáticamente en cuanto haya conexión.'}
         </p>
-        {!isSynced && (
+        {effectiveSyncStatus !== 'Sincronizado' && (
           <div className="pt-1.5 flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
@@ -143,7 +236,7 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
               <RefreshCw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`} />
               <span>{isRetrying ? 'Enviando...' : 'Reintentar envío'}</span>
             </button>
-            {(localReason === 'session_expired' || localReason === 'no_session') && (
+            {(localReason === 'session_expired' || localReason === 'no_session') && !cloudStatus.firebaseConnected && (
               <button
                 type="button"
                 id="btn-step4-reconnect-session"
@@ -163,6 +256,18 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
               >
                 <RefreshCw className="w-3 h-3" />
                 <span>Recargar página</span>
+              </button>
+            )}
+            {!cloudStatus.firebaseConnected && (
+              <button
+                type="button"
+                id="btn-step4-connect-google"
+                onClick={handleConnectGoogle}
+                disabled={isConnectingGoogle}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1B3A57] hover:bg-[#142c42] text-white text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <Cloud className="w-3 h-3" />
+                <span>{isConnectingGoogle ? 'Conectando...' : 'Conectar con Google'}</span>
               </button>
             )}
           </div>

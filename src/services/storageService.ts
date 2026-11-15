@@ -24,6 +24,8 @@ import {
   initializeFirestoreSync,
   registerFirestoreSyncCallback,
   registerFirebaseConnectedCallback,
+  registerMasterDataSeedProvider,
+  subscribeToFirebaseAuth,
   firestoreSaveRequerimiento,
   firestoreUpdateRequerimientoEstado,
   firestoreDeleteRequerimiento,
@@ -35,6 +37,8 @@ import {
   getFirebaseUserInfo,
   connectWithGoogleFirebase,
   hasKnownFirestoreReqId,
+  hasMasterDataInFirestore,
+  formatFriendlyFirestoreError,
 } from './firestoreService';
 import {
   getAuthHeaders,
@@ -48,7 +52,11 @@ import {
   isCookieCheckResponse,
   resetWorkingApiPrefix,
   recoverServerSessionIfPossible,
+  isHostedExpressOrigin,
+  notifyCookieCheckRequired,
 } from './authService';
+
+export { isHostedExpressOrigin };
 import {
   idbLoadSnapshot,
   idbPutRequerimientos,
@@ -178,30 +186,62 @@ function ensureMemInitialized(): void {
   }
 }
 
+function buildReqDedupeSig(r: Partial<Requerimiento>): string {
+  return [
+    String(r.numeroRequerimiento || '').trim().toUpperCase(),
+    String(r.fecha || '').trim(),
+    String(r.fundo || '').trim().toUpperCase(),
+    String(r.totalPersonas || ''),
+    String(r.userUsername || r.usuario || '').trim().toLowerCase(),
+  ].join('|');
+}
+
 function mergeUpsertRequerimientos(incomingReqs: Requerimiento[], persistToIdb: boolean = true): boolean {
   ensureMemInitialized();
   const cleanIncoming = (incomingReqs || []).filter((r) => r && r.id && !isLegacyDemoReq(r));
   if (cleanIncoming.length === 0) return false;
 
   const byId = new Map<string, Requerimiento>();
+  const bySig = new Map<string, Requerimiento>();
   for (const r of memReqs) {
     byId.set(r.id, r);
+    if (r.numeroRequerimiento) {
+      bySig.set(buildReqDedupeSig(r), r);
+    }
   }
 
   const changedForIdb: Requerimiento[] = [];
   for (const inc of cleanIncoming) {
     const prev = byId.get(inc.id);
-    if (!prev) {
-      byId.set(inc.id, inc);
-      changedForIdb.push(inc);
-    } else {
+    if (prev) {
       const prevStamp = prev.updatedAt || prev.fechaRegistro || '';
       const incStamp = inc.updatedAt || inc.fechaRegistro || '';
-      if (incStamp >= prevStamp || inc.estado !== prev.estado) {
+      if (incStamp >= prevStamp || inc.estado !== prev.estado || (inc.firebaseUid && !prev.firebaseUid)) {
         byId.set(inc.id, inc);
+        if (inc.numeroRequerimiento) bySig.set(buildReqDedupeSig(inc), inc);
         changedForIdb.push(inc);
       }
+      continue;
     }
+
+    const sig = inc.numeroRequerimiento ? buildReqDedupeSig(inc) : '';
+    const prevBySig = sig ? bySig.get(sig) : undefined;
+    if (prevBySig && prevBySig.id !== inc.id) {
+      // Evitar duplicados si el mismo requerimiento regresó con distinto ID técnico
+      const prevHasCloud = Boolean(prevBySig.firebaseUid || hasKnownFirestoreReqId(prevBySig.id));
+      const incHasCloud = Boolean(inc.firebaseUid || hasKnownFirestoreReqId(inc.id));
+      if (!prevHasCloud && incHasCloud) {
+        byId.delete(prevBySig.id);
+        byId.set(inc.id, inc);
+        bySig.set(sig, inc);
+        changedForIdb.push(inc);
+      }
+      continue;
+    }
+
+    byId.set(inc.id, inc);
+    if (sig) bySig.set(sig, inc);
+    changedForIdb.push(inc);
   }
 
   memReqs = Array.from(byId.values()).sort((a, b) =>
@@ -260,16 +300,13 @@ async function bridgeFirestoreReqsToExpressIfAdmin(reqs: Requerimiento[]): Promi
   const missing = reqs.filter((r) => r.id && !knownExpressReqIds.has(r.id)).slice(0, 100);
   if (missing.length === 0) return;
 
-  const batchItems = missing.map((r) => {
-    knownExpressReqIds.add(r.id);
-    return {
-      requerimiento: r,
-      detalles: getDetallesByRequerimientoId(r.id),
-    };
-  });
+  const batchItems = missing.map((r) => ({
+    requerimiento: r,
+    detalles: getDetallesByRequerimientoId(r.id),
+  }));
 
   try {
-    await apiFetch(
+    const res = await apiFetch(
       '/api/requerimientos/batch',
       {
         method: 'POST',
@@ -281,6 +318,9 @@ async function bridgeFirestoreReqsToExpressIfAdmin(reqs: Requerimiento[]): Promi
       },
       10000
     );
+    if (res.ok) {
+      missing.forEach((r) => knownExpressReqIds.add(r.id));
+    }
   } catch {
     // retry on future sync if needed
   }
@@ -403,10 +443,28 @@ if (typeof window !== 'undefined') {
       // IndexedDB unavailable
     });
 
+  registerMasterDataSeedProvider(() => ({
+    areas: getStoredAreas(),
+    fundos: getStoredFundos(),
+    zonas: getStoredZonas(),
+    paraderos: getStoredParaderos(),
+    comedores: getStoredComedores(),
+    unidadesBus: getStoredUnidadesBus(),
+  }));
+
   registerFirestoreSyncCallback((payload) => {
     let changed = false;
 
     if (payload.requerimientos && Array.isArray(payload.requerimientos)) {
+      payload.requerimientos.forEach((r) => {
+        if (r?.id && hasKnownFirestoreReqId(r.id)) {
+          setRequirementSyncStatusRecord(r.id, {
+            status: 'Sincronizado',
+            syncedVia: 'firestore',
+            error: undefined,
+          });
+        }
+      });
       if (mergeUpsertRequerimientos(payload.requerimientos, true)) changed = true;
       void bridgeFirestoreReqsToExpressIfAdmin(payload.requerimientos);
     }
@@ -421,27 +479,28 @@ if (typeof window !== 'undefined') {
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(Array.from(byId.values())));
       changed = true;
     }
-    if (payload.areas && Array.isArray(payload.areas)) {
+    const pendingMaster = getPendingMasterSyncKeys();
+    if (payload.areas && Array.isArray(payload.areas) && !pendingMaster.has('areas')) {
       localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(payload.areas));
       changed = true;
     }
-    if (payload.fundos && Array.isArray(payload.fundos)) {
+    if (payload.fundos && Array.isArray(payload.fundos) && !pendingMaster.has('fundos')) {
       localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(payload.fundos));
       changed = true;
     }
-    if (payload.zonas && Array.isArray(payload.zonas)) {
+    if (payload.zonas && Array.isArray(payload.zonas) && !pendingMaster.has('zonas')) {
       localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(payload.zonas));
       changed = true;
     }
-    if (payload.paraderos && Array.isArray(payload.paraderos)) {
+    if (payload.paraderos && Array.isArray(payload.paraderos) && !pendingMaster.has('paraderos')) {
       localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(payload.paraderos));
       changed = true;
     }
-    if (payload.comedores && Array.isArray(payload.comedores)) {
+    if (payload.comedores && Array.isArray(payload.comedores) && !pendingMaster.has('comedores')) {
       localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(payload.comedores));
       changed = true;
     }
-    if (payload.unidadesBus && Array.isArray(payload.unidadesBus)) {
+    if (payload.unidadesBus && Array.isArray(payload.unidadesBus) && !pendingMaster.has('unidadesBus')) {
       localStorage.setItem(UNIDADES_BUS_STORAGE_KEY, JSON.stringify(payload.unidadesBus));
       changed = true;
     }
@@ -455,23 +514,47 @@ if (typeof window !== 'undefined') {
   registerFirebaseConnectedCallback(async (info) => {
     try {
       await firestorePullAllNow();
-      await processPendingSyncQueue();
+      await processPendingSyncQueue(true);
+
       if (info.isBootstrappedAdmin) {
+        if (!hasMasterDataInFirestore()) {
+          await firestoreSaveMasterData({
+            areas: getStoredAreas(),
+            fundos: getStoredFundos(),
+            zonas: getStoredZonas(),
+            paraderos: getStoredParaderos(),
+            comedores: getStoredComedores(),
+            unidadesBus: getStoredUnidadesBus(),
+          }).catch(() => false);
+        }
+
         const localReqs = getStoredRequerimientos()
           .filter((req) => req?.id && !hasKnownFirestoreReqId(req.id))
           .slice(0, 100);
         for (const req of localReqs) {
           const reqDets = getDetallesByRequerimientoId(req.id);
-          await firestoreSaveRequerimiento(req, reqDets, true).catch(() => false);
+          const ok = await firestoreSaveRequerimiento(req, reqDets, true).catch(() => false);
+          if (ok) {
+            setRequirementSyncStatusRecord(req.id, {
+              status: 'Sincronizado',
+              syncedVia: 'firestore',
+              error: undefined,
+            });
+          }
         }
         const localUsers = getStoredUsers();
         for (const u of localUsers) {
           await firestoreSaveUser(u).catch(() => false);
         }
       }
+      notifyListeners();
     } catch {
       // ignore non-fatal bootstrap sync errors
     }
+  });
+
+  subscribeToFirebaseAuth(() => {
+    notifyListeners();
   });
 
   initializeFirestoreSync().catch((err) => {
@@ -499,6 +582,9 @@ async function apiFetch(
       });
       if (timer) clearTimeout(timer);
       const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (isCookieCheckResponse(res, ct)) {
+        notifyCookieCheckRequired();
+      }
       if (ct.includes('application/json')) {
         markWorkingApiUrl(url, endpoint);
         return res;
@@ -523,6 +609,37 @@ let activeEventSource: EventSource | null = null;
 let sseConnected = false;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let sseCandidateIndex = 0;
+let knownServerBootId: string | null = null;
+const BOOT_RELOAD_STORAGE_KEY = 'camposol_boot_reloaded';
+
+function isUserActivelyEditing(): boolean {
+  if (typeof document === 'undefined') return false;
+  const active = document.activeElement;
+  return Boolean(active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName));
+}
+
+function handleServerBootId(bootId?: unknown): void {
+  if (typeof window === 'undefined' || typeof bootId !== 'string' || !bootId) return;
+  if (!knownServerBootId) {
+    knownServerBootId = bootId;
+    return;
+  }
+  if (knownServerBootId === bootId) return;
+  try {
+    if (sessionStorage.getItem(BOOT_RELOAD_STORAGE_KEY) === bootId) {
+      knownServerBootId = bootId;
+      return;
+    }
+    if (isUserActivelyEditing()) {
+      return;
+    }
+    knownServerBootId = bootId;
+    sessionStorage.setItem(BOOT_RELOAD_STORAGE_KEY, bootId);
+    window.location.reload();
+  } catch {
+    knownServerBootId = bootId;
+  }
+}
 
 function closeRealtimeSse(): void {
   sseConnected = false;
@@ -620,6 +737,7 @@ function ensureRealtimeSseConnected(): void {
       isOnline = true;
       try {
         const data = JSON.parse(evt.data || '{}');
+        handleServerBootId(data.bootId);
         const localRev = Number(localStorage.getItem(LAST_REVISION_KEY) || '0');
         if (data.revision && data.revision > localRev && localRev > 0) {
           void syncDeltaSince(localRev);
@@ -706,9 +824,11 @@ async function syncDeltaSince(sinceRev: number): Promise<boolean> {
   }
 }
 
-export type SyncOutcomeReason = 'ok' | 'no_session' | 'session_expired' | 'cookie_check' | 'network';
+export type SyncOutcomeReason = 'ok' | 'no_session' | 'session_expired' | 'cookie_check' | 'network' | 'firestore_error';
+export type SyncVisualState = 'Pendiente' | 'Sincronizado' | 'Error';
 
 let inFlightSyncPromise: Promise<{ ok: boolean; reason: SyncOutcomeReason }> | null = null;
+let lastMasterSyncError: string | null = null;
 
 // -------------------------------------------------------------
 // CLOUD SERVER & FIRESTORE SYNC ENGINE
@@ -720,22 +840,74 @@ export async function connectCloudSyncWithGoogle(): Promise<{
 }> {
   const res = await connectWithGoogleFirebase();
   if (res.success) {
+    await processPendingSyncQueue(true);
     await syncWithServerNow(true);
+    notifyListeners();
   }
   return res;
 }
 
-export function getCloudSyncStatus() {
+export function getCloudSyncStatus(): {
+  state: SyncVisualState;
+  isOnline: boolean;
+  isSyncing: boolean;
+  lastSync: Date | null;
+  lastError: string | null;
+  firebaseConnected: boolean;
+  firebaseServerVerified: boolean;
+  firebaseEmail: string | null;
+  projectId: string;
+  hasServerSession: boolean;
+  pendingOutboxCount: number;
+  errorOutboxCount: number;
+  masterPendingCount: number;
+} {
   const fb = getFirebaseUserInfo();
   const token = getAuthToken();
+  const hasServerSession = Boolean(token && !isStaticToken(token));
+  const queue = getSyncQueue();
+  const statusMap = readSyncStatusMap();
+  const masterPending = getPendingMasterSyncKeys();
+
+  let errorOutboxCount = 0;
+  let firstOutboxError: string | null = null;
+  for (const item of queue) {
+    const st = statusMap[item.id];
+    if (st?.status === 'Error') {
+      errorOutboxCount++;
+      if (!firstOutboxError && st.error) firstOutboxError = st.error;
+    }
+  }
+
+  const lastError = fb.lastError || lastMasterSyncError || firstOutboxError || null;
+
+  let state: SyncVisualState = 'Pendiente';
+  if (errorOutboxCount > 0 || Boolean(fb.lastError) || Boolean(lastMasterSyncError)) {
+    state = 'Error';
+  } else if (queue.length > 0 || masterPending.size > 0) {
+    state = 'Pendiente';
+  } else if (fb.connected && (fb.serverVerified || lastSyncDate !== null)) {
+    state = 'Sincronizado';
+  } else if (hasServerSession && isOnline && lastSyncDate !== null) {
+    state = 'Sincronizado';
+  } else {
+    state = 'Pendiente';
+  }
+
   return {
+    state,
     isOnline,
     isSyncing,
     lastSync: lastSyncDate,
+    lastError,
     firebaseConnected: fb.connected,
+    firebaseServerVerified: fb.serverVerified,
     firebaseEmail: fb.email,
-    hasServerSession: Boolean(token && !isStaticToken(token)),
-    pendingOutboxCount: getSyncQueue().length,
+    projectId: fb.projectId,
+    hasServerSession,
+    pendingOutboxCount: queue.length,
+    errorOutboxCount,
+    masterPendingCount: masterPending.size,
   };
 }
 
@@ -760,20 +932,23 @@ export async function syncWithServerDetailed(force: boolean = false): Promise<{
     const fbConnected = isFirestoreAuthenticated();
     let hasServerToken = Boolean(token && !isStaticToken(token));
 
-    if (!hasServerToken && !fbConnected) {
+    if (!hasServerToken) {
       const recovery = await recoverServerSessionIfPossible({ clearIfExpired: true });
       if (recovery.hasValidServerToken) {
         token = getAuthToken();
         hasServerToken = Boolean(token && !isStaticToken(token));
-      } else if (recovery.cookieCheckRequired) {
+      } else if (!fbConnected) {
         closeRealtimeSse();
-        return { ok: false, reason: 'cookie_check' };
+        if (recovery.cookieCheckRequired) {
+          return { ok: false, reason: 'cookie_check' };
+        }
+        if (recovery.expiredOnExpress) {
+          return { ok: false, reason: 'session_expired' };
+        }
+        return { ok: false, reason: 'no_session' };
       } else if (recovery.expiredOnExpress) {
         closeRealtimeSse();
         return { ok: false, reason: 'session_expired' };
-      } else {
-        closeRealtimeSse();
-        return { ok: false, reason: 'no_session' };
       }
     }
 
@@ -801,6 +976,7 @@ export async function syncWithServerDetailed(force: boolean = false): Promise<{
           const ct = (res.headers.get('content-type') || '').toLowerCase();
 
           if (isCookieCheckResponse(res, ct)) {
+            notifyCookieCheckRequired();
             failReason = 'cookie_check';
           } else if ((res.status === 401 || res.status === 403) && ct.includes('application/json')) {
             clearActiveSession(
@@ -1046,9 +1222,15 @@ if (typeof window !== 'undefined') {
         return;
       }
 
+      if (isCookieCheckResponse(res, ct)) {
+        notifyCookieCheckRequired();
+        return;
+      }
+
       if (res.ok && ct.includes('application/json')) {
         isOnline = true;
         const info = await res.json();
+        handleServerBootId(info.bootId);
         const localRev = Number(localStorage.getItem(LAST_REVISION_KEY) || '0');
 
         if (info.revision && info.revision > localRev) {
@@ -1142,9 +1324,24 @@ export function generateNextNumeroRequerimiento(): string {
 }
 
 // -------------------------------------------------------------
-// COLA DE SINCRONIZACIÓN PERSISTENTE (OUTBOX) PARA ALTA CONCURRENCIA
+// COLA DE SINCRONIZACIÓN PERSISTENTE (OUTBOX) PARA ALTA CONCURRENCIA Y BACKOFF
 // -------------------------------------------------------------
 const SYNC_QUEUE_KEY = 'camposol_sync_queue_v1';
+const SYNC_ITEM_STATUS_KEY = 'camposol_sync_item_status_v1';
+const MASTER_SYNC_PENDING_KEY = 'camposol_master_sync_pending_v1';
+const BACKOFF_SCHEDULE_MS = [5000, 15000, 30000, 60000, 120000, 300000];
+
+export interface RequirementSyncState {
+  status: SyncVisualState;
+  error?: string;
+  attempts?: number;
+  lastAttemptAt?: string;
+  syncedVia?: 'firestore' | 'express' | 'both';
+}
+
+interface StoredSyncStatusRecord extends RequirementSyncState {
+  updatedAt?: string;
+}
 
 interface QueuedSyncItem {
   id: string;
@@ -1152,6 +1349,120 @@ interface QueuedSyncItem {
   detalles: DetalleRequerimiento[];
   attempts: number;
   addedAt: string;
+  lastAttemptAt?: string;
+  nextRetryAt?: number;
+  lastError?: string;
+}
+
+type MasterCatalogKey = 'areas' | 'fundos' | 'zonas' | 'paraderos' | 'comedores' | 'unidadesBus';
+
+function getPendingMasterSyncKeys(): Set<MasterCatalogKey> {
+  try {
+    const raw = localStorage.getItem(MASTER_SYNC_PENDING_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? new Set(parsed as MasterCatalogKey[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function addPendingMasterSyncKey(key: MasterCatalogKey): void {
+  try {
+    const cur = getPendingMasterSyncKeys();
+    cur.add(key);
+    localStorage.setItem(MASTER_SYNC_PENDING_KEY, JSON.stringify(Array.from(cur)));
+  } catch {
+    // ignore
+  }
+}
+
+function clearPendingMasterSyncKeys(keys: MasterCatalogKey[]): void {
+  try {
+    const cur = getPendingMasterSyncKeys();
+    keys.forEach((k) => cur.delete(k));
+    if (cur.size === 0) {
+      localStorage.removeItem(MASTER_SYNC_PENDING_KEY);
+    } else {
+      localStorage.setItem(MASTER_SYNC_PENDING_KEY, JSON.stringify(Array.from(cur)));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function readSyncStatusMap(): Record<string, StoredSyncStatusRecord> {
+  try {
+    const raw = localStorage.getItem(SYNC_ITEM_STATUS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function setRequirementSyncStatusRecord(reqId: string, record: StoredSyncStatusRecord): void {
+  try {
+    const map = readSyncStatusMap();
+    map[reqId] = { ...record, updatedAt: new Date().toISOString() };
+    const entries = Object.entries(map);
+    if (entries.length > 500) {
+      entries.sort((a, b) => (b[1].updatedAt || '').localeCompare(a[1].updatedAt || ''));
+      const trimmed = Object.fromEntries(entries.slice(0, 450));
+      localStorage.setItem(SYNC_ITEM_STATUS_KEY, JSON.stringify(trimmed));
+    } else {
+      localStorage.setItem(SYNC_ITEM_STATUS_KEY, JSON.stringify(map));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function getRequirementSyncState(reqId: string): RequirementSyncState {
+  const queue = getSyncQueue();
+  const queued = queue.find((q) => q.id === reqId);
+  const statusMap = readSyncStatusMap();
+  const saved = statusMap[reqId];
+
+  if (queued) {
+    if (saved?.status === 'Error') {
+      return {
+        status: 'Error',
+        error: saved.error || queued.lastError,
+        attempts: queued.attempts,
+        lastAttemptAt: saved.lastAttemptAt || queued.lastAttemptAt,
+      };
+    }
+    return {
+      status: 'Pendiente',
+      error: saved?.error || queued.lastError,
+      attempts: queued.attempts,
+      lastAttemptAt: saved?.lastAttemptAt || queued.lastAttemptAt,
+    };
+  }
+
+  if (saved?.status === 'Error') {
+    return {
+      status: 'Error',
+      error: saved.error,
+      attempts: saved.attempts,
+      lastAttemptAt: saved.lastAttemptAt,
+    };
+  }
+
+  if (saved?.status === 'Pendiente') {
+    return {
+      status: 'Pendiente',
+      error: saved.error,
+      attempts: saved.attempts,
+      lastAttemptAt: saved.lastAttemptAt,
+    };
+  }
+
+  return {
+    status: 'Sincronizado',
+    syncedVia: saved?.syncedVia || (hasKnownFirestoreReqId(reqId) ? 'firestore' : 'express'),
+  };
 }
 
 function getSyncQueue(): QueuedSyncItem[] {
@@ -1160,6 +1471,14 @@ function getSyncQueue(): QueuedSyncItem[] {
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
+  }
+}
+
+function saveSyncQueue(queue: QueuedSyncItem[]): void {
+  try {
+    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+  } catch {
+    // ignore
   }
 }
 
@@ -1174,8 +1493,22 @@ function addToSyncQueue(requerimiento: Requerimiento, detalles: DetalleRequerimi
         attempts: 0,
         addedAt: new Date().toISOString(),
       });
-      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+      saveSyncQueue(queue);
     }
+    setRequirementSyncStatusRecord(requerimiento.id, {
+      status: 'Pendiente',
+      attempts: 0,
+    });
+  } catch {
+    // ignore
+  }
+}
+
+function updateQueuedItemRetry(id: string, patch: Partial<QueuedSyncItem>): void {
+  try {
+    const queue = getSyncQueue();
+    const updated = queue.map((q) => (q.id === id ? { ...q, ...patch } : q));
+    saveSyncQueue(updated);
   } catch {
     // ignore
   }
@@ -1184,7 +1517,7 @@ function addToSyncQueue(requerimiento: Requerimiento, detalles: DetalleRequerimi
 function removeFromSyncQueue(id: string): void {
   try {
     const queue = getSyncQueue().filter((q) => q.id !== id);
-    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    saveSyncQueue(queue);
   } catch {
     // ignore
   }
@@ -1225,12 +1558,40 @@ function reconcileLocalRequirement(
 
 let isFlushingQueue = false;
 
-async function processPendingSyncQueueInternal(): Promise<SyncOutcomeReason> {
-  if (typeof window === 'undefined' || isFlushingQueue || !navigator.onLine) {
+async function flushPendingMasterDataToFirestore(): Promise<void> {
+  const pending = getPendingMasterSyncKeys();
+  if (pending.size === 0 || !isFirestoreAuthenticated()) return;
+  const payload: Parameters<typeof firestoreSaveMasterData>[0] = {};
+  const keys = Array.from(pending);
+  if (pending.has('areas')) payload.areas = getStoredAreas();
+  if (pending.has('fundos')) payload.fundos = getStoredFundos();
+  if (pending.has('zonas')) payload.zonas = getStoredZonas();
+  if (pending.has('paraderos')) payload.paraderos = getStoredParaderos();
+  if (pending.has('comedores')) payload.comedores = getStoredComedores();
+  if (pending.has('unidadesBus')) payload.unidadesBus = getStoredUnidadesBus();
+  try {
+    const ok = await firestoreSaveMasterData(payload);
+    if (ok) {
+      clearPendingMasterSyncKeys(keys);
+      lastMasterSyncError = null;
+    }
+  } catch (err) {
+    lastMasterSyncError = formatFriendlyFirestoreError(err);
+  }
+}
+
+async function processPendingSyncQueueInternal(force: boolean = false): Promise<SyncOutcomeReason> {
+  if (typeof window === 'undefined' || isFlushingQueue) {
     return 'ok';
   }
+  if (!navigator.onLine) {
+    isOnline = false;
+    return 'network';
+  }
+
+  const pendingMasters = getPendingMasterSyncKeys();
   const queue = getSyncQueue();
-  if (queue.length === 0) return 'ok';
+  if (queue.length === 0 && pendingMasters.size === 0) return 'ok';
 
   let token = getAuthToken();
   const fbConnected = isFirestoreAuthenticated();
@@ -1253,16 +1614,29 @@ async function processPendingSyncQueueInternal(): Promise<SyncOutcomeReason> {
   isFlushingQueue = true;
   let flushedAny = false;
   let stopReason: SyncOutcomeReason = 'ok';
+  const now = Date.now();
+
   try {
+    if (fbConnected && pendingMasters.size > 0) {
+      await flushPendingMasterDataToFirestore();
+    }
+
     for (const item of queue) {
+      if (!force && item.nextRetryAt && now < item.nextRetryAt) {
+        continue;
+      }
+
       let firestoreOk = false;
       let expressOk = false;
+      let itemErr: string | undefined;
 
       if (fbConnected) {
         try {
-          firestoreOk = await firestoreSaveRequerimiento(item.requerimiento, item.detalles);
-        } catch {
+          firestoreOk = await firestoreSaveRequerimiento(item.requerimiento, item.detalles, false);
+        } catch (err) {
           firestoreOk = false;
+          itemErr = formatFriendlyFirestoreError(err);
+          stopReason = 'firestore_error';
         }
       }
 
@@ -1286,6 +1660,7 @@ async function processPendingSyncQueueInternal(): Promise<SyncOutcomeReason> {
           );
           const ct = (res.headers.get('content-type') || '').toLowerCase();
           if (isCookieCheckResponse(res, ct)) {
+            notifyCookieCheckRequired();
             stopReason = 'cookie_check';
             break;
           }
@@ -1307,44 +1682,68 @@ async function processPendingSyncQueueInternal(): Promise<SyncOutcomeReason> {
             stopReason = 'session_expired';
             break;
           } else if (res.status === 400) {
-            removeFromSyncQueue(item.id);
-            continue;
+            // Solicitud rechazada por validación en servidor web
+            itemErr = itemErr || 'El requerimiento no cumplió con las validaciones del servidor.';
           }
         } catch {
           stopReason = 'network';
-          // Reintento en la próxima pasada
         }
       }
 
-      if (expressOk || firestoreOk) {
+      if (firestoreOk || (expressOk && !fbConnected)) {
         removeFromSyncQueue(item.id);
+        setRequirementSyncStatusRecord(item.id, {
+          status: 'Sincronizado',
+          syncedVia: firestoreOk && expressOk ? 'both' : firestoreOk ? 'firestore' : 'express',
+          attempts: item.attempts + 1,
+          lastAttemptAt: new Date().toISOString(),
+        });
         flushedAny = true;
+      } else {
+        const nextAttempts = (item.attempts || 0) + 1;
+        const backoff =
+          BACKOFF_SCHEDULE_MS[Math.min(nextAttempts - 1, BACKOFF_SCHEDULE_MS.length - 1)];
+        const finalErr =
+          itemErr ||
+          (!fbConnected
+            ? 'Conéctese con Google para sincronizar este registro con Cloud Firestore (tdp-camposol).'
+            : 'Error de red o permiso al sincronizar con Firestore.');
+        updateQueuedItemRetry(item.id, {
+          attempts: nextAttempts,
+          lastAttemptAt: new Date().toISOString(),
+          nextRetryAt: Date.now() + backoff,
+          lastError: finalErr,
+        });
+        setRequirementSyncStatusRecord(item.id, {
+          status: itemErr ? 'Error' : 'Pendiente',
+          error: finalErr,
+          attempts: nextAttempts,
+          lastAttemptAt: new Date().toISOString(),
+        });
       }
     }
+
     if (flushedAny) {
       lastSyncDate = new Date();
       isOnline = true;
-      notifyListeners();
     }
+    notifyListeners();
   } finally {
     isFlushingQueue = false;
   }
   return stopReason;
 }
 
-export async function processPendingSyncQueue(): Promise<void> {
-  const status = await processPendingSyncQueueInternal();
-  if (status === 'ok' && getSyncQueue().length === 0) {
-    return;
-  }
+export async function processPendingSyncQueue(force: boolean = false): Promise<void> {
+  await processPendingSyncQueueInternal(force);
 }
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    processPendingSyncQueue();
+    void processPendingSyncQueue(true);
   });
   setInterval(() => {
-    processPendingSyncQueue();
+    void processPendingSyncQueue(false);
   }, 5000);
 }
 
@@ -1515,16 +1914,20 @@ async function pushRequerimientoToCloud(
       preAuthError = 'La autorización del navegador requiere recargar la página para enviar el requerimiento en línea.';
     } else if (recovery.expiredOnExpress) {
       preReason = 'session_expired';
-      preAuthError = 'Su sesión está en modo local. Toque "Reconectar sesión" para enviar este requerimiento en línea a la web.';
+      preAuthError = 'Su sesión está en modo local. Toque "Reconectar sesión" o "Conectar con Google" para enviar este requerimiento en línea.';
     } else {
       preReason = 'no_session';
+      preAuthError = 'Conéctese con Google para sincronizar automáticamente con Cloud Firestore (tdp-camposol).';
     }
   }
+
+  let firestoreErrorMsg: string | undefined;
 
   // Ejecutar en paralelo Firebase Cloud Firestore y el servidor Express cuando apliquen
   const firestorePromise: Promise<boolean> = fbConnected
     ? firestoreSaveRequerimiento(newRequerimiento, newDetalles).catch((err) => {
-        console.warn('[Firestore] Error guardando en Firestore:', err);
+        firestoreErrorMsg = formatFriendlyFirestoreError(err);
+        console.warn('[Firestore] Error guardando en Firestore:', firestoreErrorMsg);
         return false;
       })
     : Promise.resolve(false);
@@ -1555,6 +1958,7 @@ async function pushRequerimientoToCloud(
         .then(async (res) => {
           const ct = (res.headers.get('content-type') || '').toLowerCase();
           if (isCookieCheckResponse(res, ct)) {
+            notifyCookieCheckRequired();
             return {
               ok: false,
               reason: 'cookie_check' as SyncOutcomeReason,
@@ -1591,10 +1995,16 @@ async function pushRequerimientoToCloud(
 
   const [firestoreOk, expressResult] = await Promise.all([firestorePromise, expressPromise]);
 
-  if (expressResult.ok || firestoreOk) {
+  if (firestoreOk || (expressResult.ok && !fbConnected)) {
     removeFromSyncQueue(newRequerimiento.id);
     const authReq = expressResult.req || newRequerimiento;
     const authDets = expressResult.dets || newDetalles;
+    setRequirementSyncStatusRecord(authReq.id, {
+      status: 'Sincronizado',
+      syncedVia: firestoreOk && expressResult.ok ? 'both' : firestoreOk ? 'firestore' : 'express',
+      attempts: 1,
+      lastAttemptAt: new Date().toISOString(),
+    });
     reconcileLocalRequirement(newRequerimiento.id, authReq, authDets);
     return {
       requerimiento: authReq,
@@ -1604,14 +2014,31 @@ async function pushRequerimientoToCloud(
     };
   }
 
+  const realError = firestoreErrorMsg || expressResult.authError || preAuthError;
+  const resolvedReason: SyncOutcomeReason = firestoreErrorMsg
+    ? 'firestore_error'
+    : expressResult.reason || preReason || 'network';
+
+  updateQueuedItemRetry(newRequerimiento.id, {
+    attempts: 1,
+    lastAttemptAt: new Date().toISOString(),
+    nextRetryAt: Date.now() + BACKOFF_SCHEDULE_MS[0],
+    lastError: realError,
+  });
+  setRequirementSyncStatusRecord(newRequerimiento.id, {
+    status: firestoreErrorMsg ? 'Error' : 'Pendiente',
+    error: realError,
+    attempts: 1,
+    lastAttemptAt: new Date().toISOString(),
+  });
+  notifyListeners();
+
   return {
     requerimiento: newRequerimiento,
     detalles: newDetalles,
     syncedToServer: false,
-    syncReason: expressResult.reason || preReason || 'network',
-    ...(expressResult.authError || preAuthError
-      ? { authError: expressResult.authError || preAuthError }
-      : {}),
+    syncReason: resolvedReason,
+    ...(realError ? { authError: realError } : {}),
   };
 }
 
@@ -1939,13 +2366,37 @@ export async function serverSaveMasterData(data: {
   }
 }
 
+function persistMasterCatalogToFirestore(
+  key: MasterCatalogKey,
+  payload: Parameters<typeof firestoreSaveMasterData>[0]
+): void {
+  if (!isFirestoreAuthenticated()) {
+    addPendingMasterSyncKey(key);
+    notifyListeners();
+    return;
+  }
+  firestoreSaveMasterData(payload)
+    .then((ok) => {
+      if (ok) {
+        clearPendingMasterSyncKeys([key]);
+        lastMasterSyncError = null;
+      } else {
+        addPendingMasterSyncKey(key);
+      }
+      notifyListeners();
+    })
+    .catch((err) => {
+      addPendingMasterSyncKey(key);
+      lastMasterSyncError = formatFriendlyFirestoreError(err);
+      notifyListeners();
+    });
+}
+
 export function saveStoredAreas(areas: MaestroArea[]): void {
   localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(areas));
   broadcastLocalChange();
   serverSaveMasterData({ areas });
-  firestoreSaveMasterData({ areas }).catch((err) => {
-    console.warn('[Firestore] Error guardando áreas:', err);
-  });
+  persistMasterCatalogToFirestore('areas', { areas });
 }
 
 export function getStoredFundos(): MaestroFundo[] {
@@ -1966,9 +2417,7 @@ export function saveStoredFundos(fundos: MaestroFundo[]): void {
   localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(fundos));
   broadcastLocalChange();
   serverSaveMasterData({ fundos });
-  firestoreSaveMasterData({ fundos }).catch((err) => {
-    console.warn('[Firestore] Error guardando fundos:', err);
-  });
+  persistMasterCatalogToFirestore('fundos', { fundos });
 }
 
 function normalizeZoneKey(s: string): string {
@@ -2022,9 +2471,7 @@ export function saveStoredZonas(zonas: MaestroZona[]): void {
   localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(zonas));
   broadcastLocalChange();
   serverSaveMasterData({ zonas });
-  firestoreSaveMasterData({ zonas }).catch((err) => {
-    console.warn('[Firestore] Error guardando zonas:', err);
-  });
+  persistMasterCatalogToFirestore('zonas', { zonas });
 }
 
 export interface ParaderoZonaInfo {
@@ -2156,9 +2603,7 @@ export function saveStoredParaderos(paraderos: MaestroParadero[]): void {
   localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(paraderos));
   broadcastLocalChange();
   serverSaveMasterData({ paraderos });
-  firestoreSaveMasterData({ paraderos }).catch((err) => {
-    console.warn('[Firestore] Error guardando paraderos:', err);
-  });
+  persistMasterCatalogToFirestore('paraderos', { paraderos });
 }
 
 export function getStoredComedores(): MaestroComedor[] {
@@ -2179,9 +2624,7 @@ export function saveStoredComedores(comedores: MaestroComedor[]): void {
   localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(comedores));
   broadcastLocalChange();
   serverSaveMasterData({ comedores });
-  firestoreSaveMasterData({ comedores }).catch((err) => {
-    console.warn('[Firestore] Error guardando comedores:', err);
-  });
+  persistMasterCatalogToFirestore('comedores', { comedores });
 }
 
 export function getStoredUnidadesBus(): MaestroUnidadBus[] {
@@ -2205,9 +2648,7 @@ export function getStoredUnidadesBus(): MaestroUnidadBus[] {
 export function saveStoredUnidadesBus(unidades: MaestroUnidadBus[]): void {
   localStorage.setItem(UNIDADES_BUS_STORAGE_KEY, JSON.stringify(unidades));
   broadcastLocalChange();
-  firestoreSaveMasterData({ unidadesBus: unidades }).catch((err) => {
-    console.warn('[Firestore] Error guardando flota de buses:', err);
-  });
+  persistMasterCatalogToFirestore('unidadesBus', { unidadesBus: unidades });
 }
 
 export function getStoredProgramacionesViajes(): ProgramacionViajesDia[] {

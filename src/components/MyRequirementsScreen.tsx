@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -6,7 +6,6 @@ import {
   Clock,
   Calendar,
   Building,
-  Compass,
   ArrowRight,
   PlusCircle,
   CheckCircle2,
@@ -17,10 +16,15 @@ import {
   History,
   RotateCcw,
   ShieldCheck,
-  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, UserRole } from '../types';
-import { updateRequerimientoEstado } from '../services/storageService';
+import {
+  updateRequerimientoEstado,
+  getRequirementSyncState,
+  processPendingSyncQueue,
+  subscribeToDataChanges,
+} from '../services/storageService';
 import { getHorarioDisplay } from '../data/masterData';
 
 interface MyRequirementsScreenProps {
@@ -41,6 +45,11 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedEstadoFilter, setSelectedEstadoFilter] = useState<string>('TODOS');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [, setSyncTick] = useState(0);
+
+  useEffect(() => {
+    return subscribeToDataChanges(() => setSyncTick((t) => t + 1));
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -310,6 +319,7 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
           {filtered.map((req) => {
             const statusStyle = getStatusStyle(req.estado);
             const isAnulado = req.estado === 'ANULADO';
+            const reqSync = getRequirementSyncState(req.id);
 
             return (
               <div
@@ -324,15 +334,27 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                 <div>
                   {/* Card Header: Requerimiento Code & Status Badge */}
                   <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${statusStyle.dot}`} />
-                      <span className="font-bold text-sm text-[#1B3A57] group-hover:text-[#55A529] transition-colors">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${statusStyle.dot}`} />
+                      <span className="font-bold text-sm text-[#1B3A57] group-hover:text-[#55A529] transition-colors truncate">
                         {req.numeroRequerimiento}
+                      </span>
+                      <span
+                        title={reqSync.error || `Sincronización: ${reqSync.status}`}
+                        className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-bold border shrink-0 ${
+                          reqSync.status === 'Sincronizado'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : reqSync.status === 'Error'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}
+                      >
+                        {reqSync.status}
                       </span>
                     </div>
 
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${statusStyle.badge}`}
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border shrink-0 ${statusStyle.badge}`}
                     >
                       {statusStyle.icon}
                       <span>{req.estado}</span>
@@ -385,6 +407,12 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                       </span>
                     </div>
 
+                    {reqSync.status === 'Error' && reqSync.error && !isAnulado && (
+                      <div className="mt-1.5 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-[10.5px] text-rose-700 leading-tight">
+                        {reqSync.error}
+                      </div>
+                    )}
+
                     {/* Si está anulado, mostrar información de trazabilidad */}
                     {isAnulado && (
                       <div className="mt-2 p-2 rounded-xl bg-[#FDECEC] border border-[#FECACA] text-[11px] text-[#DC2626] space-y-1">
@@ -405,7 +433,7 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                 </div>
 
                 {/* Card Footer: Action button */}
-                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
+                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                   {isAnulado ? (
                     <button
                       type="button"
@@ -416,13 +444,26 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                       <RotateCcw className="w-3 h-3" />
                       <span>Restaurar</span>
                     </button>
+                  ) : reqSync.status !== 'Sincronizado' ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void processPendingSyncQueue(true);
+                        showToast(`Reintentando envío de ${req.numeroRequerimiento}...`);
+                      }}
+                      className="px-2.5 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-[10.5px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Reintentar</span>
+                    </button>
                   ) : (
-                    <span className="text-[11px] text-slate-400 font-medium">
+                    <span className="text-[11px] text-slate-400 font-medium truncate">
                       {req.usuario}
                     </span>
                   )}
 
-                  <span className="text-xs font-semibold text-[#2F7D18] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  <span className="text-xs font-semibold text-[#2F7D18] flex items-center gap-1 group-hover:translate-x-1 transition-transform shrink-0">
                     <span>Ver detalle</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </span>

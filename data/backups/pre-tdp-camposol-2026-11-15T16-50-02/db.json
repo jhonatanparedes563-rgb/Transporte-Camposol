@@ -1,0 +1,901 @@
+{
+  "version": 1,
+  "revision": 29,
+  "lastUpdated": "2026-11-15T02:40:58.640Z",
+  "requerimientos": [
+    {
+      "userRole": "usuario",
+      "estado": "ANULADO",
+      "fechaRegistro": "2026-09-24T21:09:16.056Z",
+      "usuario": "Esther Paredes Rodríguez",
+      "totalPersonas": 17,
+      "horaSalida": "22:15",
+      "area": "LAB. ARANDANO",
+      "observaciones": "",
+      "parcelas": [],
+      "movimiento": "INGRESO",
+      "userUsername": "eparedes",
+      "fundo": "AGRICULTOR 1",
+      "numeroRequerimiento": "REQ-000005",
+      "updatedAt": "2026-09-24T23:39:04.308Z",
+      "horaRecojo": "22:15",
+      "userId": "usr-1790015788736-kxw1",
+      "id": "req-1790284156053-rrwit",
+      "fecha": "2026-09-25",
+      "cultivo": "ARÁNDANO"
+    },
+    {
+      "usuario": "Esther Paredes Rodríguez",
+      "parcelas": [],
+      "numeroRequerimiento": "REQ-000006",
+      "totalPersonas": 16,
+      "userUsername": "eparedes",
+      "horaRecojo": "13:00",
+      "fecha": "2026-09-24",
+      "userId": "usr-1790015788736-kxw1",
+      "movimiento": "SALIDA",
+      "fechaRegistro": "2026-09-24T21:14:07.217Z",
+      "fundo": "AGRICULTOR 1",
+      "updatedAt": "2026-09-24T23:33:42.324Z",
+      "horaSalida": "14:00",
+      "userRole": "usuario",
+      "observaciones": "",
+      "area": "LAB. ARANDANO",
+      "cultivo": "ARÁNDANO",
+      "id": "req-1790284447213-77a3r",
+      "estado": "ANULADO"
+    },
+    {
+      "userUsername": "eparedes",
+      "movimiento": "INGRESO",
+      "observaciones": "",
+      "fecha": "2026-09-24",
+      "cultivo": "ARÁNDANO",
+      "horaRecojo": "05:00 (N) / 05:15 (S)",
+      "userRole": "usuario",
+      "fundo": "AGRICULTOR 1",
+      "horaRecojoSur": "05:15",
+      "area": "LAB. ARANDANO",
+      "userId": "usr-1790015788736-kxw1",
+      "numeroRequerimiento": "REQ-000007",
+      "fechaRegistro": "2026-09-24T23:38:44.076Z",
+      "historialTrazabilidad": [
+        {
+          "fecha": "2026-09-24T23:38:44.076Z",
+          "detalle": "Requerimiento registrado para el servicio del 2026-09-24 con 39 personas.",
+          "usuario": "Esther Paredes Rodríguez",
+          "accion": "CREADO"
+        }
+      ],
+      "estado": "PENDIENTE",
+      "id": "req-1790293124071-1eicncy-107",
+      "horaRecojoNorte": "05:00",
+      "horaSalida": "05:00 (N) / 05:15 (S)",
+      "usuario": "Esther Paredes Rodríguez",
+      "totalPersonas": 39,
+      "parcelas": []
+    },
+    {
+      "historialTrazabilidad": [
+        {
+          "accion": "CREADO",
+          "fecha": "2026-09-24T23:44:01.513Z",
+          "detalle": "Requerimiento registrado para el servicio del 2026-09-24 con 21 personas.",
+          "usuario": "Esther Paredes Rodríguez"
+        }
+      ],
+      "userUsername": "eparedes",
+      "horaSalida": "20:00",
+      "userRole": "usuario",
+      "fundo": "AGRICULTOR 1",
+      "observaciones": "",
+      "userId": "usr-1790015788736-kxw1",
+      "fecha": "2026-09-24",
+      "usuario": "Esther Paredes Rodríguez",
+      "totalPersonas": 21,
+      "estado": "PENDIENTE",
+      "horaRecojo": "20:00",
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000008",
+      "parcelas": [],
+      "id": "req-1790293441509-8jj4e3a-868",
+      "movimiento": "SALIDA",
+      "fechaRegistro": "2026-09-24T23:44:01.513Z",
+      "area": "LAB. ARANDANO"
+    },
+    {
+      "userId": "usr-1790015788736-kxw1",
+      "numeroRequerimiento": "REQ-000009",
+      "area": "LAB. ARANDANO",
+      "userRole": "usuario",
+      "fundo": "AGRICULTOR 1",
+      "horaRecojo": "04:30 (N) / 04:45 (S)",
+      "horaRecojoSur": "04:45",
+      "cultivo": "ARÁNDANO",
+      "fecha": "2026-09-25",
+      "historialTrazabilidad": [
+        {
+          "accion": "CREADO",
+          "fecha": "2026-09-25T20:21:53.771Z",
+          "detalle": "Requerimiento registrado para el servicio del 2026-09-25 con 23 personas.",
+          "usuario": "Esther Paredes Rodríguez"
+        }
+      ],
+      "observaciones": "",
+      "movimiento": "INGRESO",
+      "parcelas": [],
+      "usuario": "Esther Paredes Rodríguez",
+      "totalPersonas": 23,
+      "updatedAt": "2026-09-25T20:24:36.758Z",
+      "horaSalida": "04:30 (N) / 04:45 (S)",
+      "id": "req-1790367713768-hfiollx-108",
+      "horaRecojoNorte": "04:30",
+      "estado": "ATENDIDO",
+      "fechaRegistro": "2026-09-25T20:21:53.771Z",
+      "userUsername": "eparedes"
+    }
+  ],
+  "detalles": [
+    {
+      "cantidad": 2,
+      "id": "det-1790284156054-ggmir",
+      "parcela": "57",
+      "zona": "NORTE",
+      "comedor": "57",
+      "paradero": "LA PLAZUELA HUACAPONGO",
+      "cultivo": "ARÁNDANO",
+      "requerimientoId": "req-1790284156053-rrwit",
+      "numeroRequerimiento": "REQ-000005"
+    },
+    {
+      "id": "det-1790284156055-l4ma1",
+      "cantidad": 5,
+      "numeroRequerimiento": "REQ-000005",
+      "requerimientoId": "req-1790284156053-rrwit",
+      "paradero": "VALDEMAR",
+      "cultivo": "ARÁNDANO",
+      "zona": "NORTE",
+      "parcela": "57",
+      "comedor": "57"
+    },
+    {
+      "cultivo": "ARÁNDANO",
+      "requerimientoId": "req-1790284156053-rrwit",
+      "comedor": "57",
+      "parcela": "57",
+      "numeroRequerimiento": "REQ-000005",
+      "cantidad": 6,
+      "paradero": "VILLA VIRU",
+      "id": "det-1790284156055-pklo4",
+      "zona": "NORTE"
+    },
+    {
+      "zona": "NORTE",
+      "requerimientoId": "req-1790284156053-rrwit",
+      "numeroRequerimiento": "REQ-000005",
+      "cultivo": "ARÁNDANO",
+      "id": "det-1790284156056-bxdzq",
+      "comedor": "57",
+      "paradero": "CALIFORNIA",
+      "parcela": "57",
+      "cantidad": 4
+    },
+    {
+      "id": "det-1790284447214-s0qfl",
+      "requerimientoId": "req-1790284447213-77a3r",
+      "zona": "NORTE",
+      "numeroRequerimiento": "REQ-000006",
+      "comedor": "C556",
+      "parcela": "C556",
+      "paradero": "LA BRASIL",
+      "cantidad": 2,
+      "cultivo": "ARÁNDANO"
+    },
+    {
+      "paradero": "PUENTE CHANQUIN",
+      "numeroRequerimiento": "REQ-000006",
+      "cantidad": 2,
+      "id": "det-1790284447216-82rch",
+      "zona": "NORTE",
+      "parcela": "C556",
+      "requerimientoId": "req-1790284447213-77a3r",
+      "comedor": "C556",
+      "cultivo": "ARÁNDANO"
+    },
+    {
+      "cantidad": 5,
+      "paradero": "LA PLAZUELA HUACAPONGO",
+      "zona": "NORTE",
+      "id": "det-1790284447216-j9663",
+      "requerimientoId": "req-1790284447213-77a3r",
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000006",
+      "parcela": "557",
+      "comedor": "557"
+    },
+    {
+      "zona": "NORTE",
+      "cultivo": "ARÁNDANO",
+      "comedor": "C556",
+      "numeroRequerimiento": "REQ-000006",
+      "parcela": "C556",
+      "id": "det-1790284447216-lhe7k",
+      "cantidad": 2,
+      "requerimientoId": "req-1790284447213-77a3r",
+      "paradero": "VILLA VIRU"
+    },
+    {
+      "id": "det-1790284447216-zutqw",
+      "requerimientoId": "req-1790284447213-77a3r",
+      "paradero": "PUENTE CHANQUIN",
+      "cantidad": 5,
+      "comedor": "557",
+      "numeroRequerimiento": "REQ-000006",
+      "parcela": "557",
+      "zona": "NORTE",
+      "cultivo": "ARÁNDANO"
+    },
+    {
+      "zona": "NORTE",
+      "id": "det-1790293124072-a9in7eg-439",
+      "numeroRequerimiento": "REQ-000007",
+      "cultivo": "ARÁNDANO",
+      "paradero": "LA BRASIL",
+      "comedor": "C561",
+      "cantidad": 2,
+      "requerimientoId": "req-1790293124071-1eicncy-107",
+      "parcela": "C561"
+    },
+    {
+      "cantidad": 2,
+      "requerimientoId": "req-1790293124071-1eicncy-107",
+      "paradero": "VALDEMAR",
+      "numeroRequerimiento": "REQ-000007",
+      "zona": "NORTE",
+      "id": "det-1790293124073-4enzyhp-46",
+      "cultivo": "ARÁNDANO",
+      "parcela": "C561",
+      "comedor": "C561"
+    },
+    {
+      "requerimientoId": "req-1790293124071-1eicncy-107",
+      "zona": "NORTE",
+      "cantidad": 3,
+      "paradero": "CALIFORNIA",
+      "numeroRequerimiento": "REQ-000007",
+      "id": "det-1790293124074-8ku3hfv-957",
+      "cultivo": "ARÁNDANO",
+      "comedor": "C561",
+      "parcela": "C561"
+    },
+    {
+      "cantidad": 2,
+      "numeroRequerimiento": "REQ-000007",
+      "cultivo": "ARÁNDANO",
+      "paradero": "SAN LUIS",
+      "parcela": "C561",
+      "id": "det-1790293124074-e8l4ebq-122",
+      "comedor": "C561",
+      "requerimientoId": "req-1790293124071-1eicncy-107",
+      "zona": "NORTE"
+    },
+    {
+      "comedor": "C561",
+      "parcela": "C561",
+      "requerimientoId": "req-1790293124071-1eicncy-107",
+      "cantidad": 2,
+      "id": "det-1790293124074-jxcx6dy-402",
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000007",
+      "paradero": "PRIMERO DE MAYO",
+      "zona": "NORTE"
+    },
+    {
+      "paradero": "PETROAMERICA",
+      "zona": "NORTE",
+      "cantidad": 2,
+      "parcela": "C561",
+      "comedor": "C561",
+      "requerimientoId": "req-1790293124071-1eicncy-107",
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000007",
+      "id": "det-1790293124074-yn25u97-544"
+    },
+    {
+      "parcela": "C561",
+      "comedor": "C561",
+      "id": "det-1790293124075-hrh13po-880",
+      "paradero": "LA BOTICA",
+      "cultivo": "ARÁNDANO",
+      "cantidad": 5,
+      "zona": "SUR",
+      "numeroRequerimiento": "REQ-000007",
+      "requerimientoId": "req-1790293124071-1eicncy-107"
+    },
+    {
+      "numeroRequerimiento": "REQ-000007",
+      "zona": "SUR",
+      "id": "det-1790293124075-mvqhtwe-649",
+      "cantidad": 5,
+      "paradero": "GRIFO GRAN CHIMU",
+      "cultivo": "ARÁNDANO",
+      "parcela": "C561",
+      "requerimientoId": "req-1790293124071-1eicncy-107",
+      "comedor": "C561"
+    },
+    {
+      "id": "det-1790293124075-ud747f2-717",
+      "zona": "SUR",
+      "numeroRequerimiento": "REQ-000007",
+      "cultivo": "ARÁNDANO",
+      "comedor": "C561",
+      "cantidad": 2,
+      "paradero": "LA 28",
+      "parcela": "C561",
+      "requerimientoId": "req-1790293124071-1eicncy-107"
+    },
+    {
+      "zona": "SUR",
+      "parcela": "C561",
+      "comedor": "C561",
+      "cultivo": "ARÁNDANO",
+      "cantidad": 2,
+      "id": "det-1790293124075-z28eua2-316",
+      "paradero": "VIVIENDAS MAR VERDE",
+      "requerimientoId": "req-1790293124071-1eicncy-107",
+      "numeroRequerimiento": "REQ-000007"
+    },
+    {
+      "parcela": "C561",
+      "id": "det-1790293124076-hcogoum-763",
+      "comedor": "C561",
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000007",
+      "paradero": "SEGUNDO PARADERO",
+      "zona": "SUR",
+      "cantidad": 12,
+      "requerimientoId": "req-1790293124071-1eicncy-107"
+    },
+    {
+      "zona": "NORTE",
+      "cultivo": "ARÁNDANO",
+      "comedor": "556",
+      "numeroRequerimiento": "REQ-000008",
+      "parcela": "556",
+      "id": "det-1790293441510-780bfcd-310",
+      "cantidad": 2,
+      "requerimientoId": "req-1790293441509-8jj4e3a-868",
+      "paradero": "LA BRASIL"
+    },
+    {
+      "numeroRequerimiento": "REQ-000008",
+      "id": "det-1790293441511-bu6dusy-477",
+      "paradero": "CALLE LIMA",
+      "requerimientoId": "req-1790293441509-8jj4e3a-868",
+      "zona": "NORTE",
+      "cantidad": 2,
+      "comedor": "556",
+      "parcela": "556",
+      "cultivo": "ARÁNDANO"
+    },
+    {
+      "cultivo": "ARÁNDANO",
+      "parcela": "556",
+      "comedor": "556",
+      "numeroRequerimiento": "REQ-000008",
+      "paradero": "PETROAMERICA",
+      "id": "det-1790293441511-i0oh6v7-328",
+      "cantidad": 2,
+      "requerimientoId": "req-1790293441509-8jj4e3a-868",
+      "zona": "NORTE"
+    },
+    {
+      "cantidad": 2,
+      "paradero": "LA BRASIL",
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000008",
+      "comedor": "557",
+      "zona": "NORTE",
+      "parcela": "557",
+      "requerimientoId": "req-1790293441509-8jj4e3a-868",
+      "id": "det-1790293441512-0iygyxs-268"
+    },
+    {
+      "zona": "NORTE",
+      "numeroRequerimiento": "REQ-000008",
+      "id": "det-1790293441512-8xtux6i-557",
+      "cultivo": "ARÁNDANO",
+      "requerimientoId": "req-1790293441509-8jj4e3a-868",
+      "cantidad": 3,
+      "parcela": "557",
+      "comedor": "557",
+      "paradero": "PETROAMERICA"
+    },
+    {
+      "paradero": "GRIFO GRAN CHIMU",
+      "id": "det-1790293441512-c9djgsw-97",
+      "cantidad": 2,
+      "requerimientoId": "req-1790293441509-8jj4e3a-868",
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000008",
+      "zona": "SUR",
+      "parcela": "556",
+      "comedor": "556"
+    },
+    {
+      "cultivo": "ARÁNDANO",
+      "cantidad": 2,
+      "paradero": "CALLE LIMA",
+      "numeroRequerimiento": "REQ-000008",
+      "id": "det-1790293441512-zkcfksz-437",
+      "requerimientoId": "req-1790293441509-8jj4e3a-868",
+      "parcela": "557",
+      "zona": "NORTE",
+      "comedor": "557"
+    },
+    {
+      "requerimientoId": "req-1790293441509-8jj4e3a-868",
+      "comedor": "557",
+      "parcela": "557",
+      "id": "det-1790293441513-ietwhm3-826",
+      "paradero": "GRIFO GRAN CHIMU",
+      "cultivo": "ARÁNDANO",
+      "cantidad": 6,
+      "zona": "SUR",
+      "numeroRequerimiento": "REQ-000008"
+    },
+    {
+      "id": "det-1790367713769-nbii3gi-343",
+      "zona": "NORTE",
+      "paradero": "LA BRASIL",
+      "cantidad": 2,
+      "comedor": "57",
+      "requerimientoId": "req-1790367713768-hfiollx-108",
+      "parcela": "57",
+      "numeroRequerimiento": "REQ-000009",
+      "cultivo": "ARÁNDANO"
+    },
+    {
+      "id": "det-1790367713770-3lja2i7-945",
+      "numeroRequerimiento": "REQ-000009",
+      "cantidad": 2,
+      "requerimientoId": "req-1790367713768-hfiollx-108",
+      "zona": "SUR",
+      "cultivo": "ARÁNDANO",
+      "paradero": "LA 28",
+      "comedor": "57",
+      "parcela": "57"
+    },
+    {
+      "id": "det-1790367713770-glejpys-311",
+      "zona": "NORTE",
+      "cantidad": 2,
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000009",
+      "paradero": "CALIFORNIA",
+      "requerimientoId": "req-1790367713768-hfiollx-108",
+      "parcela": "57",
+      "comedor": "57"
+    },
+    {
+      "numeroRequerimiento": "REQ-000009",
+      "zona": "NORTE",
+      "requerimientoId": "req-1790367713768-hfiollx-108",
+      "id": "det-1790367713770-rdtv949-814",
+      "cantidad": 5,
+      "paradero": "VILLA VIRU",
+      "cultivo": "ARÁNDANO",
+      "comedor": "57",
+      "parcela": "57"
+    },
+    {
+      "zona": "SUR",
+      "id": "det-1790367713770-zbucfvs-487",
+      "parcela": "57",
+      "comedor": "57",
+      "requerimientoId": "req-1790367713768-hfiollx-108",
+      "numeroRequerimiento": "REQ-000009",
+      "cultivo": "ARÁNDANO",
+      "paradero": "VIVIENDAS MAR VERDE",
+      "cantidad": 2
+    },
+    {
+      "requerimientoId": "req-1790367713768-hfiollx-108",
+      "numeroRequerimiento": "REQ-000009",
+      "id": "det-1790367713771-3yegjnk-125",
+      "cultivo": "ARÁNDANO",
+      "zona": "SUR",
+      "cantidad": 5,
+      "parcela": "57",
+      "paradero": "SEGUNDO PARADERO",
+      "comedor": "57"
+    },
+    {
+      "paradero": "LA BOTICA",
+      "id": "det-1790367713771-sg0itnf-826",
+      "zona": "SUR",
+      "cantidad": 5,
+      "cultivo": "ARÁNDANO",
+      "numeroRequerimiento": "REQ-000009",
+      "comedor": "57",
+      "requerimientoId": "req-1790367713768-hfiollx-108",
+      "parcela": "57"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-admin-01",
+      "nombre": "Administrador del Sistema",
+      "usuario": "admin",
+      "email": "admin@camposol.com.pe",
+      "passwordHash": "scrypt$4e90f23fb98f1651ffa97ee4278ad885$918fcfb4886ca7601f5ef4ee1b43b3fb36e142c2b8ef49418c5114781abf29dd07ea47c5c749b500a0055d5049a86b003d6d275ec242cf2ea876f0324fce757e",
+      "salt": "scrypt",
+      "rol": "admin",
+      "area": "TDP",
+      "fundo": "SEDE CENTRAL",
+      "cultivo": "TODOS LOS CULTIVOS",
+      "estado": "ACTIVO",
+      "fechaCreacion": "2026-09-01T08:00:00Z",
+      "ultimoAcceso": "2026-11-15T02:40:58.640Z"
+    },
+    {
+      "id": "usr-rec-01",
+      "nombre": "Roberto Gonzáles",
+      "usuario": "receptor",
+      "email": "rgonzales@camposol.com.pe",
+      "passwordHash": "scrypt$6a0feebe926badef805cc2dc64b92e13$846ea1374325e76ff8b2dc97605b5b275c1228bcb0589c70bc9d5ab4b0ec3433b276d76e1c97400807775e403b9de3e9d71b17f3dfd59a6e1f504df0583204fc",
+      "salt": "scrypt",
+      "rol": "receptor",
+      "area": "LOGÍSTICA",
+      "fundo": "TODOS LOS FUNDOS",
+      "cultivo": "TODOS LOS CULTIVOS",
+      "estado": "ACTIVO",
+      "fechaCreacion": "2026-09-01T08:00:00Z"
+    },
+    {
+      "id": "usr-user-01",
+      "nombre": "Juan Pérez",
+      "usuario": "jperez",
+      "email": "jperez@camposol.com.pe",
+      "passwordHash": "scrypt$a25b767b0321718991dcefb04536c213$2ddcda43356ca6d5a005069501bc1c4a47ff40164d36b0aa1516abd2b3ad99b7b0fd651a6c28488443ee8561f108127d3d22b852177c3d17aec0343b3e6f47f6",
+      "salt": "scrypt",
+      "rol": "usuario",
+      "area": "PRODUCCIÓN",
+      "fundo": "AGRICULTOR 2",
+      "cultivo": "ARÁNDANO",
+      "estado": "ACTIVO",
+      "fechaCreacion": "2026-09-01T08:00:00Z",
+      "ultimoAcceso": "2026-11-15T00:16:45.026Z"
+    },
+    {
+      "id": "usr-user-02",
+      "nombre": "María Salazar",
+      "usuario": "msalazar",
+      "email": "msalazar@camposol.com.pe",
+      "passwordHash": "scrypt$c421d52b9ff9bb08330be7b81774a03d$3924daf349d501280ab8d731e910532a123b336ea39b053d936412a66a3392111618c2c2ffaa24a398d786aff4fbec16b470dda92798e39a284b1e1a20d52023",
+      "salt": "scrypt",
+      "rol": "usuario",
+      "area": "EMPAQUE",
+      "fundo": "MAR VERDE",
+      "cultivo": "PALTO",
+      "estado": "ACTIVO",
+      "fechaCreacion": "2026-09-01T08:00:00Z"
+    },
+    {
+      "id": "usr-user-03",
+      "nombre": "Carlos Mendoza",
+      "usuario": "cmendoza",
+      "email": "cmendoza@camposol.com.pe",
+      "passwordHash": "scrypt$592eb1daa38450d1f064f56f20d83c7d$1358994c3213b99fb60a38836903991d8df26c65f85bb1a5ddfd4f8980aa7885412b4bbfc35264d26462d785733512ab8fa9ab02f2af1b8c78ef568fe484a4a4",
+      "salt": "scrypt",
+      "rol": "usuario",
+      "area": "COSECHA",
+      "fundo": "ARENAL",
+      "cultivo": "ESPÁRRAGO",
+      "estado": "ACTIVO",
+      "fechaCreacion": "2026-09-01T08:00:00Z"
+    },
+    {
+      "id": "usr-1790015788736-kxw1",
+      "nombre": "Esther Paredes Rodríguez",
+      "usuario": "eparedes",
+      "email": "eparedes@camposol.com.pe",
+      "passwordHash": "scrypt$2919a6437e481868f9e8321923fc2568$fb4f006d74611b7b16c4af3df09f6a89fd5bc0a30e0c3c0a623eb7391d1a674dcecf9564c7f72cb18016823f31fdc2895871ebbc5e71194fffa3dc534936f316",
+      "salt": "scrypt",
+      "rol": "usuario",
+      "area": "PRODUCCIÓN",
+      "fundo": "AGRICULTOR 1",
+      "cultivo": "ARÁNDANO",
+      "estado": "ACTIVO",
+      "fechaCreacion": "2026-09-01T08:00:00Z",
+      "ultimoAcceso": "2026-11-15T02:40:58.533Z"
+    }
+  ],
+  "areas": [
+    {
+      "id": "AREA-01",
+      "area": "PRODUCCIÓN"
+    },
+    {
+      "id": "AREA-02",
+      "area": "COSECHA"
+    },
+    {
+      "id": "AREA-03",
+      "area": "EMPAQUE"
+    },
+    {
+      "id": "AREA-04",
+      "area": "SANIDAD VEGETAL"
+    },
+    {
+      "id": "AREA-05",
+      "area": "RIEGO Y FERTIRRIEGO"
+    },
+    {
+      "id": "AREA-06",
+      "area": "MANTENIMIENTO"
+    },
+    {
+      "id": "AREA-07",
+      "area": "RECURSOS HUMANOS"
+    },
+    {
+      "id": "AREA-08",
+      "area": "ASEGURAMIENTO DE CALIDAD"
+    },
+    {
+      "id": "AREA-09",
+      "area": "OPERACIONES AGRÍCOLAS"
+    },
+    {
+      "id": "AREA-10",
+      "area": "LOGÍSTICA"
+    }
+  ],
+  "fundos": [
+    {
+      "id": "FUN-01",
+      "fundo": "AGRICULTOR 1"
+    },
+    {
+      "id": "FUN-02",
+      "fundo": "AGRICULTOR 2"
+    },
+    {
+      "id": "FUN-03",
+      "fundo": "ARENAL"
+    },
+    {
+      "id": "FUN-04",
+      "fundo": "MAR VERDE"
+    },
+    {
+      "id": "FUN-05",
+      "fundo": "CHAO 1"
+    },
+    {
+      "id": "FUN-06",
+      "fundo": "CHAO 2"
+    },
+    {
+      "id": "FUN-07",
+      "fundo": "VIRÚ 1"
+    },
+    {
+      "id": "FUN-08",
+      "fundo": "YAKU"
+    },
+    {
+      "id": "FUN-09",
+      "fundo": "COMPAC"
+    },
+    {
+      "id": "FUN-10",
+      "fundo": "AGROINCA"
+    },
+    {
+      "id": "FUN-11",
+      "fundo": "SAN VICENTE"
+    }
+  ],
+  "paraderos": [
+    {
+      "id": "PAR-S01",
+      "paradero": "Chao",
+      "zona": "SUR"
+    },
+    {
+      "id": "PAR-S02",
+      "paradero": "Nuevo Chao",
+      "zona": "SUR"
+    },
+    {
+      "id": "PAR-S03",
+      "paradero": "Valle de Dios",
+      "zona": "SUR"
+    },
+    {
+      "id": "PAR-S04",
+      "paradero": "Rest. 28",
+      "zona": "SUR"
+    },
+    {
+      "id": "PAR-S05",
+      "paradero": "Viviendas MV",
+      "zona": "SUR"
+    },
+    {
+      "id": "PAR-N01",
+      "paradero": "Guadalupito",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N02",
+      "paradero": "Santa Elena",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N03",
+      "paradero": "Victor Raúl (La Brasil)",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N04",
+      "paradero": "Valdemar",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N05",
+      "paradero": "T. Propio",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N06",
+      "paradero": "Villa Viru",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N07",
+      "paradero": "Grifo Petro América",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N08",
+      "paradero": "California",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N09",
+      "paradero": "Puente Chanquin",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N10",
+      "paradero": "Puente (Grifo Chimu)",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N11",
+      "paradero": "La Portada",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N12",
+      "paradero": "Los Pinos",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N13",
+      "paradero": "San Luis",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N14",
+      "paradero": "Tamboreal",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N15",
+      "paradero": "Moro",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N16",
+      "paradero": "Plazuela (S. José)",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N17",
+      "paradero": "Viru",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N18",
+      "paradero": "Vinsos",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N19",
+      "paradero": "Alto Trujillo",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N20",
+      "paradero": "Huacapongo",
+      "zona": "NORTE"
+    },
+    {
+      "id": "PAR-N21",
+      "paradero": "Buenavista",
+      "zona": "NORTE"
+    }
+  ],
+  "comedores": [
+    {
+      "id": "COM-57",
+      "comedor": "57"
+    },
+    {
+      "id": "COM-63",
+      "comedor": "63"
+    },
+    {
+      "id": "COM-65",
+      "comedor": "65"
+    },
+    {
+      "id": "COM-G1",
+      "comedor": "Garita 1"
+    },
+    {
+      "id": "COM-564",
+      "comedor": "564"
+    },
+    {
+      "id": "COM-524",
+      "comedor": "524"
+    },
+    {
+      "id": "COM-562",
+      "comedor": "562"
+    },
+    {
+      "id": "COM-520",
+      "comedor": "520"
+    }
+  ],
+  "zonas": [
+    {
+      "id": "ZON-01",
+      "zona": "VICTOR RAUL",
+      "macrozona": "Mcrz 21 Victor Raul",
+      "zonaOperativa": "NORTE"
+    },
+    {
+      "id": "ZON-02",
+      "zona": "VIRU",
+      "macrozona": "Mcrz 22 Viru",
+      "zonaOperativa": "NORTE"
+    },
+    {
+      "id": "ZON-03",
+      "zona": "SAN JOSE",
+      "macrozona": "Mcrz 25 San Jose",
+      "zonaOperativa": "NORTE"
+    },
+    {
+      "id": "ZON-04",
+      "zona": "NUEVO CHAO",
+      "macrozona": "Mcrz 31 Nuevo Chao",
+      "zonaOperativa": "SUR"
+    },
+    {
+      "id": "ZON-05",
+      "zona": "CHAO",
+      "macrozona": "Mcrz 32 Chao",
+      "zonaOperativa": "SUR"
+    }
+  ],
+  "recoveryRequests": []
+}
