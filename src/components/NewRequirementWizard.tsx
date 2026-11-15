@@ -5,7 +5,7 @@ import { Step2PersonnelQuantity } from './Step2PersonnelQuantity';
 import { Step3Summary } from './Step3Summary';
 import { Step4Confirmation } from './Step4Confirmation';
 import {
-  saveNewRequerimiento,
+  saveNewRequerimientoAsync,
   getStoredComedores,
   getStoredRequirementDraft,
   saveStoredRequirementDraft,
@@ -18,6 +18,14 @@ interface NewRequirementWizardProps {
   onViewRequirement: (req: Requerimiento) => void;
   currentUser?: AppUser;
 }
+
+const getLocalTodayDate = (): string => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   onCancel,
@@ -35,9 +43,11 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string>('');
   const [createdRequirement, setCreatedRequirement] = useState<Requerimiento | null>(null);
+  const [syncedToServer, setSyncedToServer] = useState<boolean>(true);
+  const [syncNotice, setSyncNotice] = useState<string>('');
   const submitLockRef = useRef(false);
 
-  const todayDate = new Date().toISOString().split('T')[0];
+  const todayDate = getLocalTodayDate();
 
   const buildInitialDraft = (): RequerimientoDraft => {
     const storedComedores = getStoredComedores();
@@ -49,13 +59,21 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
       const comedoresConDatos = (savedDraft.comedores || []).filter((c) =>
         Object.values(c.paraderosCantidades || {}).some((v) => Number(v) > 0)
       );
+      const fechaVigente =
+        !savedDraft.fecha || savedDraft.fecha < todayDate || comedoresConDatos.length === 0
+          ? todayDate
+          : savedDraft.fecha;
       if (comedoresConDatos.length === 0 && (savedDraft.comedores?.length || 0) > 1) {
         return {
           ...savedDraft,
+          fecha: fechaVigente,
           comedores: [{ comedor: savedDraft.comedores![0].comedor || defaultComedorName, paraderosCantidades: {} }],
         };
       }
-      return savedDraft;
+      return {
+        ...savedDraft,
+        fecha: fechaVigente,
+      };
     }
 
     const initialComedores: ComedorPersonalDraft[] = [
@@ -94,15 +112,17 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (submitLockRef.current || isSubmitting) return;
     submitLockRef.current = true;
     setSubmitError('');
     setIsSubmitting(true);
     try {
-      const result = saveNewRequerimiento(draft, currentUser);
+      const result = await saveNewRequerimientoAsync(draft, currentUser);
       clearStoredRequirementDraft();
       setCreatedRequirement(result.requerimiento);
+      setSyncedToServer(result.syncedToServer);
+      setSyncNotice(result.authError || '');
       onSuccess(result.requerimiento);
       setCurrentStep(4);
     } catch (err) {
@@ -117,6 +137,8 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   const handleResetForNew = () => {
     submitLockRef.current = false;
     setSubmitError('');
+    setSyncedToServer(true);
+    setSyncNotice('');
     clearStoredRequirementDraft();
     setDraft(buildInitialDraft());
     setCreatedRequirement(null);
@@ -229,6 +251,8 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
       {currentStep === 4 && createdRequirement && (
         <Step4Confirmation
           requerimiento={createdRequirement}
+          syncedToServer={syncedToServer}
+          syncNotice={syncNotice}
           onViewRequirement={(req) => onViewRequirement(req)}
           onNewRequirement={handleResetForNew}
           onGoHome={onCancel}

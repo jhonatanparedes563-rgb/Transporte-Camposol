@@ -726,7 +726,7 @@ async function startServer() {
   // -------------------------------------------------------------
   // PROTECTED SYNC & DATA ROUTES
   // -------------------------------------------------------------
-  app.get('/api/sync/version', requireAuth, rateLimitMiddleware('read', 240, 60_000), (req: AuthenticatedRequest, res) => {
+  app.get('/api/sync/version', requireAuth, rateLimitMiddleware('read', 600, 60_000), (req: AuthenticatedRequest, res) => {
     const db = getDb();
     const visibleReqs =
       req.authRole === 'usuario'
@@ -857,8 +857,12 @@ async function startServer() {
           return res.status(400).json({ error: 'El requerimiento debe incluir al menos 1 pasajero (máx. 5000).' });
         }
 
-        // Anti-bot duplicate submit lock (10s window)
-        const dedupKey = `${actor.id}|${rawReq.fecha}|${rawReq.movimiento}|${sanitizeText(rawReq.fundo, 80)}|${finalTotal}`;
+        // Anti-bot duplicate submit lock (5s window keyed by exact stops signature)
+        const stopsSig = newDets
+          .map((d) => `${d.comedor}:${d.paradero}:${d.cantidad}`)
+          .sort()
+          .join('|');
+        const dedupKey = `${actor.id}|${rawReq.fecha}|${rawReq.movimiento}|${sanitizeText(rawReq.fundo, 80)}|${finalTotal}|${stopsSig}`;
         const dup = recentSubmissions.get(dedupKey);
         if (dup && Date.now() < dup.expiresAt) {
           return res.status(200).json({
@@ -908,7 +912,7 @@ async function startServer() {
           ],
         };
 
-        recentSubmissions.set(dedupKey, { req: newReq, expiresAt: Date.now() + 10_000 });
+        recentSubmissions.set(dedupKey, { req: newReq, expiresAt: Date.now() + 5_000 });
       } else {
         const draft: RequerimientoDraft = body.draft || body;
         if (!isValidDateString(draft.fecha)) {

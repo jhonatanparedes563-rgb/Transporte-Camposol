@@ -371,7 +371,7 @@ function isStaticToken(token: string | null): boolean {
   return Boolean(token && token.startsWith('static.'));
 }
 
-function getApiCandidates(endpoint: string): string[] {
+export function getApiCandidates(endpoint: string): string[] {
   const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const candidates = [clean];
   const baseUrl =
@@ -407,7 +407,7 @@ async function fetchJsonApi(
 
   for (const url of getApiCandidates(endpoint)) {
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timer = controller ? setTimeout(() => controller.abort(), 4500) : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 10000) : null;
     try {
       const res = await fetch(url, {
         method,
@@ -477,6 +477,26 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
   const token = getAuthToken();
   if (!token) return null;
   if (isStaticToken(token)) {
+    // Si ahora existe servidor API activo en este origen, comprobar cookie o exigir re-autenticación real
+    for (const url of getApiCandidates('/api/health')) {
+      try {
+        const healthRes = await fetch(url, { headers: { 'Cache-Control': 'no-cache' } });
+        const ct = (healthRes.headers.get('content-type') || '').toLowerCase();
+        if (healthRes.ok && ct.includes('application/json')) {
+          // Intentar validar por cookie HttpOnly si existiera
+          const sessionAttempt = await fetchJsonApi('/api/auth/session', { method: 'GET' });
+          if (sessionAttempt.reachableJson && sessionAttempt.res?.ok && sessionAttempt.data?.user) {
+            const sanitized = stripSensitiveFields(sessionAttempt.data.user);
+            setActiveSessionUser(sanitized);
+            return sanitized;
+          }
+          clearActiveSession();
+          return null;
+        }
+      } catch {
+        // Entorno estático u offline
+      }
+    }
     return getActiveSessionUser();
   }
   for (const url of getApiCandidates('/api/auth/session')) {

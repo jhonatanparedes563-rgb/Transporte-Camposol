@@ -294,7 +294,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
   const handleManualSync = async () => {
     setIsManualSyncing(true);
-    const success = await syncWithServerNow();
+    const success = await syncWithServerNow(true);
     onRefreshData();
     setIsManualSyncing(false);
     if (success) {

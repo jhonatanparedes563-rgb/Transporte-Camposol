@@ -28,7 +28,7 @@ import {
   firestoreDeleteRequerimiento,
   firestoreSaveMasterData,
 } from './firestoreService';
-import { getAuthHeaders, getAuthToken, clearActiveSession } from './authService';
+import { getAuthHeaders, getAuthToken, clearActiveSession, getApiCandidates } from './authService';
 
 const REQ_STORAGE_KEY = 'camposol_transporte_requerimientos_v1';
 const DET_STORAGE_KEY = 'camposol_transporte_detalles_v1';
@@ -183,76 +183,135 @@ if (typeof window !== 'undefined') {
   });
 }
 
+async function apiFetch(
+  endpoint: string,
+  init: RequestInit = {},
+  timeoutMs: number = 8000
+): Promise<Response> {
+  const candidates = getApiCandidates(endpoint);
+  let lastRes: Response | null = null;
+  let lastErr: unknown = null;
+
+  for (const url of candidates) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      const res = await fetch(url, {
+        ...init,
+        ...(controller ? { signal: controller.signal } : {}),
+      });
+      if (timer) clearTimeout(timer);
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('application/json')) {
+        return res;
+      }
+      lastRes = res;
+    } catch (err) {
+      if (timer) clearTimeout(timer);
+      lastErr = err;
+    }
+  }
+
+  if (lastRes) return lastRes;
+  throw lastErr || new Error('No se pudo conectar con el servidor API.');
+}
+
+let inFlightSyncPromise: Promise<boolean> | null = null;
+
 // -------------------------------------------------------------
 // CLOUD SERVER SYNC ENGINE
 // -------------------------------------------------------------
-export async function syncWithServerNow(): Promise<boolean> {
+export async function syncWithServerNow(force: boolean = false): Promise<boolean> {
   const token = getAuthToken();
-  if (typeof window === 'undefined' || isSyncing || !token || token.startsWith('static.')) return false;
+  if (typeof window === 'undefined' || !token || token.startsWith('static.')) return false;
+  if (inFlightSyncPromise) {
+    if (!force) return inFlightSyncPromise;
+    try {
+      await inFlightSyncPromise;
+    } catch {
+      // ignore prior sync error and run fresh
+    }
+  }
   isSyncing = true;
 
-  try {
-    const res = await fetch('/api/data', {
-      headers: {
-        'Cache-Control': 'no-cache',
-        ...getAuthHeaders(),
-      },
-    });
-    const ct = (res.headers.get('content-type') || '').toLowerCase();
+  const runSync = async (): Promise<boolean> => {
+    try {
+      const res = await apiFetch('/api/data', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          ...getAuthHeaders(),
+        },
+      });
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
 
-    if (res.status === 401 && ct.includes('application/json')) {
-      clearActiveSession();
-      isSyncing = false;
-      return false;
-    }
+      if (res.status === 401 && ct.includes('application/json')) {
+        clearActiveSession();
+        return false;
+      }
 
-    if (!res.ok || !ct.includes('application/json')) {
+      if (!res.ok || !ct.includes('application/json')) {
+        isOnline = false;
+        return false;
+      }
+
+      const data = await res.json();
+      isOnline = true;
+      lastSyncDate = new Date();
+
+      const pendingQueue = getSyncQueue();
+
+      if (data.requerimientos && Array.isArray(data.requerimientos)) {
+        const serverReqs: Requerimiento[] = data.requerimientos;
+        const serverIds = new Set(serverReqs.map((r) => r.id));
+        const pendingReqs = pendingQueue
+          .map((q) => q.requerimiento)
+          .filter((r) => !serverIds.has(r.id));
+        localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([...pendingReqs, ...serverReqs]));
+      }
+      if (data.detalles && Array.isArray(data.detalles)) {
+        const serverDets: DetalleRequerimiento[] = data.detalles;
+        const serverDetIds = new Set(serverDets.map((d) => d.id));
+        const pendingDets = pendingQueue
+          .flatMap((q) => q.detalles || [])
+          .filter((d) => !serverDetIds.has(d.id));
+        localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([...serverDets, ...pendingDets]));
+      }
+      if (data.users && Array.isArray(data.users)) {
+        const safeUsers = data.users.map((u: AppUser) => ({ ...u, passwordHash: '', salt: '' }));
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(safeUsers));
+      }
+      if (data.areas && Array.isArray(data.areas)) {
+        localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(data.areas));
+      }
+      if (data.fundos && Array.isArray(data.fundos)) {
+        localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(data.fundos));
+      }
+      if (data.zonas && Array.isArray(data.zonas)) {
+        localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(data.zonas));
+      }
+      if (data.paraderos && Array.isArray(data.paraderos)) {
+        localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(data.paraderos));
+      }
+      if (data.comedores && Array.isArray(data.comedores)) {
+        localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(data.comedores));
+      }
+      if (data.revision) {
+        localStorage.setItem(LAST_REVISION_KEY, String(data.revision));
+      }
+
+      notifyListeners();
+      return true;
+    } catch {
       isOnline = false;
-      isSyncing = false;
       return false;
+    } finally {
+      isSyncing = false;
+      inFlightSyncPromise = null;
     }
+  };
 
-    const data = await res.json();
-    isOnline = true;
-    lastSyncDate = new Date();
-
-    if (data.requerimientos && Array.isArray(data.requerimientos)) {
-      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(data.requerimientos));
-    }
-    if (data.detalles && Array.isArray(data.detalles)) {
-      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(data.detalles));
-    }
-    if (data.users && Array.isArray(data.users)) {
-      const safeUsers = data.users.map((u: AppUser) => ({ ...u, passwordHash: '', salt: '' }));
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(safeUsers));
-    }
-    if (data.areas && Array.isArray(data.areas)) {
-      localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(data.areas));
-    }
-    if (data.fundos && Array.isArray(data.fundos)) {
-      localStorage.setItem(FUNDOS_STORAGE_KEY, JSON.stringify(data.fundos));
-    }
-    if (data.zonas && Array.isArray(data.zonas)) {
-      localStorage.setItem(ZONAS_STORAGE_KEY, JSON.stringify(data.zonas));
-    }
-    if (data.paraderos && Array.isArray(data.paraderos)) {
-      localStorage.setItem(PARADEROS_STORAGE_KEY, JSON.stringify(data.paraderos));
-    }
-    if (data.comedores && Array.isArray(data.comedores)) {
-      localStorage.setItem(COMEDORES_STORAGE_KEY, JSON.stringify(data.comedores));
-    }
-    if (data.revision) {
-      localStorage.setItem(LAST_REVISION_KEY, String(data.revision));
-    }
-
-    notifyListeners();
-    isSyncing = false;
-    return true;
-  } catch (err) {
-    isOnline = false;
-    isSyncing = false;
-    return false;
-  }
+  inFlightSyncPromise = runSync();
+  return inFlightSyncPromise;
 }
 
 export function getSyncInfo() {
@@ -270,16 +329,28 @@ if (typeof window !== 'undefined') {
 
   const pollServer = async () => {
     const token = getAuthToken();
-    if (isChecking || isSyncing || !token || token.startsWith('static.')) return;
+    if (
+      isChecking ||
+      isSyncing ||
+      !token ||
+      token.startsWith('static.') ||
+      (typeof document !== 'undefined' && document.visibilityState === 'hidden')
+    ) {
+      return;
+    }
     isChecking = true;
 
     try {
-      const res = await fetch('/api/sync/version', {
-        headers: {
-          'Cache-Control': 'no-cache',
-          ...getAuthHeaders(),
+      const res = await apiFetch(
+        '/api/sync/version',
+        {
+          headers: {
+            'Cache-Control': 'no-cache',
+            ...getAuthHeaders(),
+          },
         },
-      });
+        4000
+      );
       const ct = (res.headers.get('content-type') || '').toLowerCase();
 
       if (res.status === 401 && ct.includes('application/json')) {
@@ -305,19 +376,32 @@ if (typeof window !== 'undefined') {
 
   setTimeout(() => {
     if (getAuthToken()) {
-      syncWithServerNow();
+      processPendingSyncQueue().finally(() => {
+        syncWithServerNow();
+      });
     }
-  }, 400);
+  }, 250);
 
-  setInterval(pollServer, 20000);
+  setInterval(pollServer, 2500);
 
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        processPendingSyncQueue();
+        pollServer();
+      }
+    });
+  }
   window.addEventListener('focus', () => {
+    processPendingSyncQueue();
     pollServer();
   });
   window.addEventListener('online', () => {
     isOnline = true;
     if (getAuthToken()) {
-      syncWithServerNow();
+      processPendingSyncQueue().finally(() => {
+        syncWithServerNow(true);
+      });
     }
   });
   window.addEventListener('offline', () => {
@@ -452,31 +536,97 @@ function removeFromSyncQueue(id: string): void {
   }
 }
 
+function reconcileLocalRequirement(
+  localId: string,
+  serverReq?: Requerimiento,
+  serverDets?: DetalleRequerimiento[]
+): void {
+  if (!serverReq) return;
+  try {
+    const existingReqs = getStoredRequerimientos();
+    const idx = existingReqs.findIndex((r) => r.id === localId || r.id === serverReq.id);
+    if (idx !== -1) {
+      existingReqs[idx] = serverReq;
+    } else {
+      existingReqs.unshift(serverReq);
+    }
+    localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(existingReqs.slice(0, 1500)));
+
+    if (Array.isArray(serverDets) && serverDets.length > 0) {
+      const existingDets = getStoredDetalles().filter(
+        (d) => d.requerimientoId !== localId && d.requerimientoId !== serverReq.id
+      );
+      localStorage.setItem(
+        DET_STORAGE_KEY,
+        JSON.stringify([...existingDets, ...serverDets].slice(0, 5000))
+      );
+    }
+    broadcastLocalChange();
+  } catch {
+    // ignore
+  }
+}
+
+let isFlushingQueue = false;
+
 export async function processPendingSyncQueue(): Promise<void> {
-  if (typeof window === 'undefined' || !navigator.onLine || !getAuthToken()) return;
+  const token = getAuthToken();
+  if (
+    typeof window === 'undefined' ||
+    isFlushingQueue ||
+    !navigator.onLine ||
+    !token ||
+    token.startsWith('static.')
+  ) {
+    return;
+  }
   const queue = getSyncQueue();
   if (queue.length === 0) return;
 
-  for (const item of queue) {
-    try {
-      await firestoreSaveRequerimiento(item.requerimiento, item.detalles);
-      const res = await fetch('/api/requerimientos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          requerimiento: item.requerimiento,
-          detalles: item.detalles,
-        }),
-      });
-      if (res.ok || res.status === 400) {
-        removeFromSyncQueue(item.id);
+  isFlushingQueue = true;
+  let flushedAny = false;
+  try {
+    for (const item of queue) {
+      try {
+        firestoreSaveRequerimiento(item.requerimiento, item.detalles).catch(() => {});
+        const res = await apiFetch(
+          '/api/requerimientos',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders(),
+            },
+            body: JSON.stringify({
+              requerimiento: item.requerimiento,
+              detalles: item.detalles,
+            }),
+            keepalive: true,
+          },
+          8000
+        );
+        if (res.ok) {
+          const json = await res.json().catch(() => ({}));
+          if (json.revision) {
+            localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
+          }
+          if (json.requerimiento) {
+            reconcileLocalRequirement(item.id, json.requerimiento, json.detalles);
+          }
+          removeFromSyncQueue(item.id);
+          flushedAny = true;
+        } else if (res.status === 400) {
+          removeFromSyncQueue(item.id);
+        }
+      } catch {
+        // Reintento en la próxima pasada
       }
-    } catch {
-      // Reintento en la próxima pasada
     }
+    if (flushedAny) {
+      await syncWithServerNow(true);
+    }
+  } finally {
+    isFlushingQueue = false;
   }
 }
 
@@ -486,11 +636,10 @@ if (typeof window !== 'undefined') {
   });
   setInterval(() => {
     processPendingSyncQueue();
-  }, 25000);
+  }, 5000);
 }
 
-// Guardar nuevo requerimiento y sus registros de detalle independientes
-export function saveNewRequerimiento(
+function buildAndPersistLocalRequerimiento(
   draft: RequerimientoDraft,
   currentUser?: AppUser | string
 ): {
@@ -612,7 +761,6 @@ export function saveNewRequerimiento(
   // 1. Guardar de inmediato en memoria y localStorage para respuesta instantánea (0ms de latencia)
   const existingReqs = getStoredRequerimientos();
   const updatedReqs = [newRequerimiento, ...existingReqs];
-  // Mantener últimos 1500 en local storage para prevenir cuotas de navegador
   const trimmedReqs = updatedReqs.length > 1500 ? updatedReqs.slice(0, 1500) : updatedReqs;
   localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(trimmedReqs));
 
@@ -621,50 +769,117 @@ export function saveNewRequerimiento(
   const trimmedDets = updatedDets.length > 5000 ? updatedDets.slice(0, 5000) : updatedDets;
   localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(trimmedDets));
 
+  // Encolar preventivamente en Outbox hasta confirmar 200/201 del servidor
+  addToSyncQueue(newRequerimiento, newDetalles);
+
   // Notificar cambios localmente
   broadcastLocalChange();
-
-  // 2. Persistir en Firebase Cloud Firestore (con reintentos y cola Outbox)
-  firestoreSaveRequerimiento(newRequerimiento, newDetalles)
-    .then(() => {
-      removeFromSyncQueue(newRequerimiento.id);
-    })
-    .catch((err) => {
-      console.warn('[Firestore] Conexión ocupada o inestable, encolando en Outbox:', err);
-      addToSyncQueue(newRequerimiento, newDetalles);
-    });
-
-  // 3. Persistir también en el servidor web (Cloud Express Backup)
-  fetch('/api/requerimientos', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders(),
-    },
-    body: JSON.stringify({
-      requerimiento: newRequerimiento,
-      detalles: newDetalles,
-    }),
-  })
-    .then(async (res) => {
-      if (res.ok) {
-        const json = await res.json();
-        if (json.revision) {
-          localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
-        }
-        removeFromSyncQueue(newRequerimiento.id);
-      } else {
-        addToSyncQueue(newRequerimiento, newDetalles);
-      }
-    })
-    .catch(() => {
-      addToSyncQueue(newRequerimiento, newDetalles);
-    });
 
   return {
     requerimiento: newRequerimiento,
     detalles: newDetalles,
   };
+}
+
+async function pushRequerimientoToCloud(
+  newRequerimiento: Requerimiento,
+  newDetalles: DetalleRequerimiento[]
+): Promise<{
+  requerimiento: Requerimiento;
+  detalles: DetalleRequerimiento[];
+  syncedToServer: boolean;
+  authError?: string;
+}> {
+  // 2. Persistir en Firebase Cloud Firestore en paralelo (si hay sesión Firebase verificada)
+  firestoreSaveRequerimiento(newRequerimiento, newDetalles).catch((err) => {
+    console.warn('[Firestore] Conexión ocupada o no verificada:', err);
+  });
+
+  // 3. Persistir en el servidor web Express (fuente principal multi-dispositivo)
+  try {
+    const res = await apiFetch(
+      '/api/requerimientos',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          requerimiento: newRequerimiento,
+          detalles: newDetalles,
+        }),
+        keepalive: true,
+      },
+      8000
+    );
+
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (res.ok && ct.includes('application/json')) {
+      const json = await res.json();
+      if (json.revision) {
+        localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
+      }
+      removeFromSyncQueue(newRequerimiento.id);
+      const authReq: Requerimiento = json.requerimiento || newRequerimiento;
+      const authDets: DetalleRequerimiento[] = Array.isArray(json.detalles)
+        ? json.detalles
+        : newDetalles;
+      reconcileLocalRequirement(newRequerimiento.id, authReq, authDets);
+      return {
+        requerimiento: authReq,
+        detalles: authDets,
+        syncedToServer: true,
+      };
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      const errJson = ct.includes('application/json') ? await res.json().catch(() => ({})) : {};
+      return {
+        requerimiento: newRequerimiento,
+        detalles: newDetalles,
+        syncedToServer: false,
+        authError:
+          errJson?.error ||
+          'Sesión expirada en el servidor web. Vuelva a iniciar sesión para sincronizar.',
+      };
+    }
+  } catch {
+    // Queda en Outbox para reintento automático al recuperar conexión
+  }
+
+  return {
+    requerimiento: newRequerimiento,
+    detalles: newDetalles,
+    syncedToServer: false,
+  };
+}
+
+// Guardar nuevo requerimiento y sus registros de detalle independientes (sincrónico + push background)
+export function saveNewRequerimiento(
+  draft: RequerimientoDraft,
+  currentUser?: AppUser | string
+): {
+  requerimiento: Requerimiento;
+  detalles: DetalleRequerimiento[];
+} {
+  const created = buildAndPersistLocalRequerimiento(draft, currentUser);
+  void pushRequerimientoToCloud(created.requerimiento, created.detalles);
+  return created;
+}
+
+// Guardar nuevo requerimiento esperando confirmación real del servidor web (<500ms habitual)
+export async function saveNewRequerimientoAsync(
+  draft: RequerimientoDraft,
+  currentUser?: AppUser | string
+): Promise<{
+  requerimiento: Requerimiento;
+  detalles: DetalleRequerimiento[];
+  syncedToServer: boolean;
+  authError?: string;
+}> {
+  const created = buildAndPersistLocalRequerimiento(draft, currentUser);
+  return pushRequerimientoToCloud(created.requerimiento, created.detalles);
 }
 
 export function updateRequerimientoEstado(
@@ -709,7 +924,7 @@ export function updateRequerimientoEstado(
     console.warn('[Firestore] Error actualizando estado en Firestore:', err);
   });
 
-  fetch(`/api/requerimientos/${encodeURIComponent(id)}/estado`, {
+  apiFetch(`/api/requerimientos/${encodeURIComponent(id)}/estado`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -723,6 +938,7 @@ export function updateRequerimientoEstado(
       usuarioAnulacion: nuevoEstado === 'ANULADO' ? userLabel : undefined,
       motivoAnulacion: nuevoEstado === 'ANULADO' ? (motivo || 'Anulado de la programación') : undefined
     }),
+    keepalive: true,
   })
     .then(async (res) => {
       if (res.ok) {
@@ -782,7 +998,7 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
     });
 
     // Actualizar en el servidor web (Cloud)
-    fetch(`/api/requerimientos/${encodeURIComponent(target.id)}/estado`, {
+    apiFetch(`/api/requerimientos/${encodeURIComponent(target.id)}/estado`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -794,6 +1010,7 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
         usuarioAnulacion: userLabel,
         motivoAnulacion: motivoText
       }),
+      keepalive: true,
     })
       .then(async (res) => {
         if (res.ok) {
@@ -801,7 +1018,6 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
           if (json.revision) {
             localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
           }
-          console.log('[SYNC] Requerimiento registrado como ANULADO en historial del servidor:', target.numeroRequerimiento);
         }
       })
       .catch((err) => {
@@ -837,9 +1053,10 @@ export function hardDeleteRequerimiento(id: string): boolean {
       console.warn('[Firestore] Error purgando en Firestore:', err);
     });
 
-    fetch(`/api/requerimientos/${encodeURIComponent(target.id)}`, {
+    apiFetch(`/api/requerimientos/${encodeURIComponent(target.id)}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
+      keepalive: true,
     }).catch(() => {});
     return true;
   } catch (err) {
@@ -891,7 +1108,7 @@ export async function serverSaveMasterData(data: {
   comedores?: MaestroComedor[];
 }): Promise<void> {
   try {
-    const res = await fetch('/api/maestros', {
+    const res = await apiFetch('/api/maestros', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

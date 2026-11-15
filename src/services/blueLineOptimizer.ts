@@ -23,6 +23,7 @@ export interface StopDemandItem {
   fecha: string;
   estadoReq: string;
   origenComedor: string;
+  observaciones?: string;
 }
 
 export interface OptimizedCorridorTrip {
@@ -44,6 +45,7 @@ export interface OptimizedCorridorTrip {
   owners: string[];
   origenes: string[];
   consolidatedRuleNote?: string;
+  rutaNombre?: string;
 }
 
 // Paraderos que pertenecen directamente a la línea recta azul (Panamericana: La Brasil <-> Viviendas Mar Verde / Chao)
@@ -299,8 +301,34 @@ function compareStopsByCorridorDirection(
   movimiento: Requerimiento['movimiento'],
   masterParaderos: MaestroParadero[],
   hasNorteOnTrip: boolean,
-  tripZone?: ZonaParadero | 'LÍNEA AZUL'
+  tripZone?: ZonaParadero | 'LÍNEA AZUL',
+  forceSurFirstToSantaElena?: boolean
 ): number {
+  const isSalida = movimiento === 'SALIDA';
+
+  if (forceSurFirstToSantaElena) {
+    // Casos puntuales de ocupabilidad (<= Combi 15p mezclando Sur + Norte):
+    // 1) Todos los paraderos de ZONA SUR van primero, luego ZONA NORTE
+    if (a.zona !== b.zona) {
+      return a.zona === 'SUR' ? -1 : 1;
+    }
+    const geoA = getGeoNorthToSouthIndex(a.paradero, masterParaderos);
+    const geoB = getGeoNorthToSouthIndex(b.paradero, masterParaderos);
+    const isCanonA = geoA < 100;
+    const isCanonB = geoB < 100;
+    if (isCanonA !== isCanonB) return isCanonA ? -1 : 1;
+    if (!isCanonA && !isCanonB) {
+      return geoA !== geoB ? geoA - geoB : a.paradero.localeCompare(b.paradero);
+    }
+    if (a.zona === 'SUR') {
+      const diff = isSalida ? geoA - geoB : geoB - geoA;
+      return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
+    }
+    // En Norte después de Sur rumbo a Santa Elena: sentido Sur -> Norte (Santa Cecilia -> ... -> La Brasil)
+    const diff = geoB - geoA;
+    return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
+  }
+
   const geoA = getGeoNorthToSouthIndex(a.paradero, masterParaderos);
   const geoB = getGeoNorthToSouthIndex(b.paradero, masterParaderos);
 
@@ -311,7 +339,6 @@ function compareStopsByCorridorDirection(
     return geoA !== geoB ? geoA - geoB : a.paradero.localeCompare(b.paradero);
   }
 
-  const isSalida = movimiento === 'SALIDA';
   const isSouthFundo = isAgricultorCorridorFundo(a.fundo) || isAgricultorCorridorFundo(b.fundo);
   const isYakuy = isYakuyMinkaFundo(a.fundo) || isYakuyMinkaFundo(b.fundo);
 
@@ -350,14 +377,24 @@ function packStopsIntoUnits(
   movimiento: Requerimiento['movimiento'],
   groupCounter: Record<string, number>,
   ruleNote?: string,
-  preserveZoneLabel?: boolean
+  preserveZoneLabel?: boolean,
+  rutaNombre?: string,
+  forceSurFirstToSantaElena?: boolean
 ): OptimizedCorridorTrip[] {
   if (items.length === 0 || units.length === 0) return [];
 
   const hasNorteOnTrip = items.some((i) => i.zona === 'NORTE');
   // Ordenar paraderos geográficamente según ubicación real del fundo y sentido de la línea
   const sortedItems = [...items].sort((a, b) =>
-    compareStopsByCorridorDirection(a, b, movimiento, masterParaderos, hasNorteOnTrip, zoneLabel)
+    compareStopsByCorridorDirection(
+      a,
+      b,
+      movimiento,
+      masterParaderos,
+      hasNorteOnTrip,
+      zoneLabel,
+      forceSurFirstToSantaElena
+    )
   );
 
   // Cola mutable de cantidades por ítem
@@ -443,6 +480,7 @@ function packStopsIntoUnits(
       owners: Array.from(ownersSet),
       origenes: Array.from(origenesSet),
       consolidatedRuleNote: ruleNote,
+      ...(rutaNombre ? { rutaNombre } : {}),
     });
   }
 
@@ -517,6 +555,7 @@ export function generateCorridorSchedule(params: {
         fecha: req.fecha,
         estadoReq: req.estado,
         origenComedor: comedorFallback,
+        observaciones: req.observaciones || '',
       });
       return;
     }
@@ -538,6 +577,7 @@ export function generateCorridorSchedule(params: {
         fecha: req.fecha,
         estadoReq: req.estado,
         origenComedor: det.comedor || comedorFallback,
+        observaciones: req.observaciones || '',
       });
     });
   });
@@ -574,8 +614,8 @@ export function generateCorridorSchedule(params: {
       ? `CORREDOR__${item.reqId}__${fundoKey}`
       : `CENTRAL__${item.reqId}__${fundoKey}`;
 
-    // Ventana de 20 min dentro del mismo requerimiento cuando consolida paraderos Norte + Sur
-    const maxGap = consolidarLineaAzul && isBlueLineCorridorFundo ? 20 : 0;
+    // Ventana horaria dentro del mismo requerimiento cuando consolida paraderos Norte + Sur
+    const maxGap = consolidarLineaAzul ? 60 : 0;
     const existing = buckets.find(
       (b) =>
         b.fecha === item.fecha &&
@@ -643,10 +683,70 @@ export function generateCorridorSchedule(params: {
       continue;
     }
 
+    // Regla puntual de ocupabilidad (<= Combi 15p: ej. 5, 7, 9 o hasta 15 pax):
+    // Cuando un requerimiento mezcla Zona Sur + Zona Norte (varios comedores/fundos o Sanidad),
+    // no se divide en 2 minivanes: se consolida en 1 sola unidad (Mini Van o Combi),
+    // recorriendo primero Zona Sur y luego Zona Norte, con ruta SANTA ELENA.
+    const totalPax = totalN + totalS;
+    const smallCapUnits = activeFleet.filter((u) => u.capacidad > 0 && u.capacidad <= 15);
+    const maxSmallCap = smallCapUnits.length > 0 ? smallCapUnits[0].capacidad : 0;
+    const combinedSmallUnits =
+      maxSmallCap > 0 && totalPax <= maxSmallCap
+        ? solveOptimalFleetDP(totalPax, activeFleet)
+        : [];
+    const isCentralBucket = bucket.corridorKey.startsWith('CENTRAL__');
+    const distinctComedores = new Set(
+      bucket.items.map((i) => (i.origenComedor || '').trim().toUpperCase()).filter(Boolean)
+    );
+    const hasSanidadOrCrossComedor =
+      distinctComedores.size > 1 ||
+      bucket.items.some((i) => {
+        const areaUp = (i.area || '').toUpperCase();
+        const comUp = (i.origenComedor || '').toUpperCase();
+        const stopUp = (i.paradero || '').toUpperCase();
+        const obsUp = (i.observaciones || '').toUpperCase();
+        return (
+          areaUp.includes('SANIDAD') ||
+          stopUp.includes('SANTA ELENA') ||
+          obsUp.includes('SANTA ELENA') ||
+          comUp.includes('GLORIA') ||
+          comUp.includes('MAR VERDE') ||
+          comUp.includes('ORO AZUL') ||
+          comUp.includes('SANTA ELENA')
+        );
+      });
+
+    if (
+      combinedSmallUnits.length === 1 &&
+      combinedSmallUnits[0].capacidad <= maxSmallCap &&
+      (isCentralBucket || hasSanidadOrCrossComedor)
+    ) {
+      const surStartTime =
+        [...surItems].sort(
+          (a, b) => parseMinutesFromTime(a.horaDisplay) - parseMinutesFromTime(b.horaDisplay)
+        )[0]?.horaDisplay || bucket.anchorTime;
+      finalTrips.push(
+        ...packStopsIntoUnits(
+          bucket.items,
+          combinedSmallUnits,
+          'LÍNEA AZUL',
+          paraderosMaestros,
+          bucket.fecha,
+          surStartTime,
+          bucket.movimiento,
+          groupCounter,
+          'Consolidado Sur → Norte (Ruta Santa Elena) en 1 unidad por ocupabilidad',
+          true,
+          'SANTA ELENA',
+          true
+        )
+      );
+      continue;
+    }
+
     // Para fundos centrales (Gloria, Agromas, Frusol, Mar Verde, Oro Azul, San José, Napo):
     // Evaluar reequilibrio fronterizo en sector San José (La 21, La Plazuela San José, Santa Cecilia, Mendocilla -> Sur)
     // o Segundo Paradero/La Botica -> Norte cuando reduce flota o mejora la ocupabilidad global.
-    const isCentralBucket = bucket.corridorKey.startsWith('CENTRAL__');
     if (isCentralBucket) {
       const sepUnitsN = solveOptimalFleetDP(totalN, activeFleet);
       const sepUnitsS = solveOptimalFleetDP(totalS, activeFleet);

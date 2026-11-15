@@ -14,6 +14,8 @@ import { Requerimiento } from '../types';
 
 interface Step4ConfirmationProps {
   requerimiento: Requerimiento;
+  syncedToServer?: boolean;
+  syncNotice?: string;
   onViewRequirement: (req: Requerimiento) => void;
   onNewRequirement: () => void;
   onGoHome: () => void;
@@ -21,6 +23,8 @@ interface Step4ConfirmationProps {
 
 export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
   requerimiento,
+  syncedToServer = true,
+  syncNotice,
   onViewRequirement,
   onNewRequirement,
   onGoHome,
@@ -60,8 +64,10 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
         <h2 className="text-xl sm:text-2xl font-bold text-[#1B3A57] tracking-tight">
           ¡Requerimiento registrado!
         </h2>
-        <p className="text-xs sm:text-sm text-slate-500 font-medium">
-          Guardado en la web y transmitido a Procesos de Recepción.
+        <p className={`text-xs sm:text-sm font-medium ${syncedToServer ? 'text-slate-500' : 'text-amber-700'}`}>
+          {syncedToServer
+            ? 'Guardado en la web y transmitido a Procesos de Recepción.'
+            : syncNotice || 'Guardado en el teléfono; se enviará a la web en cuanto haya conexión.'}
         </p>
       </div>
 

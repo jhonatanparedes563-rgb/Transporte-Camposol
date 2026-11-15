@@ -403,7 +403,8 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           }
           if (info.macrozona) macroSet.add(info.macrozona);
         });
-        const zonaDestinoFinal = resolveZonaFromLastParadero(t.stops, t.zone);
+        const zonaDestinoFinal =
+          t.rutaNombre || resolveZonaFromLastParadero(t.stops, t.zone);
 
         return {
           id: t.id,
@@ -595,7 +596,8 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         destino: paradas.map((p) => p.paradero).join(', '),
         plan: row.people,
         sayta: row.sayta || '-',
-        paraderoInicial: resolveZonaFromLastParadero(paradas, row.zone),
+        paraderoInicial:
+          row.zonaDestinoFinal || resolveZonaFromLastParadero(paradas, row.zone),
         porcentajeOcupacion: ocup,
         horaSayta: row.time,
         obsSayta: `${serviceNum}-${row.area || 'PRODUCCIÓN'}`,
@@ -1232,7 +1234,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                         <span
                           className="text-[12px] font-normal text-[#334155] block truncate max-w-[160px]"
                           title={
-                            row.zonasEspecificas && row.zonasEspecificas.length > 1
+                            row.consolidatedRuleNote
+                              ? `${row.zonaDestinoFinal || '-'} · ${row.consolidatedRuleNote}`
+                              : row.zonasEspecificas && row.zonasEspecificas.length > 1
                               ? `Última zona: ${row.zonaDestinoFinal} · Recorrido: ${row.zonasEspecificas.join(' → ')}`
                               : row.zonaDestinoFinal || row.zonasEspecificas?.join(' · ') || '-'
                           }

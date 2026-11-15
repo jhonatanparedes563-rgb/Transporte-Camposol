@@ -60,7 +60,7 @@ export default function App() {
           setCurrentUser(null);
         } else {
           setCurrentUser(verifiedUser);
-          syncWithServerNow().then(() => loadData());
+          syncWithServerNow(true).then(() => loadData());
         }
       });
     }
@@ -74,7 +74,7 @@ export default function App() {
     setCurrentUser(user);
     setCurrentScreen('home');
     loadData();
-    syncWithServerNow().then(() => loadData());
+    syncWithServerNow(true).then(() => loadData());
   };
 
   const handleLogout = () => {
