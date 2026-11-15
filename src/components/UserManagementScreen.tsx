@@ -34,7 +34,11 @@ import {
   deleteStoredUser,
   resetUserPassword,
 } from '../services/authService';
-import { getStoredAreas, getStoredFundos } from '../services/storageService';
+import {
+  getStoredAreas,
+  getStoredFundos,
+  subscribeToDataChanges,
+} from '../services/storageService';
 import { MAESTRO_CULTIVOS } from '../data/masterData';
 
 interface UserManagementScreenProps {
@@ -96,9 +100,8 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   const [showCreatePass, setShowCreatePass] = useState(false);
   const [showResetPass, setShowResetPass] = useState(false);
 
-  // Mensajes y alertas
   const [errorMessage, setErrorMessage] = useState('');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const loadUsers = () => {
     setUsers(getStoredUsers());
@@ -106,10 +109,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
 
   useEffect(() => {
     loadUsers();
+    return subscribeToDataChanges(() => {
+      loadUsers();
+    });
   }, []);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ text: msg, type });
     setTimeout(() => setToastMessage(null), 3500);
   };
 
@@ -144,16 +150,16 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     const confirmarContrasena = createForm.confirmarContrasena.trim();
 
     // Validaciones requeridas:
-    if (!nombre) {
-      setErrorMessage('El nombre completo es obligatorio.');
+    if (!nombre || nombre.length < 2) {
+      setErrorMessage('El nombre completo es obligatorio (mín. 2 caracteres).');
       return;
     }
-    if (!usuario) {
-      setErrorMessage('El usuario es obligatorio.');
+    if (!/^[a-zA-Z0-9._\-]{3,32}$/.test(usuario)) {
+      setErrorMessage('El usuario debe tener entre 3 y 32 caracteres (letras, números, punto o guion).');
       return;
     }
-    if (!contrasena) {
-      setErrorMessage('La contraseña es obligatoria.');
+    if (contrasena.length < 8) {
+      setErrorMessage('La contraseña debe tener al menos 8 caracteres para seguridad corporativa.');
       return;
     }
     if (contrasena !== confirmarContrasena) {
@@ -274,8 +280,8 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     const nueva = resetForm.nuevaContrasena.trim();
     const confirmar = resetForm.confirmarContrasena.trim();
 
-    if (!nueva) {
-      setErrorMessage('La nueva contraseña es obligatoria.');
+    if (nueva.length < 8) {
+      setErrorMessage('La nueva contraseña debe tener al menos 8 caracteres.');
       return;
     }
     if (nueva !== confirmar) {
@@ -294,25 +300,27 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   };
 
   // Activar / Desactivar Usuario
-  const handleToggleStatus = (user: AppUser) => {
+  const handleToggleStatus = async (user: AppUser) => {
     if (user.id === currentAdminUser.id) {
-      alert('No puedes desactivar tu propia cuenta de administrador.');
+      showToast('No puedes desactivar tu propia cuenta de administrador.', 'error');
       return;
     }
 
-    const res = toggleUserStatus(user.id);
+    const res = await toggleUserStatus(user.id);
     if (res.success) {
       loadUsers();
       showToast(
         `Usuario ${user.nombre} ahora está ${res.newStatus === 'ACTIVO' ? 'ACTIVO' : 'INACTIVO'}.`
       );
+    } else {
+      showToast(res.error || 'No se pudo cambiar el estado del usuario.', 'error');
     }
   };
 
   // Abrir Modal de Confirmación de Eliminación
   const handleOpenDelete = (user: AppUser) => {
     if (user.id === currentAdminUser.id) {
-      alert('No puedes eliminar tu propia cuenta de administrador activa.');
+      showToast('No puedes eliminar tu propia cuenta de administrador activa.', 'error');
       return;
     }
     setSelectedUser(user);
@@ -321,11 +329,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   };
 
   // Confirmar Eliminación Permanente
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!selectedUser) return;
     setErrorMessage('');
 
-    const res = deleteStoredUser(selectedUser.id, currentAdminUser.id);
+    const res = await deleteStoredUser(selectedUser.id, currentAdminUser.id);
     if (res.success) {
       setIsDeleteModalOpen(false);
       setIsEditModalOpen(false);
@@ -382,9 +390,19 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     <div className="space-y-4 text-[#1B3A57]">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#1B3A57] text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 font-semibold text-xs border border-[#55A529]/40">
-          <CheckCircle2 className="w-5 h-5 text-[#7BD44B]" />
-          <span>{toastMessage}</span>
+        <div
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 font-semibold text-xs border ${
+            toastMessage.type === 'error'
+              ? 'bg-[#DC2626] text-white border-red-400'
+              : 'bg-[#1B3A57] text-white border-[#55A529]/40'
+          }`}
+        >
+          {toastMessage.type === 'error' ? (
+            <AlertCircle className="w-5 h-5 text-white shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-5 h-5 text-[#7BD44B] shrink-0" />
+          )}
+          <span>{toastMessage.text}</span>
         </div>
       )}
 
@@ -1424,7 +1442,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
               </div>
 
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                La contraseña se almacenará de forma segura con encriptación SHA-256 y salt. Nunca se almacena en texto plano.
+                La contraseña se almacena en el servidor con algoritmo criptográfico scrypt y salt aleatorio único. Nunca se almacena ni se transmite en texto plano.
               </p>
 
               {/* Botones */}

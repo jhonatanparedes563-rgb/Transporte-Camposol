@@ -7,8 +7,16 @@ import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { LoginScreen } from './components/LoginScreen';
 import { UserMobileLayout } from './components/UserMobileLayout';
 import { Requerimiento, UserRole, AppUser } from './types';
-import { getStoredRequerimientos, subscribeToDataChanges } from './services/storageService';
-import { getCurrentSession, logoutSession } from './services/authService';
+import {
+  getStoredRequerimientos,
+  subscribeToDataChanges,
+  syncWithServerNow,
+} from './services/storageService';
+import {
+  getCurrentSession,
+  logoutSession,
+  verifySessionWithServer,
+} from './services/authService';
 
 const AdminPortalLayout = lazy(() =>
   import('./components/AdminPortalLayout').then((m) => ({ default: m.AdminPortalLayout }))
@@ -45,6 +53,18 @@ export default function App() {
     const unsubscribe = subscribeToDataChanges(() => {
       loadData();
     });
+
+    if (getCurrentSession()) {
+      verifySessionWithServer().then((verifiedUser) => {
+        if (!verifiedUser) {
+          setCurrentUser(null);
+        } else {
+          setCurrentUser(verifiedUser);
+          syncWithServerNow().then(() => loadData());
+        }
+      });
+    }
+
     return () => {
       unsubscribe();
     };
@@ -54,6 +74,7 @@ export default function App() {
     setCurrentUser(user);
     setCurrentScreen('home');
     loadData();
+    syncWithServerNow().then(() => loadData());
   };
 
   const handleLogout = () => {

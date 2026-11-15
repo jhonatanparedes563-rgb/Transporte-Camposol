@@ -3,7 +3,6 @@ import {
   Bus,
   Lock,
   User,
-  ArrowRight,
   ArrowLeft,
   ShieldAlert,
   Eye,
@@ -15,8 +14,6 @@ import {
 import {
   authenticateUser,
   requestPasswordRecovery,
-  restoreMainAdminUser,
-  setActiveSessionUser,
 } from '../services/authService';
 import { AppUser } from '../types';
 import { getPublicAssetUrl } from './CamposolLogo';
@@ -46,7 +43,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [isRecoverySubmitting, setIsRecoverySubmitting] = useState(false);
   const [recoveryError, setRecoveryError] = useState('');
   const [recoverySuccess, setRecoverySuccess] = useState(false);
-  const [recoveredUser, setRecoveredUser] = useState<AppUser | null>(null);
+  const [recoveryMessage, setRecoveryMessage] = useState('');
+  const [honeypot, setHoneypot] = useState('');
 
   useEffect(() => {
     try {
@@ -75,7 +73,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
     setIsLoading(true);
     try {
-      const result = await authenticateUser(cleanUser, cleanPass);
+      const result = await authenticateUser(cleanUser, cleanPass, honeypot);
       if (result.success && result.user) {
         try {
           if (rememberMe) {
@@ -113,13 +111,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
     setIsRecoverySubmitting(true);
     try {
-      const res = await requestPasswordRecovery(cleanIdentifier);
-      if (res.success && res.user) {
-        setRecoveredUser(res.user);
+      const res = await requestPasswordRecovery(cleanIdentifier, honeypot);
+      if (res.success) {
+        setRecoveryMessage(
+          res.message ||
+            'Si los datos corresponden a una cuenta activa, la solicitud ha sido registrada para atención del Administrador.'
+        );
         setRecoverySuccess(true);
       } else {
         setRecoveryError(
-          res.error || 'No se encontró ningún usuario o correo registrado con esa información.'
+          res.error || 'No se pudo procesar la solicitud en este momento.'
         );
       }
     } catch (err) {
@@ -151,15 +152,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         />
       </div>
 
-      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Valle luminoso + 3 unidades difuminando suave en el borde inferior) */}
-      <div className="lg:hidden relative w-full h-[40dvh] min-h-[200px] max-h-[360px] shrink-0 overflow-hidden bg-white">
+      {/* CABECERA PANORÁMICA EN MÓVIL / TABLET (Adaptable a cualquier teléfono y estable al abrir teclado) */}
+      <div className="lg:hidden relative w-full h-[clamp(185px,42svh,395px)] shrink-0 overflow-hidden bg-white">
         {!heroImgFailed ? (
           <img
             src={imgValleyFleetBg}
             alt="Unidades de transporte CAMPOSOL en el valle"
             referrerPolicy="no-referrer"
+            fetchPriority="high"
+            decoding="sync"
             onError={() => setHeroImgFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover object-[52%_60%] pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-[52%_65%] pointer-events-none select-none"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-[#15803D] to-white flex items-center justify-center opacity-20 pointer-events-none">
@@ -173,15 +176,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#082412]/70 via-[#082412]/25 to-transparent pointer-events-none"
         />
 
-        {/* Difuminado suave concentrado bien abajo hacia blanco puro */}
+        {/* Difuminado suave extendido hacia blanco puro */}
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-14 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.28)_42%,rgba(255,255,255,0.78)_78%,#FFFFFF_100%)] pointer-events-none"
+          className="absolute inset-x-0 bottom-0 h-28 sm:h-32 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.18)_30%,rgba(255,255,255,0.62)_62%,rgba(255,255,255,0.92)_84%,#FFFFFF_100%)] pointer-events-none"
         />
 
         {/* Lockup oficial CAMPOSOL | Transporte de Personal en el espacio superior */}
-        <div className="relative z-10 px-5 pt-5 flex items-center gap-3.5">
-          <div className="w-15 h-15 rounded-2xl overflow-hidden bg-[#04443A] ring-1 ring-white/35 shadow-lg shrink-0 flex items-center justify-center">
+        <div className="relative z-10 px-5 pt-[max(1.25rem,env(safe-area-inset-top))] flex items-center gap-3.5">
+          <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-2xl overflow-hidden bg-[#04443A] ring-1 ring-white/35 shadow-lg shrink-0 flex items-center justify-center">
             <img
               src={getPublicAssetUrl('app-icon-192-v4.png')}
               onError={(e) => {
@@ -192,14 +195,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               }}
               alt="CAMPOSOL TDP Transporte de Personal"
               referrerPolicy="no-referrer"
+              decoding="sync"
               className="w-full h-full object-contain"
             />
           </div>
           <div className="min-w-0 border-l-2 border-white/85 pl-3.5 py-0.5">
-            <div className="text-[22px] font-extrabold tracking-wide text-white leading-none drop-shadow-sm">
+            <div className="text-[21px] sm:text-[22px] font-extrabold tracking-wide text-white leading-none drop-shadow-sm">
               CAMPOSOL
             </div>
-            <div className="text-[13px] font-semibold text-[#ECFDF5] leading-tight mt-1 truncate drop-shadow-xs">
+            <div className="text-[12.5px] sm:text-[13px] font-semibold text-[#ECFDF5] leading-tight mt-1 truncate drop-shadow-xs">
               Transporte de Personal
             </div>
           </div>
@@ -207,7 +211,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       </div>
 
       {/* CONTENEDOR PRINCIPAL RESPONSIVO (Móvil + PC / Laptop) */}
-      <div className="relative z-10 w-full flex-1 lg:flex-none max-w-6xl mx-auto lg:px-10 lg:py-8 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
+      <div className="relative z-20 w-full flex-1 lg:flex-none max-w-6xl mx-auto lg:px-10 lg:py-8 flex flex-col lg:grid lg:grid-cols-12 lg:gap-10 lg:items-center">
         {/* Columna Izquierda (PC / Laptop): Identidad formal sobre el paisaje */}
         <div className="hidden lg:flex lg:col-span-7 flex-col justify-center text-white pr-4">
           <div className="flex items-center gap-4">
@@ -249,21 +253,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
         </div>
 
-        {/* Columna Derecha / Panel Blanco Móvil (Centrado, proporcional y ordenado) */}
+        {/* Columna Derecha / Panel Blanco Móvil (Encuadrado, subido hacia el difuminado y uniforme) */}
         <div className="w-full flex-1 lg:flex-none lg:col-span-5 lg:max-w-[440px] lg:justify-self-end flex flex-col">
-          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white lg:rounded-[26px] px-6 pt-1 pb-4 lg:p-8 lg:shadow-2xl lg:border lg:border-white/80">
+          <div className="flex-1 lg:flex-none flex flex-col justify-between bg-white lg:rounded-[26px] px-4 sm:px-6 pt-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:p-8 lg:shadow-2xl lg:border lg:border-white/80">
             {/* VISTA: INICIAR SESIÓN */}
             {viewMode === 'login' && (
-              <div className="flex flex-col justify-center my-auto py-2 lg:py-0 gap-4 lg:gap-5">
+              <div className="-mt-7 lg:mt-0 mb-auto flex flex-col justify-center bg-white rounded-3xl lg:rounded-none border border-slate-200/80 lg:border-0 shadow-[0_10px_30px_-8px_rgba(15,42,26,0.10)] lg:shadow-none px-4.5 sm:px-5 py-4.5 sm:py-5 lg:p-0 gap-3.5 sm:gap-4 lg:gap-5">
                 <div>
                   <div
                     role="heading"
                     aria-level={1}
-                    className="text-[30px] lg:text-[32px] font-extrabold text-[#111827] tracking-tight leading-[1.1]"
+                    className="text-[27px] min-[375px]:text-[30px] lg:text-[32px] font-extrabold text-[#111827] tracking-tight leading-[1.1]"
                   >
                     Bienvenido(a)
                   </div>
-                  <div className="text-[15px] font-normal text-slate-600 mt-1 leading-snug">
+                  <div className="text-[14px] min-[375px]:text-[15px] font-normal text-slate-600 mt-1 leading-snug">
                     Inicie sesión en Transporte de Personal
                   </div>
                 </div>
@@ -279,6 +283,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 )}
 
                 <form onSubmit={handleLogin} className="space-y-3.5">
+                  {/* Campo trampa invisible anti-bots */}
+                  <input
+                    type="text"
+                    name="website"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    className="sr-only"
+                  />
                   {/* Campo: Usuario ampliado */}
                   <div className="relative pt-2">
                     <label
@@ -338,15 +353,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   </div>
 
                   {/* Fila: Recordarme + Olvidé mi contraseña */}
-                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 pt-0.5">
                     <button
                       type="button"
                       role="switch"
                       aria-checked={rememberMe}
                       onClick={() => setRememberMe(!rememberMe)}
-                      className="inline-flex items-center gap-2.5 cursor-pointer py-0.5 focus:outline-none"
+                      className="inline-flex items-center gap-2 cursor-pointer py-0.5 focus:outline-none shrink-0"
                     >
-                      <span className="text-[14px] font-medium text-[#1F2937]">
+                      <span className="text-[13.5px]! min-[375px]:text-[14px]! font-medium text-[#1F2937]">
                         Recordarme
                       </span>
                       <span
@@ -368,7 +383,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         setRecoveryIdentifier(username.trim());
                         setViewMode('recovery');
                       }}
-                      className="text-[14px] font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-0.5"
+                      className="text-[13.5px]! min-[375px]:text-[14px]! font-semibold text-[#38A126] hover:underline focus:outline-none cursor-pointer py-0.5 whitespace-nowrap"
                     >
                       Olvidé mi contraseña
                     </button>
@@ -479,64 +494,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
                     <div className="text-center space-y-1">
                       <h2 className="text-lg font-extrabold text-[#111827]">
-                        Solicitud enviada
+                        Solicitud registrada
                       </h2>
                       <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                        El sistema ha registrado su requerimiento de recuperación de contraseña.
+                        {recoveryMessage ||
+                          'Si los datos corresponden a una cuenta activa de CAMPOSOL, la solicitud fue enviada al Administrador del Sistema de Transporte.'}
                       </p>
                     </div>
 
-                    {recoveredUser && (
-                      <div className="bg-[#F8FAFC] border border-[#E5ECF2] p-3.5 rounded-xl space-y-2 text-xs">
-                        <div className="flex items-center justify-between border-b border-[#E5ECF2] pb-1.5">
-                          <span className="text-[11px] font-semibold text-slate-500">
-                            Trabajador
-                          </span>
-                          <span className="font-bold text-[#1B3A57]">
-                            {recoveredUser.nombre}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b border-[#E5ECF2] pb-1.5">
-                          <span className="text-[11px] font-semibold text-slate-500">
-                            Usuario
-                          </span>
-                          <span className="font-mono font-bold text-[#2F7D18]">
-                            @{recoveredUser.usuario}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-semibold text-slate-500">
-                            Correo Institucional
-                          </span>
-                          <span className="font-mono text-slate-700 font-bold">
-                            {recoveredUser.email || `${recoveredUser.usuario}@camposol.com.pe`}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
                     <div className="p-3 bg-[#EAF7E4] border border-[#C6E9B4] rounded-xl text-left text-xs text-[#1B3A57] leading-relaxed font-medium">
-                      Se han enviado las pautas de validación a su correo y se notificó al{' '}
+                      Por seguridad corporativa, el restablecimiento de acceso debe ser autorizado por el{' '}
                       <strong>Administrador del Sistema de Transporte</strong>.
                     </div>
-
-                    <button
-                      id="btn-login-with-recovered"
-                      type="button"
-                      onClick={() => {
-                        if (recoveredUser) {
-                          setActiveSessionUser(recoveredUser);
-                          onLoginSuccess(recoveredUser);
-                        } else {
-                          const admin = restoreMainAdminUser();
-                          onLoginSuccess(admin);
-                        }
-                      }}
-                      className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] text-white font-bold rounded-xl text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span>Ingresar ahora con esta cuenta</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
 
                     <button
                       id="btn-confirm-return-login"
@@ -546,11 +515,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         setRecoverySuccess(false);
                         setRecoveryIdentifier('');
                         setRecoveryError('');
+                        setRecoveryMessage('');
                       }}
-                      className="w-full py-3 px-4 bg-[#F1F5F9] hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-3.5 px-4 bg-[#22A846] hover:bg-[#1C8E3A] text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>Volver a la pantalla de login</span>
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Volver al inicio de sesión</span>
                     </button>
                   </div>
                 )}

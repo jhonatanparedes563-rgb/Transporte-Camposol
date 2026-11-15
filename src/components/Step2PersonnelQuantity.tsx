@@ -222,7 +222,7 @@ export const Step2PersonnelQuantity: React.FC<Step2PersonnelQuantityProps> = ({
   // Handle cell quantity change with support for mobile, ghost keys, and clean deletion
   const handleCellChange = (paradero: string, col: string, rawVal: string) => {
     const clean = rawVal.replace(/\D/g, '');
-    const num = clean === '' ? 0 : parseInt(clean, 10);
+    const num = clean === '' ? 0 : Math.min(parseInt(clean, 10), 500);
     const normKey = normalizeParaderoKey(paradero);
 
     setMatrix((prev) => {

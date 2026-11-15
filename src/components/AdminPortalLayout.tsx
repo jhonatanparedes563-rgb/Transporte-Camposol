@@ -1433,21 +1433,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               </div>
             ) : (
               <div>
-                <UserManagementScreen
-                  currentAdminUser={
-                    currentUser || {
-                      id: 'usr-admin-01',
-                      nombre: 'Administrador del Sistema',
-                      usuario: 'admin',
-                      passwordHash: '',
-                      salt: '',
-                      rol: 'admin',
-                      area: 'TDP',
-                      fundo: 'SEDE CENTRAL',
-                      estado: 'ACTIVO',
-                    }
-                  }
-                />
+                {currentUser && (
+                  <UserManagementScreen currentAdminUser={currentUser} />
+                )}
               </div>
             )
           )}

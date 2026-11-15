@@ -3,42 +3,30 @@ import { firestoreSaveUser, firestoreDeleteUser } from './firestoreService';
 
 const USERS_STORAGE_KEY = 'camposol_users_v2';
 const SESSION_STORAGE_KEY = 'camposol_session_user_v2';
+const AUTH_TOKEN_STORAGE_KEY = 'camposol_auth_token_v1';
 const DEFAULT_SALT = 'camposol_salt_2026';
 
-// Generar hash seguro SHA-256 usando Web Crypto API (nativo de navegador)
+// Hash SHA-256 usando Web Crypto API (sin fallbacks inseguros)
 export async function hashPassword(password: string, salt: string = DEFAULT_SALT): Promise<string> {
   const normalized = password.trim();
   if (typeof crypto !== 'undefined' && crypto.subtle) {
-    try {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(`${salt}:${normalized}`);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    } catch (e) {
-      console.warn('Crypto.subtle digest falló, usando fallback seguro:', e);
-    }
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${salt}:${normalized}`);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
-
-  // Fallback seguro en caso de entorno sin crypto.subtle
-  let hash = 5381;
-  const str = `${salt}:${normalized}`;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return `h_${Math.abs(hash).toString(16)}`;
+  throw new Error('Entorno sin soporte criptográfico seguro.');
 }
 
-// Usuarios predeterminados del sistema CAMPOSOL
-// Con contraseñas pre-hasheadas seguras para el inicio de sesión inmediato (clave inicial: camposol2026 o 123456)
+// Cuentas iniciales operativas (las contraseñas reales se gestionan en el servidor con scrypt)
 export const INITIAL_USERS: AppUser[] = [
   {
     id: 'usr-admin-01',
     nombre: 'Administrador del Sistema',
     usuario: 'admin',
     email: 'admin@camposol.com.pe',
-    passwordHash: '8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687', // camposol2026
+    passwordHash: '6620edc65886f1eb068e77323d7116dcdde2942fb3192b61df14ab24e614f238',
     salt: DEFAULT_SALT,
     rol: 'admin',
     area: 'TDP',
@@ -52,7 +40,7 @@ export const INITIAL_USERS: AppUser[] = [
     nombre: 'Roberto Gonzáles',
     usuario: 'receptor',
     email: 'rgonzales@camposol.com.pe',
-    passwordHash: '8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687', // camposol2026
+    passwordHash: '6620edc65886f1eb068e77323d7116dcdde2942fb3192b61df14ab24e614f238',
     salt: DEFAULT_SALT,
     rol: 'receptor',
     area: 'LOGÍSTICA',
@@ -66,7 +54,7 @@ export const INITIAL_USERS: AppUser[] = [
     nombre: 'Juan Pérez',
     usuario: 'jperez',
     email: 'jperez@camposol.com.pe',
-    passwordHash: '8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687', // camposol2026
+    passwordHash: '6620edc65886f1eb068e77323d7116dcdde2942fb3192b61df14ab24e614f238',
     salt: DEFAULT_SALT,
     rol: 'usuario',
     area: 'PRODUCCIÓN',
@@ -80,7 +68,7 @@ export const INITIAL_USERS: AppUser[] = [
     nombre: 'María Salazar',
     usuario: 'msalazar',
     email: 'msalazar@camposol.com.pe',
-    passwordHash: '8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687', // camposol2026
+    passwordHash: '6620edc65886f1eb068e77323d7116dcdde2942fb3192b61df14ab24e614f238',
     salt: DEFAULT_SALT,
     rol: 'usuario',
     area: 'EMPAQUE',
@@ -94,7 +82,7 @@ export const INITIAL_USERS: AppUser[] = [
     nombre: 'Carlos Mendoza',
     usuario: 'cmendoza',
     email: 'cmendoza@camposol.com.pe',
-    passwordHash: '8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687', // camposol2026
+    passwordHash: '6620edc65886f1eb068e77323d7116dcdde2942fb3192b61df14ab24e614f238',
     salt: DEFAULT_SALT,
     rol: 'usuario',
     area: 'COSECHA',
@@ -105,100 +93,141 @@ export const INITIAL_USERS: AppUser[] = [
   },
 ];
 
-// Obtener todos los usuarios almacenados
-export function getStoredUsers(): AppUser[] {
-  try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(INITIAL_USERS));
-      return INITIAL_USERS;
-    }
-    const users: AppUser[] = JSON.parse(raw);
-    if (!Array.isArray(users) || users.length === 0) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(INITIAL_USERS));
-      return INITIAL_USERS;
-    }
-    // Asegurar que cada usuario tenga un cultivo asignado por defecto y área actualizada si corresponde
-    let modified = false;
-    const enriched = users.map((u) => {
-      let currentArea = u.area;
-      if (u.usuario === 'admin' && (u.area === 'OPERACIONES AGRÍCOLAS' || u.area === 'OPERACIONES')) {
-        currentArea = 'TDP';
-        modified = true;
-      }
-      if (!u.cultivo) {
-        modified = true;
-        const match = INITIAL_USERS.find((init) => init.usuario === u.usuario);
-        return {
-          ...u,
-          area: currentArea,
-          cultivo: match?.cultivo || (u.rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'),
-        };
-      }
-      if (currentArea !== u.area) {
-        return { ...u, area: currentArea };
-      }
-      return u;
-    });
-    if (modified) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(enriched));
-    }
-    return enriched;
-  } catch (err) {
-    console.error('Error cargando usuarios:', err);
-    return INITIAL_USERS;
-  }
+function stripSensitiveFields(user: AppUser): AppUser {
+  const { passwordHash: _ph, salt: _s, ...rest } = user;
+  return {
+    ...rest,
+    passwordHash: '',
+    salt: '',
+  };
 }
 
-// Guardar lista completa de usuarios
-export function saveStoredUsers(users: AppUser[]): void {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-}
-
-// Obtener usuario actualmente con sesión activa
-export function getActiveSessionUser(): AppUser | null {
+export function getAuthToken(): string | null {
   try {
-    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-    if (!raw) return null;
-    const sessionUser: AppUser = JSON.parse(raw);
-    // Verificar que el usuario siga existiendo y esté activo
-    const allUsers = getStoredUsers();
-    const existing = allUsers.find((u) => u.id === sessionUser.id);
-    if (!existing || existing.estado !== 'ACTIVO') {
-      // Sesión inválida o usuario desactivado
-      clearActiveSession();
-      return null;
-    }
-    if (existing.area !== sessionUser.area) {
-      setActiveSessionUser(existing);
-    }
-    return existing;
-  } catch (err) {
-    console.error('Error leyendo sesión activa:', err);
+    return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
     return null;
   }
 }
 
-// Guardar sesión activa en celular/navegador (Persistente)
+export function setAuthToken(token: string): void {
+  try {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Obtener usuarios cacheados localmente (sin credenciales sensibles)
+export function getStoredUsers(): AppUser[] {
+  try {
+    const raw = localStorage.getItem(USERS_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const users: AppUser[] = JSON.parse(raw);
+    if (!Array.isArray(users)) {
+      return [];
+    }
+    return users.map(stripSensitiveFields);
+  } catch {
+    return [];
+  }
+}
+
+export function saveStoredUsers(users: AppUser[]): void {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users.map(stripSensitiveFields)));
+  } catch {
+    // ignore
+  }
+}
+
+// Obtener usuario con sesión activa (requiere token vigente + usuario activo)
+export function getActiveSessionUser(): AppUser | null {
+  try {
+    const token = getAuthToken();
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!token || !raw) {
+      return null;
+    }
+    const sessionUser: AppUser = JSON.parse(raw);
+    if (!sessionUser || !sessionUser.id || sessionUser.estado !== 'ACTIVO') {
+      clearActiveSession();
+      return null;
+    }
+    return stripSensitiveFields(sessionUser);
+  } catch {
+    return null;
+  }
+}
+
 export function setActiveSessionUser(user: AppUser): void {
-  // Guardar copia sin datos sensibles
-  const sessionCopy = { ...user };
-  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionCopy));
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(stripSensitiveFields(user)));
+  } catch {
+    // ignore
+  }
 }
 
-// Cerrar sesión
 export function clearActiveSession(): void {
-  localStorage.removeItem(SESSION_STORAGE_KEY);
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
 }
 
-// Aliases para conveniencia
 export const getCurrentSession = getActiveSessionUser;
-export const logoutSession = clearActiveSession;
 
-// Inicio de sesión seguro
+export function logoutSession(): void {
+  clearActiveSession();
+  if (typeof fetch !== 'undefined') {
+    fetch('/api/auth/logout', { method: 'POST', keepalive: true }).catch(() => {});
+  }
+}
+
+// Validar sesión activa en segundo plano contra el servidor
+export async function verifySessionWithServer(): Promise<AppUser | null> {
+  const token = getAuthToken();
+  if (!token) return null;
+  try {
+    const res = await fetch('/api/auth/session', {
+      headers: {
+        ...getAuthHeaders(),
+        'Cache-Control': 'no-cache',
+      },
+    });
+    if (res.status === 401 || res.status === 403) {
+      clearActiveSession();
+      return null;
+    }
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.user) {
+        const sanitized = stripSensitiveFields(data.user);
+        setActiveSessionUser(sanitized);
+        return sanitized;
+      }
+    }
+    return getActiveSessionUser();
+  } catch {
+    // Si está sin conexión en campo, mantener la sesión local válida hasta recuperar red
+    return getActiveSessionUser();
+  }
+}
+
+// Inicio de sesión estricto contra servidor (con respaldo offline SHA-256 sólo si no hay red)
 export async function authenticateUser(
   usuario: string,
-  contrasena: string
+  contrasena: string,
+  honeypot: string = ''
 ): Promise<{ success: boolean; user?: AppUser; error?: string }> {
   const cleanUsername = usuario.trim().toLowerCase();
   const cleanPass = contrasena.trim();
@@ -207,56 +236,61 @@ export async function authenticateUser(
     return { success: false, error: 'Ingrese su usuario y contraseña.' };
   }
 
-  const users = getStoredUsers();
-  let user = users.find((u) => u.usuario.toLowerCase() === cleanUsername);
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario: cleanUsername,
+        contrasena: cleanPass,
+        _hp: honeypot,
+      }),
+    });
 
-  // Si el usuario intentado es admin y no existe en el storage por alguna razón, restaurarlo
-  if (!user && (cleanUsername === 'admin' || cleanUsername === 'administrador')) {
-    user = restoreMainAdminUser();
-  }
+    const data = await res.json().catch(() => ({}));
 
-  if (!user) {
-    return { success: false, error: 'Usuario no encontrado en el sistema. Verifique su nombre de usuario.' };
-  }
+    if (res.ok && data?.success && data?.user && data?.token) {
+      const safeUser = stripSensitiveFields(data.user);
+      setAuthToken(data.token);
+      setActiveSessionUser(safeUser);
+      return { success: true, user: safeUser };
+    }
 
-  if (user.estado !== 'ACTIVO') {
     return {
       success: false,
-      error: 'SU USUARIO SE ENCUENTRA INACTIVO. CONTACTE AL ADMINISTRADOR.',
+      error: data?.error || 'Usuario o contraseña incorrectos. Verifique sus datos e intente nuevamente.',
+    };
+  } catch {
+    // Fallback estrictamente cuando no hay conectividad de red con el servidor
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      return {
+        success: false,
+        error: 'No se pudo conectar con el servicio de autenticación. Intente nuevamente.',
+      };
+    }
+
+    const offlineMatch = INITIAL_USERS.find((u) => u.usuario.toLowerCase() === cleanUsername);
+    if (offlineMatch && offlineMatch.estado === 'ACTIVO') {
+      try {
+        const computed = await hashPassword(cleanPass, offlineMatch.salt);
+        if (computed === offlineMatch.passwordHash) {
+          const safeUser = stripSensitiveFields(offlineMatch);
+          setActiveSessionUser(safeUser);
+          return { success: true, user: safeUser };
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Sin conexión a internet. Conéctese a la red para iniciar sesión por primera vez.',
     };
   }
-
-  // Verificar hash con la contraseña ingresada
-  const computedHash = await hashPassword(cleanPass, user.salt || DEFAULT_SALT);
-
-  // Aceptar contraseña configurada en BD, contraseñas oficiales o cualquier variante común
-  const normalizedPass = cleanPass.toLowerCase();
-  const isMatch =
-    computedHash === user.passwordHash ||
-    cleanPass === 'camposol2026' ||
-    normalizedPass === 'camposol2026' ||
-    cleanPass === '123456' ||
-    cleanPass === 'admin' ||
-    (user.usuario.toLowerCase() === 'admin' && (cleanPass === 'admin123' || cleanPass === 'Camposol2026'));
-
-  if (!isMatch) {
-    return { 
-      success: false, 
-      error: 'Contraseña incorrecta. Verifique sus datos e intente nuevamente.' 
-    };
-  }
-
-  // Actualizar último acceso
-  user.ultimoAcceso = new Date().toISOString();
-  saveStoredUsers(users);
-
-  // Guardar sesión persistente
-  setActiveSessionUser(user);
-
-  return { success: true, user };
 }
 
-// Crear nuevo usuario (Solo Administrador)
+// Crear nuevo usuario (Solo Administrador vía API autenticada)
 export async function createNewUser(data: {
   nombre: string;
   usuario: string;
@@ -268,186 +302,144 @@ export async function createNewUser(data: {
   cultivo?: string;
   estado: UserStatus;
 }): Promise<{ success: boolean; user?: AppUser; error?: string }> {
-  const users = getStoredUsers();
-  const cleanUsername = data.usuario.trim().toLowerCase();
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.success) {
+      return { success: false, error: json?.error || 'No se pudo crear el usuario.' };
+    }
 
-  // Validar username único
-  if (users.some((u) => u.usuario.toLowerCase() === cleanUsername)) {
-    return { success: false, error: `El usuario "${cleanUsername}" ya existe en el sistema.` };
+    const safeUser = stripSensitiveFields(json.user);
+    const updated = [...getStoredUsers(), safeUser];
+    saveStoredUsers(updated);
+    firestoreSaveUser(safeUser).catch(() => {});
+
+    return { success: true, user: safeUser };
+  } catch {
+    return { success: false, error: 'Error de red al crear el usuario.' };
   }
-
-  const salt = `salt_${Date.now()}`;
-  const passwordHash = await hashPassword(data.contrasena.trim() || 'camposol2026', salt);
-
-  const newUser: AppUser = {
-    id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-    nombre: data.nombre.trim(),
-    usuario: cleanUsername,
-    email: data.email?.trim().toLowerCase() || `${cleanUsername}@camposol.com.pe`,
-    passwordHash,
-    salt,
-    rol: data.rol,
-    area: data.area,
-    fundo: data.fundo,
-    cultivo: data.cultivo || (data.rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'),
-    estado: data.estado,
-    fechaCreacion: new Date().toISOString(),
-  };
-
-  users.push(newUser);
-  saveStoredUsers(users);
-
-  // Sincronizar usuario nuevo con Firebase Firestore
-  firestoreSaveUser(newUser).catch((err) => {
-    console.warn('[Firestore] Error sincronizando usuario nuevo:', err);
-  });
-
-  return { success: true, user: newUser };
 }
 
-// Actualizar usuario existente (Solo Administrador)
+// Actualizar usuario existente (Solo Administrador vía API autenticada)
 export async function updateExistingUser(
   userId: string,
   updates: Partial<Omit<AppUser, 'id' | 'passwordHash' | 'salt'>> & { nuevaContrasena?: string }
 ): Promise<{ success: boolean; user?: AppUser; error?: string }> {
-  const users = getStoredUsers();
-  const index = users.findIndex((u) => u.id === userId);
-
-  if (index === -1) {
-    return { success: false, error: 'Usuario no encontrado.' };
-  }
-
-  const target = users[index];
-
-  // Si cambia username, validar que no colisione
-  if (updates.usuario) {
-    const cleanUsername = updates.usuario.trim().toLowerCase();
-    const collision = users.find(
-      (u) => u.id !== userId && u.usuario.toLowerCase() === cleanUsername
-    );
-    if (collision) {
-      return { success: false, error: `El usuario "${cleanUsername}" ya está en uso.` };
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(updates),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.success) {
+      return { success: false, error: json?.error || 'No se pudo actualizar el usuario.' };
     }
-    target.usuario = cleanUsername;
+
+    const safeUser = stripSensitiveFields(json.user);
+    const updatedList = getStoredUsers().map((u) => (u.id === userId ? safeUser : u));
+    saveStoredUsers(updatedList);
+    firestoreSaveUser(safeUser).catch(() => {});
+
+    const currentSession = getActiveSessionUser();
+    if (currentSession && currentSession.id === userId) {
+      setActiveSessionUser(safeUser);
+    }
+
+    return { success: true, user: safeUser };
+  } catch {
+    return { success: false, error: 'Error de red al actualizar usuario.' };
   }
-
-  if (updates.nombre) target.nombre = updates.nombre.trim();
-  if (updates.email !== undefined) target.email = updates.email.trim().toLowerCase();
-  if (updates.rol) target.rol = updates.rol;
-  if (updates.area) target.area = updates.area;
-  if (updates.fundo) target.fundo = updates.fundo;
-  if (updates.cultivo !== undefined) target.cultivo = updates.cultivo;
-  if (updates.estado) target.estado = updates.estado;
-
-  // Si se solicita cambio de contraseña
-  if (updates.nuevaContrasena && updates.nuevaContrasena.trim()) {
-    target.salt = `salt_${Date.now()}`;
-    target.passwordHash = await hashPassword(updates.nuevaContrasena.trim(), target.salt);
-  }
-
-  users[index] = target;
-  saveStoredUsers(users);
-
-  // Sincronizar actualización con Firebase Firestore
-  firestoreSaveUser(target).catch((err) => {
-    console.warn('[Firestore] Error sincronizando actualización de usuario:', err);
-  });
-
-  // Si se actualizó el usuario actual de la sesión, refrescar la sesión
-  const currentSession = getActiveSessionUser();
-  if (currentSession && currentSession.id === userId) {
-    setActiveSessionUser(target);
-  }
-
-  return { success: true, user: target };
 }
 
-// Activar o Desactivar usuario
-export function toggleUserStatus(userId: string): { success: boolean; newStatus?: UserStatus; error?: string } {
-  const users = getStoredUsers();
-  const user = users.find((u) => u.id === userId);
-  if (!user) {
+// Activar o Desactivar usuario (Solo Administrador vía API autenticada)
+export async function toggleUserStatus(
+  userId: string
+): Promise<{ success: boolean; newStatus?: UserStatus; error?: string }> {
+  const current = getStoredUsers().find((u) => u.id === userId);
+  if (!current) {
     return { success: false, error: 'Usuario no encontrado.' };
   }
-
-  user.estado = user.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
-  saveStoredUsers(users);
-
-  // Sincronizar estado con Firebase Firestore
-  firestoreSaveUser(user).catch((err) => {
-    console.warn('[Firestore] Error sincronizando estado de usuario:', err);
-  });
-
-  // Si se desactivó al usuario con la sesión activa, cerrar sesión
-  const currentSession = getActiveSessionUser();
-  if (currentSession && currentSession.id === userId && user.estado === 'INACTIVO') {
-    clearActiveSession();
+  const nextStatus: UserStatus = current.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+  const res = await updateExistingUser(userId, { estado: nextStatus });
+  if (!res.success || !res.user) {
+    return { success: false, error: res.error };
   }
-
-  return { success: true, newStatus: user.estado };
+  return { success: true, newStatus: res.user.estado };
 }
 
-// Eliminar permanentemente usuario del sistema (Solo Administrador)
-export function deleteStoredUser(
+// Eliminar usuario del sistema (Solo Administrador vía API autenticada)
+export async function deleteStoredUser(
   userId: string,
   currentAdminId?: string
-): { success: boolean; error?: string; deletedUser?: AppUser } {
-  const users = getStoredUsers();
-  const index = users.findIndex((u) => u.id === userId);
-
-  if (index === -1) {
-    return { success: false, error: 'El usuario no existe o ya fue eliminado.' };
-  }
-
-  const targetUser = users[index];
-
-  // No permitir que un administrador elimine su propia cuenta activa
-  if (currentAdminId && targetUser.id === currentAdminId) {
+): Promise<{ success: boolean; error?: string }> {
+  if (currentAdminId && userId === currentAdminId) {
     return { success: false, error: 'No puedes eliminar tu propia cuenta de administrador en sesión.' };
   }
 
-  // Prevenir eliminación del superusuario principal 'admin' si es el único admin
-  const totalAdmins = users.filter((u) => u.rol === 'admin').length;
-  if (targetUser.rol === 'admin' && totalAdmins <= 1) {
-    return { success: false, error: 'No se puede eliminar el único administrador del sistema.' };
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.success) {
+      return { success: false, error: json?.error || 'No fue posible eliminar el usuario.' };
+    }
+
+    const remaining = getStoredUsers().filter((u) => u.id !== userId);
+    saveStoredUsers(remaining);
+    firestoreDeleteUser(userId).catch(() => {});
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Error de red al eliminar usuario.' };
   }
-
-  // Eliminar usuario de la lista
-  users.splice(index, 1);
-  saveStoredUsers(users);
-
-  // Sincronizar eliminación con Firebase Firestore
-  firestoreDeleteUser(userId).catch((err) => {
-    console.warn('[Firestore] Error sincronizando eliminación de usuario:', err);
-  });
-
-  return { success: true, deletedUser: targetUser };
 }
 
-// Restablecer contraseña de usuario (Solo Administrador)
+// Restablecer contraseña de usuario (Solo Administrador vía API autenticada)
 export async function resetUserPassword(
   userId: string,
   nuevaContrasena: string
 ): Promise<{ success: boolean; error?: string }> {
   const cleanPass = nuevaContrasena.trim();
-  if (!cleanPass) {
-    return { success: false, error: 'La nueva contraseña es obligatoria.' };
+  if (cleanPass.length < 8) {
+    return { success: false, error: 'La nueva contraseña debe tener al menos 8 caracteres.' };
   }
-  const users = getStoredUsers();
-  const user = users.find((u) => u.id === userId);
-  if (!user) {
-    return { success: false, error: 'Usuario no encontrado.' };
+
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ nuevaContrasena: cleanPass }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.success) {
+      return { success: false, error: json?.error || 'No se pudo restablecer la contraseña.' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Error de red al restablecer contraseña.' };
   }
-  user.salt = `salt_${Date.now()}`;
-  user.passwordHash = await hashPassword(cleanPass, user.salt);
-  saveStoredUsers(users);
-  return { success: true };
 }
 
-// Solicitar recuperación de contraseña (por usuario o correo electrónico)
+// Solicitar recuperación segura de contraseña (sin enumeración ni inicio de sesión directo)
 export async function requestPasswordRecovery(
-  identifier: string
-): Promise<{ success: boolean; user?: AppUser; error?: string; message?: string }> {
+  identifier: string,
+  honeypot: string = ''
+): Promise<{ success: boolean; error?: string; message?: string }> {
   const clean = identifier.trim().toLowerCase();
   if (!clean) {
     return {
@@ -456,48 +448,27 @@ export async function requestPasswordRecovery(
     };
   }
 
-  const users = getStoredUsers();
-  const user = users.find((u) => {
-    const uName = u.usuario.toLowerCase();
-    const uEmail = (u.email || `${u.usuario}@camposol.com.pe`).toLowerCase();
-    return uName === clean || uEmail === clean || clean === `${uName}@camposol.com.pe`;
-  });
-
-  if (!user) {
+  try {
+    const res = await fetch('/api/auth/recover-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: clean, _hp: honeypot }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.success) {
+      return {
+        success: false,
+        error: json?.error || 'No se pudo procesar la solicitud en este momento.',
+      };
+    }
+    return {
+      success: true,
+      message: json.message,
+    };
+  } catch {
     return {
       success: false,
-      error: 'No se encontró ningún usuario o correo registrado con esa información.',
+      error: 'Se requiere conexión a internet para enviar una solicitud de recuperación.',
     };
   }
-
-  if (user.estado !== 'ACTIVO') {
-    return {
-      success: false,
-      error: 'SU USUARIO SE ENCUENTRA INACTIVO. CONTACTE AL ADMINISTRADOR PARA REACTIVAR SU ACCESO.',
-    };
-  }
-
-  const registeredEmail = user.email || `${user.usuario}@camposol.com.pe`;
-
-  return {
-    success: true,
-    user,
-    message: `Se ha procesado la solicitud para ${user.nombre}. Se han enviado las instrucciones de restablecimiento al correo institucional ${registeredEmail} y se ha notificado a la Administración de Transporte.`,
-  };
-}
-
-// Restaurar e iniciar sesión de inmediato como el Usuario Principal (Administrador)
-export function restoreMainAdminUser(): AppUser {
-  const users = getStoredUsers();
-  let admin = users.find((u) => u.usuario.toLowerCase() === 'admin' || u.rol === 'admin');
-  if (!admin) {
-    admin = { ...INITIAL_USERS[0] };
-    users.unshift(admin);
-    saveStoredUsers(users);
-  } else {
-    admin.estado = 'ACTIVO';
-    saveStoredUsers(users);
-  }
-  setActiveSessionUser(admin);
-  return admin;
 }

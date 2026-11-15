@@ -1,89 +1,85 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "entities": {
     "Requerimiento": {
       "title": "Requerimiento",
-      "description": "Solicitud de servicio de transporte de personal de Camposol",
+      "description": "Solicitud de servicio de transporte de personal de CAMPOSOL",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "numeroRequerimiento": { "type": "string" },
-        "fechaCreacion": { "type": "string" },
-        "horaCreacion": { "type": "string" },
-        "fechaUso": { "type": "string" },
-        "horaUso": { "type": "string" },
-        "tipoSolicitud": { "type": "string" },
-        "tiposServicio": { "type": "array" },
-        "tipoServicio": { "type": "string" },
-        "motivo": { "type": "string" },
-        "justificacion": { "type": "string" },
-        "solicitante": { "type": "string" },
-        "solicitanteDni": { "type": "string" },
-        "solicitanteArea": { "type": "string" },
-        "sede": { "type": "string" },
-        "centroCosto": { "type": "string" },
-        "estado": { "type": "string" },
-        "totalPasajeros": { "type": "number" },
-        "totalBuses": { "type": "number" },
-        "totalCostoEstimado": { "type": "number" },
-        "aprobador": { "type": "string" },
-        "fechaAprobacion": { "type": "string" },
-        "motivoRechazo": { "type": "string" },
-        "observaciones": { "type": "string" },
-        "codigoRuta": { "type": "string" },
-        "createdAt": { "type": "string" },
-        "updatedAt": { "type": "string" }
+        "id": { "type": "string", "minLength": 4, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "numeroRequerimiento": { "type": "string", "minLength": 5, "maxLength": 32, "pattern": "^REQ-[0-9]+$" },
+        "fecha": { "type": "string", "minLength": 10, "maxLength": 10, "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "area": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "fundo": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "cultivo": { "type": "string", "maxLength": 60 },
+        "parcelas": { "type": "array" },
+        "movimiento": { "type": "string", "enum": ["INGRESO", "SALIDA", "Programa personal por tarea"] },
+        "horaRecojo": { "type": "string", "minLength": 3, "maxLength": 40 },
+        "horaSalida": { "type": "string", "minLength": 3, "maxLength": 40 },
+        "horaRecojoNorte": { "type": "string", "maxLength": 16 },
+        "horaRecojoSur": { "type": "string", "maxLength": 16 },
+        "observaciones": { "type": "string", "maxLength": 500 },
+        "usuario": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "userId": { "type": "string", "minLength": 4, "maxLength": 128 },
+        "userUsername": { "type": "string", "maxLength": 64 },
+        "userRole": { "type": "string", "enum": ["usuario", "admin", "receptor"] },
+        "fechaRegistro": { "type": "string", "maxLength": 40 },
+        "updatedAt": { "type": "string", "maxLength": 40 },
+        "totalPersonas": { "type": "number" },
+        "estado": { "type": "string", "enum": ["PENDIENTE", "EN REVISIÓN", "APROBADO", "RECHAZADO", "ATENDIDO", "ANULADO"] },
+        "fechaAnulacion": { "type": "string", "maxLength": 40 },
+        "usuarioAnulacion": { "type": "string", "maxLength": 120 },
+        "motivoAnulacion": { "type": "string", "maxLength": 300 },
+        "historialTrazabilidad": { "type": "array" }
       },
-      "required": ["id", "numeroRequerimiento", "fechaUso", "estado", "solicitante"]
+      "required": ["id", "numeroRequerimiento", "fecha", "area", "fundo", "movimiento", "horaRecojo", "usuario", "userId", "fechaRegistro", "totalPersonas", "estado"]
     },
     "DetalleRequerimiento": {
       "title": "DetalleRequerimiento",
-      "description": "Detalle y desglose de rutas y turnos para un requerimiento",
+      "description": "Detalle de pasajeros por comedor y paradero asociado a un requerimiento",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "requerimientoId": { "type": "string" },
-        "tipoServicio": { "type": "string" },
-        "origen": { "type": "string" },
-        "destino": { "type": "string" },
-        "horaSalida": { "type": "string" },
-        "horaLlegada": { "type": "string" },
-        "cantidadPasajeros": { "type": "number" },
-        "cantidadVehiculos": { "type": "number" },
-        "tipoVehiculo": { "type": "string" },
-        "empresaTransporte": { "type": "string" },
-        "placa": { "type": "string" },
-        "conductor": { "type": "string" },
-        "costoEstimado": { "type": "number" },
-        "estado": { "type": "string" }
+        "id": { "type": "string", "minLength": 4, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "requerimientoId": { "type": "string", "minLength": 4, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "numeroRequerimiento": { "type": "string", "minLength": 5, "maxLength": 32, "pattern": "^REQ-[0-9]+$" },
+        "userId": { "type": "string", "minLength": 4, "maxLength": 128 },
+        "comedor": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "parcela": { "type": "string", "maxLength": 60 },
+        "paradero": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "zona": { "type": "string", "enum": ["NORTE", "SUR"] },
+        "cultivo": { "type": "string", "maxLength": 60 },
+        "cantidad": { "type": "number" }
       },
-      "required": ["id", "requerimientoId"]
+      "required": ["id", "requerimientoId", "numeroRequerimiento", "comedor", "paradero", "cantidad"]
     },
     "AppUser": {
       "title": "AppUser",
-      "description": "Usuario registrado del sistema de transporte de Camposol",
+      "description": "Perfil operativo de usuario autorizado del sistema de transporte CAMPOSOL",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "username": { "type": "string" },
-        "nombre": { "type": "string" },
-        "email": { "type": "string" },
-        "rol": { "type": "string" },
-        "area": { "type": "string" },
-        "activo": { "type": "boolean" },
-        "fechaCreacion": { "type": "string" }
+        "id": { "type": "string", "minLength": 4, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nombre": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "usuario": { "type": "string", "minLength": 3, "maxLength": 32, "pattern": "^[a-zA-Z0-9._\\-]+$" },
+        "email": { "type": "string", "maxLength": 120 },
+        "rol": { "type": "string", "enum": ["usuario", "admin", "receptor"] },
+        "area": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "fundo": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "cultivo": { "type": "string", "maxLength": 60 },
+        "estado": { "type": "string", "enum": ["ACTIVO", "INACTIVO"] },
+        "fechaCreacion": { "type": "string", "maxLength": 40 },
+        "ultimoAcceso": { "type": "string", "maxLength": 40 }
       },
-      "required": ["id", "username", "nombre", "rol"]
+      "required": ["id", "nombre", "usuario", "rol", "area", "fundo", "estado"]
     },
     "SystemMetadata": {
       "title": "SystemMetadata",
-      "description": "Configuraciones globales, versiones de sincronización y maestros",
+      "description": "Configuraciones globales y catálogos maestros operativos",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
+        "id": { "type": "string", "maxLength": 64 },
         "revision": { "type": "number" },
-        "lastUpdated": { "type": "string" },
+        "lastUpdated": { "type": "string", "maxLength": 40 },
         "areas": { "type": "array" },
         "fundos": { "type": "array" },
         "zonas": { "type": "array" },
@@ -91,7 +87,7 @@
         "comedores": { "type": "array" },
         "unidadesBus": { "type": "array" }
       },
-      "required": ["id"]
+      "required": ["lastUpdated"]
     }
   },
   "firestore": {
@@ -101,15 +97,15 @@
     },
     "/detalles/{detId}": {
       "schema": "#/entities/DetalleRequerimiento",
-      "description": "Colección de detalles y rutas asociadas a los requerimientos"
+      "description": "Colección de detalles y paradas asociadas a los requerimientos"
     },
     "/users/{userId}": {
       "schema": "#/entities/AppUser",
-      "description": "Colección de usuarios y roles del sistema"
+      "description": "Colección de cuentas y roles operativos (PII aislado por propietario o admin)"
     },
     "/system_metadata/{metaId}": {
       "schema": "#/entities/SystemMetadata",
-      "description": "Metadatos y catálogos maestros sincronizados en tiempo real"
+      "description": "Metadatos y catálogos maestros sincronizados"
     }
   }
 }

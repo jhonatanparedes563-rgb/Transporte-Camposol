@@ -28,6 +28,7 @@ import {
   firestoreDeleteRequerimiento,
   firestoreSaveMasterData,
 } from './firestoreService';
+import { getAuthHeaders, getAuthToken, clearActiveSession } from './authService';
 
 const REQ_STORAGE_KEY = 'camposol_transporte_requerimientos_v1';
 const DET_STORAGE_KEY = 'camposol_transporte_detalles_v1';
@@ -186,13 +187,22 @@ if (typeof window !== 'undefined') {
 // CLOUD SERVER SYNC ENGINE
 // -------------------------------------------------------------
 export async function syncWithServerNow(): Promise<boolean> {
-  if (typeof window === 'undefined' || isSyncing) return false;
+  if (typeof window === 'undefined' || isSyncing || !getAuthToken()) return false;
   isSyncing = true;
 
   try {
     const res = await fetch('/api/data', {
-      headers: { 'Cache-Control': 'no-cache' },
+      headers: {
+        'Cache-Control': 'no-cache',
+        ...getAuthHeaders(),
+      },
     });
+
+    if (res.status === 401) {
+      clearActiveSession();
+      isSyncing = false;
+      return false;
+    }
 
     if (!res.ok) {
       isOnline = false;
@@ -211,7 +221,8 @@ export async function syncWithServerNow(): Promise<boolean> {
       localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(data.detalles));
     }
     if (data.users && Array.isArray(data.users)) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(data.users));
+      const safeUsers = data.users.map((u: AppUser) => ({ ...u, passwordHash: '', salt: '' }));
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(safeUsers));
     }
     if (data.areas && Array.isArray(data.areas)) {
       localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(data.areas));
@@ -251,18 +262,26 @@ export function getSyncInfo() {
   };
 }
 
-// Background poller: Checks every 3.5s if the web database has been updated by other users/devices
+// Background poller: Checks if the web database has been updated by other users/devices (only when authenticated)
 if (typeof window !== 'undefined') {
   let isChecking = false;
 
   const pollServer = async () => {
-    if (isChecking || isSyncing) return;
+    if (isChecking || isSyncing || !getAuthToken()) return;
     isChecking = true;
 
     try {
       const res = await fetch('/api/sync/version', {
-        headers: { 'Cache-Control': 'no-cache' },
+        headers: {
+          'Cache-Control': 'no-cache',
+          ...getAuthHeaders(),
+        },
       });
+
+      if (res.status === 401) {
+        clearActiveSession();
+        return;
+      }
 
       if (res.ok) {
         isOnline = true;
@@ -270,7 +289,6 @@ if (typeof window !== 'undefined') {
         const localRev = Number(localStorage.getItem(LAST_REVISION_KEY) || '0');
 
         if (info.revision && info.revision > localRev) {
-          console.log('[SYNC] Nueva versión detectada en la web:', info.revision, 'Sincronizando...');
           await syncWithServerNow();
         }
       }
@@ -281,21 +299,22 @@ if (typeof window !== 'undefined') {
     }
   };
 
-  // Run initial sync shortly after load
   setTimeout(() => {
-    syncWithServerNow();
+    if (getAuthToken()) {
+      syncWithServerNow();
+    }
   }, 400);
 
-  // Periodic poll
   setInterval(pollServer, 20000);
 
-  // Sync when window regains focus or reconnects
   window.addEventListener('focus', () => {
     pollServer();
   });
   window.addEventListener('online', () => {
     isOnline = true;
-    syncWithServerNow();
+    if (getAuthToken()) {
+      syncWithServerNow();
+    }
   });
   window.addEventListener('offline', () => {
     isOnline = false;
@@ -430,22 +449,27 @@ function removeFromSyncQueue(id: string): void {
 }
 
 export async function processPendingSyncQueue(): Promise<void> {
-  if (typeof window === 'undefined' || !navigator.onLine) return;
+  if (typeof window === 'undefined' || !navigator.onLine || !getAuthToken()) return;
   const queue = getSyncQueue();
   if (queue.length === 0) return;
 
   for (const item of queue) {
     try {
       await firestoreSaveRequerimiento(item.requerimiento, item.detalles);
-      await fetch('/api/requerimientos', {
+      const res = await fetch('/api/requerimientos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({
           requerimiento: item.requerimiento,
           detalles: item.detalles,
         }),
       });
-      removeFromSyncQueue(item.id);
+      if (res.ok || res.status === 400) {
+        removeFromSyncQueue(item.id);
+      }
     } catch {
       // Reintento en la próxima pasada
     }
@@ -479,7 +503,7 @@ export function saveNewRequerimiento(
   if (draft.comedores && draft.comedores.length > 0) {
     draft.comedores.forEach((c) => {
       Object.entries(c.paraderosCantidades || {}).forEach(([paradero, rawQty]) => {
-        const cantidad = Number(rawQty) || 0;
+        const cantidad = Math.min(Math.max(Math.floor(Number(rawQty) || 0), 0), 500);
         if (cantidad > 0) {
           totalPersonas += cantidad;
           newDetalles.push({
@@ -498,7 +522,7 @@ export function saveNewRequerimiento(
     });
   } else if (draft.cantidadesPorParadero && Object.keys(draft.cantidadesPorParadero).length > 0) {
     Object.entries(draft.cantidadesPorParadero).forEach(([paradero, rawQty]) => {
-      const cantidad = Number(rawQty) || 0;
+      const cantidad = Math.min(Math.max(Math.floor(Number(rawQty) || 0), 0), 500);
       if (cantidad > 0) {
         totalPersonas += cantidad;
         const z = inferParaderoZona(paradero);
@@ -517,7 +541,8 @@ export function saveNewRequerimiento(
   } else if (draft.matrizCantidades && Object.keys(draft.matrizCantidades).length > 0) {
     Object.entries(draft.matrizCantidades).forEach(([paradero, parcelasMap]) => {
       const z = inferParaderoZona(paradero);
-      Object.entries(parcelasMap).forEach(([parcela, cantidad]) => {
+      Object.entries(parcelasMap).forEach(([parcela, rawQty]) => {
+        const cantidad = Math.min(Math.max(Math.floor(Number(rawQty) || 0), 0), 500);
         if (cantidad > 0) {
           totalPersonas += cantidad;
           newDetalles.push({
@@ -534,6 +559,10 @@ export function saveNewRequerimiento(
         }
       });
     });
+  }
+
+  if (totalPersonas <= 0) {
+    throw new Error('El requerimiento debe incluir al menos 1 pasajero.');
   }
 
   const isUserObj = typeof currentUser === 'object' && currentUser !== null;
@@ -604,11 +633,13 @@ export function saveNewRequerimiento(
   // 3. Persistir también en el servidor web (Cloud Express Backup)
   fetch('/api/requerimientos', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
     body: JSON.stringify({
       requerimiento: newRequerimiento,
       detalles: newDetalles,
-      currentUser,
     }),
   })
     .then(async (res) => {
@@ -676,7 +707,10 @@ export function updateRequerimientoEstado(
 
   fetch(`/api/requerimientos/${encodeURIComponent(id)}/estado`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
     body: JSON.stringify({ 
       estado: nuevoEstado,
       usuario: userLabel,
@@ -746,7 +780,10 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
     // Actualizar en el servidor web (Cloud)
     fetch(`/api/requerimientos/${encodeURIComponent(target.id)}/estado`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
       body: JSON.stringify({ 
         estado: 'ANULADO',
         fechaAnulacion: fechaHoraAnulacion,
@@ -796,7 +833,10 @@ export function hardDeleteRequerimiento(id: string): boolean {
       console.warn('[Firestore] Error purgando en Firestore:', err);
     });
 
-    fetch(`/api/requerimientos/${encodeURIComponent(target.id)}`, { method: 'DELETE' }).catch(() => {});
+    fetch(`/api/requerimientos/${encodeURIComponent(target.id)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    }).catch(() => {});
     return true;
   } catch (err) {
     return false;
@@ -849,7 +889,10 @@ export async function serverSaveMasterData(data: {
   try {
     const res = await fetch('/api/maestros', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
       body: JSON.stringify(data),
     });
     if (res.ok) {

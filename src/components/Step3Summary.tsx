@@ -11,6 +11,7 @@ import {
   Users,
   Utensils,
   Pencil,
+  AlertCircle,
 } from 'lucide-react';
 import { RequerimientoDraft } from '../types';
 import { getStoredParaderos } from '../services/storageService';
@@ -147,6 +148,7 @@ export const Step3Summary: React.FC<Step3SummaryProps> = ({
   };
 
   const handleSend = () => {
+    if (grandTotal <= 0 || isSubmitting) return;
     if (onUpdateDraft && observacion !== draft.observaciones) {
       onUpdateDraft({ observaciones: observacion });
     }
@@ -364,6 +366,13 @@ export const Step3Summary: React.FC<Step3SummaryProps> = ({
         />
       </div>
 
+      {grandTotal <= 0 && (
+        <div className="p-3 bg-[#FFF6E0] border border-[#FDE68A] rounded-2xl text-xs text-[#B45309] font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>Debe ingresar al menos 1 pasajero en algún paradero antes de enviar el requerimiento.</span>
+        </div>
+      )}
+
       {/* Action Buttons: [ Atrás ] [ Enviar requerimiento ] */}
       <div className="flex items-center gap-3 pt-2">
         <button
@@ -380,8 +389,8 @@ export const Step3Summary: React.FC<Step3SummaryProps> = ({
           type="button"
           id="btn-enviar-requerimiento"
           onClick={handleSend}
-          disabled={isSubmitting}
-          className="flex-1 py-3 px-4 bg-[#22A846] hover:bg-[#1C8E3A] disabled:opacity-50 text-white font-semibold text-sm rounded-full shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+          disabled={isSubmitting || grandTotal <= 0}
+          className="flex-1 py-3 px-4 bg-[#22A846] hover:bg-[#1C8E3A] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-full shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <Send className="w-4 h-4" />
           <span>{isSubmitting ? 'Enviando...' : 'Enviar requerimiento'}</span>

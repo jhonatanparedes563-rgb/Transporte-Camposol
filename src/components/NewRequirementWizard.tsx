@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { RequerimientoDraft, Requerimiento, AppUser, ComedorPersonalDraft } from '../types';
 import { Step1ServiceData } from './Step1ServiceData';
 import { Step2PersonnelQuantity } from './Step2PersonnelQuantity';
@@ -33,7 +33,9 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   // 5: Confirmación
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string>('');
   const [createdRequirement, setCreatedRequirement] = useState<Requerimiento | null>(null);
+  const submitLockRef = useRef(false);
 
   const todayDate = new Date().toISOString().split('T')[0];
 
@@ -93,6 +95,9 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
   };
 
   const handleSubmit = () => {
+    if (submitLockRef.current || isSubmitting) return;
+    submitLockRef.current = true;
+    setSubmitError('');
     setIsSubmitting(true);
     try {
       const result = saveNewRequerimiento(draft, currentUser);
@@ -101,13 +106,17 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
       onSuccess(result.requerimiento);
       setCurrentStep(4);
     } catch (err) {
-      console.error('Error saving requirement:', err);
+      const msg = err instanceof Error ? err.message : 'No se pudo registrar el requerimiento.';
+      setSubmitError(msg);
+      submitLockRef.current = false;
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleResetForNew = () => {
+    submitLockRef.current = false;
+    setSubmitError('');
     clearStoredRequirementDraft();
     setDraft(buildInitialDraft());
     setCreatedRequirement(null);
@@ -198,6 +207,12 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
           onNext={() => setCurrentStep(3)}
           onPrev={() => setCurrentStep(1)}
         />
+      )}
+
+      {submitError && (
+        <div className="mb-3 p-3 bg-[#FDECEC] border border-[#FECACA] rounded-2xl text-xs font-bold text-[#DC2626] text-center">
+          {submitError}
+        </div>
       )}
 
       {currentStep === 3 && (

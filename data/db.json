@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "revision": 13,
-  "lastUpdated": "2026-09-27T15:26:59.147Z",
+  "revision": 16,
+  "lastUpdated": "2026-11-15T00:16:45.027Z",
   "requerimientos": [
     {
       "userRole": "usuario",
@@ -528,22 +528,23 @@
       "nombre": "Administrador del Sistema",
       "usuario": "admin",
       "email": "admin@camposol.com.pe",
-      "passwordHash": "8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687",
-      "salt": "camposol_salt_2026",
+      "passwordHash": "scrypt$4e90f23fb98f1651ffa97ee4278ad885$918fcfb4886ca7601f5ef4ee1b43b3fb36e142c2b8ef49418c5114781abf29dd07ea47c5c749b500a0055d5049a86b003d6d275ec242cf2ea876f0324fce757e",
+      "salt": "scrypt",
       "rol": "admin",
       "area": "TDP",
       "fundo": "SEDE CENTRAL",
       "cultivo": "TODOS LOS CULTIVOS",
       "estado": "ACTIVO",
-      "fechaCreacion": "2026-09-01T08:00:00Z"
+      "fechaCreacion": "2026-09-01T08:00:00Z",
+      "ultimoAcceso": "2026-11-15T00:16:21.700Z"
     },
     {
       "id": "usr-rec-01",
       "nombre": "Roberto Gonzáles",
       "usuario": "receptor",
       "email": "rgonzales@camposol.com.pe",
-      "passwordHash": "8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687",
-      "salt": "camposol_salt_2026",
+      "passwordHash": "scrypt$6a0feebe926badef805cc2dc64b92e13$846ea1374325e76ff8b2dc97605b5b275c1228bcb0589c70bc9d5ab4b0ec3433b276d76e1c97400807775e403b9de3e9d71b17f3dfd59a6e1f504df0583204fc",
+      "salt": "scrypt",
       "rol": "receptor",
       "area": "LOGÍSTICA",
       "fundo": "TODOS LOS FUNDOS",
@@ -556,22 +557,23 @@
       "nombre": "Juan Pérez",
       "usuario": "jperez",
       "email": "jperez@camposol.com.pe",
-      "passwordHash": "8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687",
-      "salt": "camposol_salt_2026",
+      "passwordHash": "scrypt$a25b767b0321718991dcefb04536c213$2ddcda43356ca6d5a005069501bc1c4a47ff40164d36b0aa1516abd2b3ad99b7b0fd651a6c28488443ee8561f108127d3d22b852177c3d17aec0343b3e6f47f6",
+      "salt": "scrypt",
       "rol": "usuario",
       "area": "PRODUCCIÓN",
       "fundo": "AGRICULTOR 2",
       "cultivo": "ARÁNDANO",
       "estado": "ACTIVO",
-      "fechaCreacion": "2026-09-01T08:00:00Z"
+      "fechaCreacion": "2026-09-01T08:00:00Z",
+      "ultimoAcceso": "2026-11-15T00:16:45.026Z"
     },
     {
       "id": "usr-user-02",
       "nombre": "María Salazar",
       "usuario": "msalazar",
       "email": "msalazar@camposol.com.pe",
-      "passwordHash": "8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687",
-      "salt": "camposol_salt_2026",
+      "passwordHash": "scrypt$c421d52b9ff9bb08330be7b81774a03d$3924daf349d501280ab8d731e910532a123b336ea39b053d936412a66a3392111618c2c2ffaa24a398d786aff4fbec16b470dda92798e39a284b1e1a20d52023",
+      "salt": "scrypt",
       "rol": "usuario",
       "area": "EMPAQUE",
       "fundo": "MAR VERDE",
@@ -584,8 +586,8 @@
       "nombre": "Carlos Mendoza",
       "usuario": "cmendoza",
       "email": "cmendoza@camposol.com.pe",
-      "passwordHash": "8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687",
-      "salt": "camposol_salt_2026",
+      "passwordHash": "scrypt$592eb1daa38450d1f064f56f20d83c7d$1358994c3213b99fb60a38836903991d8df26c65f85bb1a5ddfd4f8980aa7885412b4bbfc35264d26462d785733512ab8fa9ab02f2af1b8c78ef568fe484a4a4",
+      "salt": "scrypt",
       "rol": "usuario",
       "area": "COSECHA",
       "fundo": "ARENAL",
@@ -847,5 +849,38 @@
       "id": "COM-520",
       "comedor": "520"
     }
-  ]
+  ],
+  "zonas": [
+    {
+      "id": "ZON-01",
+      "zona": "VICTOR RAUL",
+      "macrozona": "Mcrz 21 Victor Raul",
+      "zonaOperativa": "NORTE"
+    },
+    {
+      "id": "ZON-02",
+      "zona": "VIRU",
+      "macrozona": "Mcrz 22 Viru",
+      "zonaOperativa": "NORTE"
+    },
+    {
+      "id": "ZON-03",
+      "zona": "SAN JOSE",
+      "macrozona": "Mcrz 25 San Jose",
+      "zonaOperativa": "NORTE"
+    },
+    {
+      "id": "ZON-04",
+      "zona": "NUEVO CHAO",
+      "macrozona": "Mcrz 31 Nuevo Chao",
+      "zonaOperativa": "SUR"
+    },
+    {
+      "id": "ZON-05",
+      "zona": "CHAO",
+      "macrozona": "Mcrz 32 Chao",
+      "zonaOperativa": "SUR"
+    }
+  ],
+  "recoveryRequests": []
 }

@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
 import {
   initializeFirestore,
   getFirestore,
@@ -14,9 +15,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 function createFirestoreInstance(): Firestore {
   const dbId = firebaseConfig.firestoreDatabaseId || undefined;
-  
-  // En entornos de navegador, habilitar caché persistente multi-pestaña para
-  // resistir alta concurrencia y conexiones inestables en campo
+
   if (typeof window !== 'undefined') {
     try {
       return initializeFirestore(
@@ -29,7 +28,6 @@ function createFirestoreInstance(): Firestore {
         dbId
       );
     } catch {
-      // Si ya fue inicializado o no soporta IndexedDB multi-tab, obtener instancia existente
       return dbId ? getFirestore(app, dbId) : getFirestore(app);
     }
   }
@@ -38,10 +36,14 @@ function createFirestoreInstance(): Firestore {
 }
 
 export const db: Firestore = createFirestoreInstance();
+export const auth: Auth = getAuth(app);
 
 export async function testFirestoreConnection(): Promise<boolean> {
+  if (!auth.currentUser || !auth.currentUser.emailVerified) {
+    return false;
+  }
   try {
-    await getDocFromServer(doc(db, 'system_metadata', 'connection_test'));
+    await getDocFromServer(doc(db, 'system_metadata', 'master_data'));
     return true;
   } catch (error: any) {
     if (error?.message?.includes('the client is offline')) {

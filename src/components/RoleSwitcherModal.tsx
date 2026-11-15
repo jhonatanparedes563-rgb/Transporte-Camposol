@@ -27,7 +27,6 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({
   onRoleChange,
 }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole>(currentRole);
-  const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
@@ -35,16 +34,12 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({
   const handleSelectRole = (role: UserRole) => {
     setSelectedRole(role);
     setErrorMsg('');
-    setPinInput('');
   };
 
   const handleConfirm = () => {
-    // Si el usuario actual es 'usuario' e intenta pasar a rol de gestión (admin o receptor)
     if (currentRole === 'usuario' && (selectedRole === 'admin' || selectedRole === 'receptor')) {
-      if (pinInput.trim() !== '1234') {
-        setErrorMsg('ACCESO NO AUTORIZADO: Se requiere el PIN de seguridad administrativo (1234) para acceder a este rol.');
-        return;
-      }
+      setErrorMsg('ACCESO NO AUTORIZADO: Los cambios de rol sólo pueden ser asignados por un Administrador en la cuenta del servidor.');
+      return;
     }
 
     onRoleChange(selectedRole);
@@ -268,29 +263,15 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({
             </div>
           </div>
 
-          {/* PIN Input Box for Security */}
           {isUpgradingRole && (
-            <div className="mt-4 p-4 rounded-2xl bg-amber-50/80 border border-amber-300/80 space-y-2">
-              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                <Lock className="w-4 h-4 text-amber-700" />
-                <span>Autorización Administrativa Requerida</span>
+            <div className="mt-4 p-4 rounded-2xl bg-red-50/80 border border-red-200 space-y-1.5">
+              <div className="flex items-center gap-2 text-red-800 font-bold text-xs">
+                <Lock className="w-4 h-4 text-red-700" />
+                <span>Elevación de Privilegios Bloqueada</span>
               </div>
-              <p className="text-[11px] text-amber-800 leading-relaxed">
-                Para acceder como <strong>{selectedRole === 'admin' ? 'Administrador' : 'Receptor'}</strong> desde el perfil de solicitante, ingrese el PIN de seguridad administrativo:
+              <p className="text-[11px] text-red-700 leading-relaxed">
+                Por política de seguridad de CAMPOSOL, inicie sesión directamente con una cuenta autorizada como <strong>{selectedRole === 'admin' ? 'Administrador' : 'Receptor'}</strong>.
               </p>
-              <div className="pt-1">
-                <input
-                  type="password"
-                  maxLength={6}
-                  placeholder="Ingrese PIN (defecto: 1234)"
-                  value={pinInput}
-                  onChange={(e) => {
-                    setPinInput(e.target.value);
-                    setErrorMsg('');
-                  }}
-                  className="w-full px-3.5 py-2 text-sm border border-amber-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-[#00843D] bg-white font-mono"
-                />
-              </div>
             </div>
           )}
         </div>

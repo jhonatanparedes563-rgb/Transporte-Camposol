@@ -30,6 +30,7 @@ export default defineConfig(() => {
           name: 'CAMPOSOL Transporte de Personal',
           short_name: 'CAMPOSOL',
           description: 'Aplicación móvil para registro y gestión de requerimientos de transporte de personal para CAMPOSOL.',
+          lang: 'es',
           theme_color: '#04443A',
           background_color: '#FFFFFF',
           display: 'standalone',

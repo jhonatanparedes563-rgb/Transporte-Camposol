@@ -7,9 +7,12 @@ import {
   getDocs,
   onSnapshot,
   writeBatch,
+  query,
+  where,
   Unsubscribe,
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { db, auth } from '../lib/firebase';
 import {
   Requerimiento,
   DetalleRequerimiento,
@@ -28,7 +31,6 @@ import {
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
 } from '../data/masterData';
-import { INITIAL_USERS } from './authService';
 
 export enum OperationType {
   CREATE = 'create',
@@ -47,24 +49,88 @@ export interface FirestoreErrorInfo {
     userId?: string | null;
     email?: string | null;
     emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
   };
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const user = auth.currentUser;
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     operationType,
     path,
-    authInfo: {},
+    authInfo: {
+      userId: user?.uid ?? null,
+      email: user?.email ?? null,
+      emailVerified: user?.emailVerified ?? null,
+      isAnonymous: user?.isAnonymous ?? null,
+      tenantId: user?.tenantId ?? null,
+      providerInfo:
+        user?.providerData?.map((provider) => ({
+          providerId: provider.providerId,
+          email: provider.email,
+        })) || [],
+    },
   };
   console.error('[Firestore Error]:', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
 
-let isInitialized = false;
+function hasVerifiedFirebaseAuth(): FirebaseUser | null {
+  const user = auth.currentUser;
+  return user && user.emailVerified ? user : null;
+}
+
+function sanitizeUserForFirestore(user: AppUser): Omit<AppUser, 'passwordHash' | 'salt'> {
+  const clean: Record<string, unknown> = {
+    id: user.id,
+    nombre: String(user.nombre || '').slice(0, 120),
+    usuario: String(user.usuario || '').slice(0, 32),
+    rol: user.rol,
+    area: String(user.area || '').slice(0, 80),
+    fundo: String(user.fundo || '').slice(0, 80),
+    estado: user.estado,
+  };
+  if (user.email) clean.email = String(user.email).slice(0, 120);
+  if (user.cultivo) clean.cultivo = String(user.cultivo).slice(0, 60);
+  if (user.fechaCreacion) clean.fechaCreacion = String(user.fechaCreacion).slice(0, 40);
+  if (user.ultimoAcceso) clean.ultimoAcceso = String(user.ultimoAcceso).slice(0, 40);
+  if (typeof user.terminosAceptados === 'boolean') clean.terminosAceptados = user.terminosAceptados;
+  if (user.fechaAceptacionTerminos) clean.fechaAceptacionTerminos = String(user.fechaAceptacionTerminos).slice(0, 40);
+  if (user.versionTerminosAceptada) clean.versionTerminosAceptada = String(user.versionTerminosAceptada).slice(0, 40);
+  return clean as Omit<AppUser, 'passwordHash' | 'salt'>;
+}
+
+function sanitizeRequerimientoForFirestore(req: Requerimiento, fallbackUid: string): Requerimiento {
+  const clean = JSON.parse(JSON.stringify(req)) as Record<string, unknown>;
+  clean.userId = String(clean.userId || fallbackUid).slice(0, 128);
+  clean.observaciones = String(clean.observaciones || '').slice(0, 500);
+  clean.usuario = String(clean.usuario || '').slice(0, 120);
+  clean.totalPersonas = Math.min(Math.max(Number(clean.totalPersonas) || 1, 1), 5000);
+  if (Array.isArray(clean.parcelas)) clean.parcelas = clean.parcelas.slice(0, 50);
+  if (Array.isArray(clean.historialTrazabilidad)) {
+    clean.historialTrazabilidad = clean.historialTrazabilidad.slice(-50);
+  }
+  return clean as unknown as Requerimiento;
+}
+
+function sanitizeDetalleForFirestore(det: DetalleRequerimiento, userId: string): Record<string, unknown> {
+  const clean = JSON.parse(JSON.stringify(det)) as Record<string, unknown>;
+  clean.userId = userId;
+  clean.paradero = String(clean.paradero || '').slice(0, 120);
+  clean.comedor = String(clean.comedor || '').slice(0, 60);
+  clean.cantidad = Math.min(Math.max(Number(clean.cantidad) || 1, 1), 500);
+  return clean;
+}
+
+let isAuthListenerRegistered = false;
 let unsubscribers: Unsubscribe[] = [];
 
-// Callbacks to notify app when Firestore data changes in real-time
 type OnDataUpdate = (data: {
   requerimientos?: Requerimiento[];
   detalles?: DetalleRequerimiento[];
@@ -78,22 +144,10 @@ type OnDataUpdate = (data: {
 }) => void;
 
 let updateCallback: OnDataUpdate | null = null;
-
-let pendingUpdates: {
-  requerimientos?: Requerimiento[];
-  detalles?: DetalleRequerimiento[];
-  users?: AppUser[];
-  areas?: MaestroArea[];
-  fundos?: MaestroFundo[];
-  zonas?: MaestroZona[];
-  paraderos?: MaestroParadero[];
-  comedores?: MaestroComedor[];
-  unidadesBus?: MaestroUnidadBus[];
-} = {};
-
+let pendingUpdates: Parameters<OnDataUpdate>[0] = {};
 let updateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-function scheduleDebouncedUpdate(data: typeof pendingUpdates) {
+function scheduleDebouncedUpdate(data: Parameters<OnDataUpdate>[0]) {
   pendingUpdates = { ...pendingUpdates, ...data };
   if (updateDebounceTimer) {
     clearTimeout(updateDebounceTimer);
@@ -112,144 +166,129 @@ export function registerFirestoreSyncCallback(cb: OnDataUpdate) {
   updateCallback = cb;
 }
 
-/**
- * Inicia la sincronización en tiempo real con Firestore y realiza el sembrado (seed)
- * inicial si la base de datos se encuentra vacía.
- */
-export async function initializeFirestoreSync(): Promise<void> {
-  if (isInitialized) return;
-  isInitialized = true;
-
-  try {
-    // 1. Escuchar la colección de requerimientos en tiempo real con absorción de ráfagas
-    const reqCol = collection(db, 'requerimientos');
-    const unsubReq = onSnapshot(
-      reqCol,
-      (snapshot) => {
-        if (!snapshot.empty || !snapshot.metadata.fromCache) {
-          const reqs: Requerimiento[] = [];
-          snapshot.forEach((d) => {
-            const r = d.data() as Requerimiento;
-            const isLegacyDemo =
-              r.id?.startsWith('req-uuid-') || /-ops-1\d\d$/.test(r.id || '');
-            if (!isLegacyDemo) {
-              reqs.push(r);
-            }
-          });
-          // Ordenar por fecha de registro descendente
-          reqs.sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
-          scheduleDebouncedUpdate({ requerimientos: reqs });
-        }
-      },
-      (err) => {
-        console.warn('[Firestore] Error en snapshot de requerimientos:', err);
-      }
-    );
-    unsubscribers.push(unsubReq);
-
-    // 2. Escuchar la colección de detalles en tiempo real
-    const detCol = collection(db, 'detalles');
-    const unsubDet = onSnapshot(
-      detCol,
-      (snapshot) => {
-        if (!snapshot.empty || !snapshot.metadata.fromCache) {
-          const dets: DetalleRequerimiento[] = [];
-          snapshot.forEach((d) => {
-            const det = d.data() as DetalleRequerimiento;
-            const isLegacyDemo =
-              det.id?.startsWith('det-001-') ||
-              det.id?.startsWith('det-002-') ||
-              det.id?.startsWith('det-003-') ||
-              det.id?.startsWith('det-179040001') ||
-              /-ops-1\d\d$/.test(det.requerimientoId || '');
-            if (!isLegacyDemo) {
-              dets.push(det);
-            }
-          });
-          scheduleDebouncedUpdate({ detalles: dets });
-        }
-      },
-      (err) => {
-        console.warn('[Firestore] Error en snapshot de detalles:', err);
-      }
-    );
-    unsubscribers.push(unsubDet);
-
-    // 3. Escuchar la colección de usuarios en tiempo real
-    const usersCol = collection(db, 'users');
-    const unsubUsers = onSnapshot(
-      usersCol,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const users: AppUser[] = [];
-          snapshot.forEach((d) => {
-            users.push(d.data() as AppUser);
-          });
-          scheduleDebouncedUpdate({ users });
-        } else {
-          seedInitialUsers();
-        }
-      },
-      (err) => {
-        console.warn('[Firestore] Error en snapshot de usuarios:', err);
-      }
-    );
-    unsubscribers.push(unsubUsers);
-
-    // 4. Escuchar metadatos y catálogos maestros
-    const metaDoc = doc(db, 'system_metadata', 'master_data');
-    const unsubMeta = onSnapshot(
-      metaDoc,
-      (snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
-          scheduleDebouncedUpdate({
-            areas: data.areas,
-            fundos: data.fundos,
-            ...(Array.isArray(data.zonas) ? { zonas: data.zonas } : {}),
-            paraderos: data.paraderos,
-            comedores: data.comedores,
-            ...(Array.isArray(data.unidadesBus) && data.unidadesBus.length > 0
-              ? { unidadesBus: data.unidadesBus }
-              : {}),
-          });
-        } else {
-          seedInitialMasterData();
-        }
-      },
-      (err) => {
-        console.warn('[Firestore] Error en snapshot de maestros:', err);
-      }
-    );
-    unsubscribers.push(unsubMeta);
-
-    console.log('[CAMPOSOL] Conexión en tiempo real con Firebase Firestore establecida (Alta concurrencia activa).');
-  } catch (error) {
-    console.error('[Firestore] Error al inicializar sincronización:', error);
-  }
+function cleanupListeners() {
+  unsubscribers.forEach((unsub) => {
+    try {
+      unsub();
+    } catch {
+      // ignore
+    }
+  });
+  unsubscribers = [];
 }
 
-// ----------------------------------------------------------------------
-// FUNCIONES DE SIEMBRA INICIAL DE USUARIOS Y MAESTROS (SIN DATOS FICTICIOS)
-// ----------------------------------------------------------------------
+function attachVerifiedListeners(firebaseUser: FirebaseUser) {
+  cleanupListeners();
+  const isBootstrappedAdmin = firebaseUser.email === 'jhonatanparedes563@gmail.com';
 
-async function seedInitialUsers() {
-  try {
-    const batch = writeBatch(db);
-    INITIAL_USERS.forEach((u) => {
-      const docRef = doc(db, 'users', u.id);
-      batch.set(docRef, u);
-    });
-    await batch.commit();
-    console.log('[Firestore] Usuarios iniciales sembrados en Firestore.');
-  } catch (err) {
-    console.warn('[Firestore] No se pudieron sembrar usuarios:', err);
-  }
+  // 1. Requerimientos (scoped to owner unless bootstrapped admin)
+  const reqQuery = isBootstrappedAdmin
+    ? collection(db, 'requerimientos')
+    : query(collection(db, 'requerimientos'), where('userId', '==', firebaseUser.uid));
+
+  const unsubReq = onSnapshot(
+    reqQuery,
+    (snapshot) => {
+      if (!snapshot.empty || !snapshot.metadata.fromCache) {
+        const reqs: Requerimiento[] = [];
+        snapshot.forEach((d) => {
+          const r = d.data() as Requerimiento;
+          const isLegacyDemo = r.id?.startsWith('req-uuid-') || /-ops-1\d\d$/.test(r.id || '');
+          if (!isLegacyDemo) {
+            reqs.push(r);
+          }
+        });
+        reqs.sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
+        scheduleDebouncedUpdate({ requerimientos: reqs });
+      }
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'requerimientos');
+    }
+  );
+  unsubscribers.push(unsubReq);
+
+  // 2. Detalles (scoped to owner unless bootstrapped admin)
+  const detQuery = isBootstrappedAdmin
+    ? collection(db, 'detalles')
+    : query(collection(db, 'detalles'), where('userId', '==', firebaseUser.uid));
+
+  const unsubDet = onSnapshot(
+    detQuery,
+    (snapshot) => {
+      if (!snapshot.empty || !snapshot.metadata.fromCache) {
+        const dets: DetalleRequerimiento[] = [];
+        snapshot.forEach((d) => {
+          const det = d.data() as DetalleRequerimiento;
+          const isLegacyDemo =
+            det.id?.startsWith('det-001-') ||
+            det.id?.startsWith('det-002-') ||
+            det.id?.startsWith('det-003-') ||
+            det.id?.startsWith('det-179040001') ||
+            /-ops-1\d\d$/.test(det.requerimientoId || '');
+          if (!isLegacyDemo) {
+            dets.push(det);
+          }
+        });
+        scheduleDebouncedUpdate({ detalles: dets });
+      }
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'detalles');
+    }
+  );
+  unsubscribers.push(unsubDet);
+
+  // 3. Metadatos y catálogos maestros (single document get/snapshot allowed for verified users)
+  const metaDoc = doc(db, 'system_metadata', 'master_data');
+  const unsubMeta = onSnapshot(
+    metaDoc,
+    (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        scheduleDebouncedUpdate({
+          areas: data.areas,
+          fundos: data.fundos,
+          ...(Array.isArray(data.zonas) ? { zonas: data.zonas } : {}),
+          paraderos: data.paraderos,
+          comedores: data.comedores,
+          ...(Array.isArray(data.unidadesBus) && data.unidadesBus.length > 0
+            ? { unidadesBus: data.unidadesBus }
+            : {}),
+        });
+      } else if (isBootstrappedAdmin) {
+        seedInitialMasterData();
+      }
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.GET, 'system_metadata/master_data');
+    }
+  );
+  unsubscribers.push(unsubMeta);
+}
+
+/**
+ * Inicializa observador de Firebase Auth. Sólo adjunta listeners en Firestore
+ * cuando existe una sesión Firebase Auth verificada.
+ */
+export async function initializeFirestoreSync(): Promise<void> {
+  if (isAuthListenerRegistered) return;
+  isAuthListenerRegistered = true;
+
+  onAuthStateChanged(auth, (firebaseUser) => {
+    if (firebaseUser && firebaseUser.emailVerified) {
+      attachVerifiedListeners(firebaseUser);
+    } else {
+      cleanupListeners();
+    }
+  });
 }
 
 async function seedInitialMasterData() {
+  if (!hasVerifiedFirebaseAuth()) return;
   try {
     await setDoc(doc(db, 'system_metadata', 'master_data'), {
+      id: 'master_data',
       areas: MAESTRO_AREAS,
       fundos: MAESTRO_FUNDOS,
       zonas: MAESTRO_ZONAS,
@@ -257,42 +296,37 @@ async function seedInitialMasterData() {
       comedores: MAESTRO_COMEDORES,
       lastUpdated: new Date().toISOString(),
     });
-    console.log('[Firestore] Maestros iniciales sembrados en Firestore.');
   } catch (err) {
     console.warn('[Firestore] No se pudieron sembrar maestros:', err);
   }
 }
 
-// ----------------------------------------------------------------------
-// OPERACIONES DE ESCRITURA EN FIRESTORE
-// ----------------------------------------------------------------------
-
-/**
- * Guarda un requerimiento y todos sus detalles directamente en Firestore
- * con soporte para alta concurrencia, reintentos exponenciales y particionamiento de batches.
- */
 export async function firestoreSaveRequerimiento(
   req: Requerimiento,
   detalles: DetalleRequerimiento[]
 ): Promise<void> {
+  const fbUser = hasVerifiedFirebaseAuth();
+  if (!fbUser) return;
+
   const path = `requerimientos/${req.id}`;
+  const cleanReq = sanitizeRequerimientoForFirestore(req, fbUser.uid);
+  const ownerId = cleanReq.userId || fbUser.uid;
   let attempt = 0;
   const maxAttempts = 3;
 
   while (attempt < maxAttempts) {
     attempt++;
     try {
-      // Particionar en lotes de máximo 400 operaciones (el límite estricto de Firestore es 500)
       const CHUNK_SIZE = 400;
       const batches = [];
       const firstBatch = writeBatch(db);
       const reqRef = doc(db, 'requerimientos', req.id);
-      firstBatch.set(reqRef, req);
+      firstBatch.set(reqRef, cleanReq);
 
       const firstChunk = detalles.slice(0, CHUNK_SIZE);
       firstChunk.forEach((det) => {
         const detRef = doc(db, 'detalles', det.id);
-        firstBatch.set(detRef, det);
+        firstBatch.set(detRef, sanitizeDetalleForFirestore(det, ownerId));
       });
       batches.push(firstBatch.commit());
 
@@ -301,32 +335,27 @@ export async function firestoreSaveRequerimiento(
         const chunk = detalles.slice(i, i + CHUNK_SIZE);
         chunk.forEach((det) => {
           const detRef = doc(db, 'detalles', det.id);
-          nextBatch.set(detRef, det);
+          nextBatch.set(detRef, sanitizeDetalleForFirestore(det, ownerId));
         });
         batches.push(nextBatch.commit());
       }
 
       await Promise.all(batches);
-      console.log('[Firestore] Requerimiento y detalles guardados con éxito en la nube:', req.numeroRequerimiento);
       return;
-    } catch (err: any) {
-      console.warn(`[Firestore] Intento ${attempt}/${maxAttempts} para requerimiento ${req.numeroRequerimiento} falló:`, err?.message || err);
+    } catch (err: unknown) {
       if (attempt >= maxAttempts) {
         handleFirestoreError(err, OperationType.WRITE, path);
       }
-      // Retroceso exponencial con fluctuación aleatoria (jitter)
       await new Promise((resolve) => setTimeout(resolve, attempt * 200 + Math.random() * 100));
     }
   }
 }
 
-/**
- * Actualiza el estado de un requerimiento en Firestore.
- */
 export async function firestoreUpdateRequerimientoEstado(
   id: string,
   estado: Requerimiento['estado']
 ): Promise<void> {
+  if (!hasVerifiedFirebaseAuth()) return;
   const path = `requerimientos/${id}`;
   try {
     const reqRef = doc(db, 'requerimientos', id);
@@ -334,23 +363,20 @@ export async function firestoreUpdateRequerimientoEstado(
       estado,
       updatedAt: new Date().toISOString(),
     });
-    console.log('[Firestore] Estado actualizado en la nube:', id, estado);
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, path);
   }
 }
 
-/**
- * Elimina un requerimiento y sus detalles asociados en Firestore.
- */
 export async function firestoreDeleteRequerimiento(id: string, numeroRequerimiento?: string): Promise<void> {
+  const fbUser = hasVerifiedFirebaseAuth();
+  if (!fbUser) return;
   const path = `requerimientos/${id}`;
   try {
-    // 1. Eliminar doc principal
     await deleteDoc(doc(db, 'requerimientos', id));
 
-    // 2. Buscar y eliminar detalles vinculados
-    const detsSnapshot = await getDocs(collection(db, 'detalles'));
+    const detQuery = query(collection(db, 'detalles'), where('requerimientoId', '==', id));
+    const detsSnapshot = await getDocs(detQuery);
     const batch = writeBatch(db);
     let count = 0;
 
@@ -365,41 +391,31 @@ export async function firestoreDeleteRequerimiento(id: string, numeroRequerimien
     if (count > 0) {
       await batch.commit();
     }
-    console.log('[Firestore] Requerimiento y detalles eliminados en la nube:', id);
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
 
-/**
- * Guarda o actualiza un usuario en Firestore.
- */
 export async function firestoreSaveUser(user: AppUser): Promise<void> {
+  if (!hasVerifiedFirebaseAuth()) return;
   const path = `users/${user.id}`;
   try {
-    await setDoc(doc(db, 'users', user.id), user);
-    console.log('[Firestore] Usuario persistido en la nube:', user.usuario);
+    await setDoc(doc(db, 'users', user.id), sanitizeUserForFirestore(user));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
-/**
- * Elimina un usuario de Firestore.
- */
 export async function firestoreDeleteUser(userId: string): Promise<void> {
+  if (!hasVerifiedFirebaseAuth()) return;
   const path = `users/${userId}`;
   try {
     await deleteDoc(doc(db, 'users', userId));
-    console.log('[Firestore] Usuario eliminado en la nube:', userId);
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
 
-/**
- * Actualiza los maestros en Firestore.
- */
 export async function firestoreSaveMasterData(data: {
   areas?: MaestroArea[];
   fundos?: MaestroFundo[];
@@ -408,20 +424,20 @@ export async function firestoreSaveMasterData(data: {
   comedores?: MaestroComedor[];
   unidadesBus?: MaestroUnidadBus[];
 }): Promise<void> {
+  if (!hasVerifiedFirebaseAuth()) return;
   const path = 'system_metadata/master_data';
   try {
     const metaRef = doc(db, 'system_metadata', 'master_data');
-    // Sanitizar datos para remover valores 'undefined' incompatibles con Firestore
     const cleanData = JSON.parse(JSON.stringify(data));
     await setDoc(
       metaRef,
       {
+        id: 'master_data',
         ...cleanData,
         lastUpdated: new Date().toISOString(),
       },
       { merge: true }
     );
-    console.log('[Firestore] Catálogos maestros actualizados y sincronizados en la nube.');
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
