@@ -894,9 +894,15 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
       {/* ------------------------------------------------------------- */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F3F6FA]">
         {/* TOP BAR: Título Principal + Subtítulo Verde + Controles Limpios Derecha */}
-        <header className="px-6 pt-4 pb-2 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <header className="px-6 pt-5 pb-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
-            <h1 className="text-[22px] font-bold text-[#1B3A57] tracking-tight leading-tight">
+            <h1
+              className={`${
+                currentSection === 'procesos' || currentSection === 'generador'
+                  ? 'text-[30px] sm:text-[32px]'
+                  : 'text-2xl'
+              } font-bold text-[#1B3A57] tracking-tight leading-tight`}
+            >
               {currentSection === 'procesos' && 'Procesos'}
               {currentSection === 'historial' && 'Historial'}
               {currentSection === 'generador' && 'Programación'}
@@ -906,7 +912,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               {currentSection === 'nuevo' && 'Nuevo Requerimiento'}
               {currentSection === 'usuarios' && 'Maestro de Usuarios'}
             </h1>
-            <div className="text-xs font-medium text-[#55A529] mt-0.5">
+            <div
+              className={`${
+                currentSection === 'procesos' || currentSection === 'generador'
+                  ? 'text-sm mt-1'
+                  : 'text-xs mt-0.5'
+              } font-medium text-[#55A529]`}
+            >
               {currentSection === 'procesos' && 'Recepción de Requerimientos'}
               {currentSection === 'historial' && 'Historial & Trazabilidad de Requerimientos'}
               {currentSection === 'generador' && 'Generador de Programación'}
@@ -1475,10 +1487,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             {/* Top Toolbar Header */}
             <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-[15px] font-bold text-[#1B3A57] leading-tight">
+                <h3 className="text-base sm:text-[17px] font-bold text-[#1B3A57] leading-tight">
                   Recepción de requerimientos
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Visualizar, filtrar y gestionar requerimientos
                 </p>
               </div>

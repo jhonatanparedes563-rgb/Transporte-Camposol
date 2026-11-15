@@ -951,10 +951,10 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         {/* Cabecera del Panel */}
         <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-[15px] font-bold text-[#1B3A57] leading-tight">
+            <h3 className="text-base sm:text-[17px] font-bold text-[#1B3A57] leading-tight">
               Generación de programación
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               Visualizar, optimizar y asignar recorridos
             </p>
           </div>
