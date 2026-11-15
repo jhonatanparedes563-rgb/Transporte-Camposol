@@ -25,6 +25,7 @@ import { db, auth } from '../lib/firebase';
 import {
   Requerimiento,
   DetalleRequerimiento,
+  DetalleCompacto,
   AppUser,
   MaestroArea,
   MaestroFundo,
@@ -40,6 +41,47 @@ import {
   MAESTRO_PARADEROS,
   MAESTRO_COMEDORES,
 } from '../data/masterData';
+
+function getRollingCutoffDateStr(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function buildCompactDetalles(detalles: DetalleRequerimiento[]): DetalleCompacto[] {
+  return (detalles || []).slice(0, 250).map((det) => ({
+    id: String(det.id || '').slice(0, 128),
+    c: String(det.comedor || 'Comedor 1').slice(0, 60),
+    ...(det.parcela ? { p: String(det.parcela).slice(0, 60) } : {}),
+    par: String(det.paradero || '').slice(0, 120),
+    ...(det.zona === 'NORTE' || det.zona === 'SUR' ? { z: det.zona } : {}),
+    ...(det.cultivo ? { cul: String(det.cultivo).slice(0, 60) } : {}),
+    q: Math.min(Math.max(Math.floor(Number(det.cantidad) || 1), 1), 500),
+  }));
+}
+
+export function expandCompactDetalles(req: Requerimiento): DetalleRequerimiento[] {
+  if (!Array.isArray(req.detallesCompactos) || req.detallesCompactos.length === 0) {
+    return [];
+  }
+  return req.detallesCompactos.map((dc) => ({
+    id: dc.id,
+    requerimientoId: req.id,
+    numeroRequerimiento: req.numeroRequerimiento,
+    ...(req.userId ? { userId: req.userId } : {}),
+    ...(req.firebaseUid ? { firebaseUid: req.firebaseUid } : {}),
+    ...(req.firebaseEmail ? { firebaseEmail: req.firebaseEmail } : {}),
+    comedor: dc.c || 'Comedor 1',
+    ...(dc.p ? { parcela: dc.p } : {}),
+    paradero: dc.par || '',
+    ...(dc.z === 'NORTE' || dc.z === 'SUR' ? { zona: dc.z } : {}),
+    ...(dc.cul ? { cultivo: dc.cul } : {}),
+    cantidad: Number(dc.q) || 1,
+  }));
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -139,7 +181,8 @@ function sanitizeUserForFirestore(user: AppUser): Omit<AppUser, 'passwordHash' |
 function sanitizeRequerimientoForFirestore(
   req: Requerimiento,
   fbUser: FirebaseUser,
-  preserveExistingFirebaseOwner: boolean = false
+  preserveExistingFirebaseOwner: boolean = false,
+  compactDetalles?: DetalleCompacto[]
 ): Requerimiento {
   const clean = JSON.parse(JSON.stringify(req)) as Record<string, unknown>;
   clean.userId = String(clean.userId || fbUser.uid).slice(0, 128);
@@ -162,6 +205,13 @@ function sanitizeRequerimientoForFirestore(
   if (Array.isArray(clean.parcelas)) clean.parcelas = clean.parcelas.slice(0, 50);
   if (Array.isArray(clean.historialTrazabilidad)) {
     clean.historialTrazabilidad = clean.historialTrazabilidad.slice(-50);
+  }
+  if (Array.isArray(compactDetalles) && compactDetalles.length > 0) {
+    clean.detallesCompactos = compactDetalles.slice(0, 250);
+  } else if (Array.isArray(clean.detallesCompactos)) {
+    clean.detallesCompactos = clean.detallesCompactos.slice(0, 250);
+  } else {
+    delete clean.detallesCompactos;
   }
   return clean as unknown as Requerimiento;
 }
@@ -195,10 +245,19 @@ function sanitizeDetalleForFirestore(
 
 let isAuthListenerRegistered = false;
 let unsubscribers: Unsubscribe[] = [];
+const legacyDetallesCache = new Map<string, DetalleRequerimiento[]>();
+const legacyDetallesPending = new Set<string>();
+const knownFirestoreReqIds = new Set<string>();
+
+export function hasKnownFirestoreReqId(id: string): boolean {
+  return knownFirestoreReqIds.has(id);
+}
 
 type OnDataUpdate = (data: {
   requerimientos?: Requerimiento[];
   detalles?: DetalleRequerimiento[];
+  isWindowed?: boolean;
+  windowDesde?: string;
   users?: AppUser[];
   areas?: MaestroArea[];
   fundos?: MaestroFundo[];
@@ -292,14 +351,81 @@ function filterDetallesList(rawDets: DetalleRequerimiento[]): DetalleRequerimien
   });
 }
 
+async function resolveDetallesForRequerimientos(
+  reqs: Requerimiento[],
+  fbUser: FirebaseUser,
+  isBootstrappedAdmin: boolean
+): Promise<DetalleRequerimiento[]> {
+  const result: DetalleRequerimiento[] = [];
+  const missingLegacyReqIds: string[] = [];
+
+  for (const r of reqs) {
+    const expanded = expandCompactDetalles(r);
+    if (expanded.length > 0) {
+      result.push(...expanded);
+      if (r.detallesCompactos && r.detallesCompactos.length >= 250) {
+        const cached = legacyDetallesCache.get(r.id);
+        if (cached) {
+          const compactIds = new Set(expanded.map((d) => d.id));
+          result.push(...cached.filter((d) => !compactIds.has(d.id)));
+        }
+      }
+    } else {
+      const cached = legacyDetallesCache.get(r.id);
+      if (cached) {
+        result.push(...cached);
+      } else if (!legacyDetallesPending.has(r.id)) {
+        missingLegacyReqIds.push(r.id);
+      }
+    }
+  }
+
+  if (missingLegacyReqIds.length > 0) {
+    missingLegacyReqIds.forEach((id) => legacyDetallesPending.add(id));
+    try {
+      const CHUNK = 30;
+      for (let i = 0; i < missingLegacyReqIds.length; i += CHUNK) {
+        const batchIds = missingLegacyReqIds.slice(i, i + CHUNK);
+        const detQuery = isBootstrappedAdmin
+          ? query(collection(db, 'detalles'), where('requerimientoId', 'in', batchIds))
+          : query(
+              collection(db, 'detalles'),
+              where('firebaseUid', '==', fbUser.uid)
+            );
+        const snap = await getDocs(detQuery);
+        const grouped = new Map<string, DetalleRequerimiento[]>();
+        snap.forEach((d) => {
+          const det = d.data() as DetalleRequerimiento;
+          if (!isBootstrappedAdmin && !batchIds.includes(det.requerimientoId)) return;
+          const arr = grouped.get(det.requerimientoId) || [];
+          arr.push(det);
+          grouped.set(det.requerimientoId, arr);
+        });
+        batchIds.forEach((id) => {
+          const list = grouped.get(id) || [];
+          legacyDetallesCache.set(id, list);
+          result.push(...list);
+        });
+      }
+    } catch (err) {
+      console.warn('[Firestore] Aviso cargando detalles heredados:', err);
+    } finally {
+      missingLegacyReqIds.forEach((id) => legacyDetallesPending.delete(id));
+    }
+  }
+
+  return filterDetallesList(result);
+}
+
 function attachVerifiedListeners(firebaseUser: FirebaseUser) {
   cleanupListeners();
   const isBootstrappedAdmin =
     (firebaseUser.email || '').toLowerCase() === 'jhonatanparedes563@gmail.com';
+  const rollingCutoff14 = getRollingCutoffDateStr(14);
 
-  // 1. Requerimientos (scoped to owner firebaseUid unless bootstrapped admin)
+  // 1. Requerimientos (ventana móvil de 14 días para Admin -> entrega instantánea y mínimo consumo de lecturas)
   const reqQuery = isBootstrappedAdmin
-    ? collection(db, 'requerimientos')
+    ? query(collection(db, 'requerimientos'), where('fecha', '>=', rollingCutoff14))
     : query(collection(db, 'requerimientos'), where('firebaseUid', '==', firebaseUser.uid));
 
   const unsubReq = onSnapshot(
@@ -307,10 +433,46 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
     (snapshot) => {
       if (!snapshot.empty || !snapshot.metadata.fromCache) {
         const reqs: Requerimiento[] = [];
+        const compactDets: DetalleRequerimiento[] = [];
+        const missingIds: string[] = [];
+
         snapshot.forEach((d) => {
-          reqs.push(d.data() as Requerimiento);
+          const req = d.data() as Requerimiento;
+          if (req?.id) knownFirestoreReqIds.add(req.id);
+          reqs.push(req);
+          const expanded = expandCompactDetalles(req);
+          if (expanded.length > 0) {
+            compactDets.push(...expanded);
+          } else {
+            const cached = legacyDetallesCache.get(req.id);
+            if (cached) {
+              compactDets.push(...cached);
+            } else if (!legacyDetallesPending.has(req.id)) {
+              missingIds.push(req.id);
+            }
+          }
         });
-        scheduleDebouncedUpdate({ requerimientos: filterRequerimientosList(reqs) });
+
+        const cleanedReqs = filterRequerimientosList(reqs);
+        scheduleDebouncedUpdate({
+          requerimientos: cleanedReqs,
+          detalles: filterDetallesList(compactDets),
+          isWindowed: isBootstrappedAdmin,
+          ...(isBootstrappedAdmin ? { windowDesde: rollingCutoff14 } : {}),
+        });
+
+        if (missingIds.length > 0) {
+          void resolveDetallesForRequerimientos(cleanedReqs, firebaseUser, isBootstrappedAdmin).then(
+            (allResolvedDets) => {
+              scheduleDebouncedUpdate({
+                requerimientos: cleanedReqs,
+                detalles: allResolvedDets,
+                isWindowed: isBootstrappedAdmin,
+                ...(isBootstrappedAdmin ? { windowDesde: rollingCutoff14 } : {}),
+              });
+            }
+          );
+        }
       }
     },
     (err) => {
@@ -319,29 +481,7 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
   );
   unsubscribers.push(unsubReq);
 
-  // 2. Detalles (scoped to owner firebaseUid unless bootstrapped admin)
-  const detQuery = isBootstrappedAdmin
-    ? collection(db, 'detalles')
-    : query(collection(db, 'detalles'), where('firebaseUid', '==', firebaseUser.uid));
-
-  const unsubDet = onSnapshot(
-    detQuery,
-    (snapshot) => {
-      if (!snapshot.empty || !snapshot.metadata.fromCache) {
-        const dets: DetalleRequerimiento[] = [];
-        snapshot.forEach((d) => {
-          dets.push(d.data() as DetalleRequerimiento);
-        });
-        scheduleDebouncedUpdate({ detalles: filterDetallesList(dets) });
-      }
-    },
-    (err) => {
-      handleFirestoreError(err, OperationType.LIST, 'detalles');
-    }
-  );
-  unsubscribers.push(unsubDet);
-
-  // 3. Metadatos y catálogos maestros
+  // 2. Metadatos y catálogos maestros
   const metaDoc = doc(db, 'system_metadata', 'master_data');
   const unsubMeta = onSnapshot(
     metaDoc,
@@ -368,7 +508,7 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
   );
   unsubscribers.push(unsubMeta);
 
-  // 4. Usuarios (solo Admin en la nube)
+  // 3. Usuarios (solo Admin en la nube)
   if (isBootstrappedAdmin) {
     const unsubUsers = onSnapshot(
       collection(db, 'users'),
@@ -465,18 +605,15 @@ export async function firestorePullAllNow(): Promise<boolean> {
 
   const isBootstrappedAdmin =
     (fbUser.email || '').toLowerCase() === 'jhonatanparedes563@gmail.com';
+  const cutoff30 = getRollingCutoffDateStr(30);
 
   try {
     const reqQuery = isBootstrappedAdmin
-      ? collection(db, 'requerimientos')
+      ? query(collection(db, 'requerimientos'), where('fecha', '>=', cutoff30))
       : query(collection(db, 'requerimientos'), where('firebaseUid', '==', fbUser.uid));
-    const detQuery = isBootstrappedAdmin
-      ? collection(db, 'detalles')
-      : query(collection(db, 'detalles'), where('firebaseUid', '==', fbUser.uid));
 
-    const [reqSnap, detSnap, metaSnap, usersSnap] = await Promise.all([
+    const [reqSnap, metaSnap, usersSnap] = await Promise.all([
       getDocsFromServer(reqQuery).catch(() => getDocs(reqQuery)),
-      getDocsFromServer(detQuery).catch(() => getDocs(detQuery)),
       getDocFromServer(doc(db, 'system_metadata', 'master_data')).catch(() =>
         getDoc(doc(db, 'system_metadata', 'master_data'))
       ),
@@ -486,14 +623,19 @@ export async function firestorePullAllNow(): Promise<boolean> {
     ]);
 
     const reqs: Requerimiento[] = [];
-    reqSnap.forEach((d) => reqs.push(d.data() as Requerimiento));
-
-    const dets: DetalleRequerimiento[] = [];
-    detSnap.forEach((d) => dets.push(d.data() as DetalleRequerimiento));
+    reqSnap.forEach((d) => {
+      const req = d.data() as Requerimiento;
+      if (req?.id) knownFirestoreReqIds.add(req.id);
+      reqs.push(req);
+    });
+    const cleanedReqs = filterRequerimientosList(reqs);
+    const resolvedDets = await resolveDetallesForRequerimientos(cleanedReqs, fbUser, isBootstrappedAdmin);
 
     const payload: Parameters<OnDataUpdate>[0] = {
-      requerimientos: filterRequerimientosList(reqs),
-      detalles: filterDetallesList(dets),
+      requerimientos: cleanedReqs,
+      detalles: resolvedDets,
+      isWindowed: isBootstrappedAdmin,
+      ...(isBootstrappedAdmin ? { windowDesde: cutoff30 } : {}),
     };
 
     if (metaSnap && metaSnap.exists()) {
@@ -525,6 +667,51 @@ export async function firestorePullAllNow(): Promise<boolean> {
   }
 }
 
+export async function firestoreFetchByDateRange(
+  desde?: string,
+  hasta?: string
+): Promise<{ requerimientos: Requerimiento[]; detalles: DetalleRequerimiento[] } | null> {
+  const fbUser = hasVerifiedFirebaseAuth();
+  if (!fbUser) return null;
+
+  const isBootstrappedAdmin =
+    (fbUser.email || '').toLowerCase() === 'jhonatanparedes563@gmail.com';
+
+  try {
+    let reqQuery;
+    if (isBootstrappedAdmin) {
+      if (desde && hasta) {
+        reqQuery = query(
+          collection(db, 'requerimientos'),
+          where('fecha', '>=', desde),
+          where('fecha', '<=', hasta)
+        );
+      } else if (desde) {
+        reqQuery = query(collection(db, 'requerimientos'), where('fecha', '>=', desde));
+      } else if (hasta) {
+        reqQuery = query(collection(db, 'requerimientos'), where('fecha', '<=', hasta));
+      } else {
+        reqQuery = collection(db, 'requerimientos');
+      }
+    } else {
+      reqQuery = query(collection(db, 'requerimientos'), where('firebaseUid', '==', fbUser.uid));
+    }
+
+    const reqSnap = await getDocsFromServer(reqQuery).catch(() => getDocs(reqQuery));
+    let reqs: Requerimiento[] = [];
+    reqSnap.forEach((d) => reqs.push(d.data() as Requerimiento));
+    if (!isBootstrappedAdmin) {
+      reqs = reqs.filter((r) => (!desde || r.fecha >= desde) && (!hasta || r.fecha <= hasta));
+    }
+    const cleanedReqs = filterRequerimientosList(reqs);
+    const detalles = await resolveDetallesForRequerimientos(cleanedReqs, fbUser, isBootstrappedAdmin);
+    return { requerimientos: cleanedReqs, detalles };
+  } catch (err) {
+    console.warn('[Firestore] Error consultando histórico por rango:', err);
+    return null;
+  }
+}
+
 async function seedInitialMasterData() {
   if (!hasVerifiedFirebaseAuth()) return;
   try {
@@ -551,7 +738,8 @@ export async function firestoreSaveRequerimiento(
   if (!fbUser) return false;
 
   const path = `requerimientos/${req.id}`;
-  const cleanReq = sanitizeRequerimientoForFirestore(req, fbUser, preserveExistingFirebaseOwner);
+  const compact = buildCompactDetalles(detalles);
+  const cleanReq = sanitizeRequerimientoForFirestore(req, fbUser, preserveExistingFirebaseOwner, compact);
   const ownerId = cleanReq.userId || fbUser.uid;
   let attempt = 0;
   const maxAttempts = 3;
@@ -559,14 +747,22 @@ export async function firestoreSaveRequerimiento(
   while (attempt < maxAttempts) {
     attempt++;
     try {
+      // Operación atómica de 1 sola escritura en Firestore para el 99.9% de casos (<= 250 paraderos)
+      if (detalles.length <= 250) {
+        await setDoc(doc(db, 'requerimientos', req.id), cleanReq);
+        knownFirestoreReqIds.add(req.id);
+        return true;
+      }
+
+      // Respaldo extendido en /detalles sólo si supera los 250 paraderos compactos
       const CHUNK_SIZE = 400;
       const batches = [];
+      const overflowDets = detalles.slice(250);
       const firstBatch = writeBatch(db);
       const reqRef = doc(db, 'requerimientos', req.id);
       firstBatch.set(reqRef, cleanReq);
 
-      const firstChunk = detalles.slice(0, CHUNK_SIZE);
-      firstChunk.forEach((det) => {
+      overflowDets.slice(0, CHUNK_SIZE).forEach((det) => {
         const detRef = doc(db, 'detalles', det.id);
         firstBatch.set(
           detRef,
@@ -575,10 +771,9 @@ export async function firestoreSaveRequerimiento(
       });
       batches.push(firstBatch.commit());
 
-      for (let i = CHUNK_SIZE; i < detalles.length; i += CHUNK_SIZE) {
+      for (let i = CHUNK_SIZE; i < overflowDets.length; i += CHUNK_SIZE) {
         const nextBatch = writeBatch(db);
-        const chunk = detalles.slice(i, i + CHUNK_SIZE);
-        chunk.forEach((det) => {
+        overflowDets.slice(i, i + CHUNK_SIZE).forEach((det) => {
           const detRef = doc(db, 'detalles', det.id);
           nextBatch.set(
             detRef,
@@ -589,6 +784,7 @@ export async function firestoreSaveRequerimiento(
       }
 
       await Promise.all(batches);
+      knownFirestoreReqIds.add(req.id);
       return true;
     } catch (err: unknown) {
       if (attempt >= maxAttempts) {

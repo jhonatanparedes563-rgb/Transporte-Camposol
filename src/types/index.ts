@@ -147,6 +147,16 @@ export interface ProgramacionViajesDia {
   resumenUnidades: Record<string, number>;
 }
 
+export interface DetalleCompacto {
+  id: string;
+  c: string;
+  p?: string;
+  par: string;
+  z?: ZonaParadero;
+  cul?: string;
+  q: number;
+}
+
 // Entidad principal: REQUERIMIENTOS
 export interface Requerimiento {
   id: string;
@@ -181,6 +191,7 @@ export interface Requerimiento {
     accion: string;
     detalle?: string;
   }>;
+  detallesCompactos?: DetalleCompacto[];
 }
 
 // Entidad relacional detalle: DETALLE_REQUERIMIENTO

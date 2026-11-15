@@ -30,9 +30,11 @@ import {
   firestoreSaveMasterData,
   firestoreSaveUser,
   firestorePullAllNow,
+  firestoreFetchByDateRange,
   isFirestoreAuthenticated,
   getFirebaseUserInfo,
   connectWithGoogleFirebase,
+  hasKnownFirestoreReqId,
 } from './firestoreService';
 import {
   getAuthHeaders,
@@ -43,6 +45,13 @@ import {
   getApiCandidates,
   markWorkingApiUrl,
 } from './authService';
+import {
+  idbLoadSnapshot,
+  idbPutRequerimientos,
+  idbPutDetalles,
+  idbDeleteRequerimiento,
+  idbPutProgramaciones,
+} from './indexedDbStore';
 
 const REQ_STORAGE_KEY = 'camposol_transporte_requerimientos_v1';
 const DET_STORAGE_KEY = 'camposol_transporte_detalles_v1';
@@ -56,6 +65,222 @@ const PROGRAMACIONES_VIAJES_KEY = 'camposol_programaciones_viajes_v1';
 const USERS_STORAGE_KEY = 'camposol_users_v2';
 const LAST_REVISION_KEY = 'camposol_last_revision_v1';
 const DRAFT_REQ_STORAGE_KEY = 'camposol_current_req_draft_v1';
+const MAX_LS_MIRROR_REQS = 450;
+
+// -------------------------------------------------------------
+// LONG-TERM IN-MEMORY + INDEXEDDB CACHE (NO TRUNCATION, 0ms SYNC READS)
+// -------------------------------------------------------------
+let memInitialized = false;
+let memReqs: Requerimiento[] = [];
+let memDets: DetalleRequerimiento[] = [];
+let memDetsByReqId = new Map<string, DetalleRequerimiento[]>();
+let memProgs: ProgramacionViajesDia[] = [];
+let knownExpressReqIds = new Set<string>();
+let hasLoadedExpressInitial = false;
+let serverTotalHistoricalCount: number | null = null;
+let serverOldestFecha: string | null = null;
+
+function isLegacyDemoReq(r: Partial<Requerimiento>): boolean {
+  return Boolean(r.id?.startsWith('req-uuid-') || /-ops-1\d\d$/.test(r.id || ''));
+}
+
+function isLegacyDemoDet(d: Partial<DetalleRequerimiento>): boolean {
+  return Boolean(
+    d.id?.startsWith('det-001-') ||
+      d.id?.startsWith('det-002-') ||
+      d.id?.startsWith('det-003-') ||
+      d.id?.startsWith('det-179040001') ||
+      /-ops-1\d\d$/.test(d.requerimientoId || '')
+  );
+}
+
+function rebuildDetallesIndex(): void {
+  const nextMap = new Map<string, DetalleRequerimiento[]>();
+  for (const det of memDets) {
+    if (!det.requerimientoId) continue;
+    const arr = nextMap.get(det.requerimientoId);
+    if (arr) {
+      arr.push(det);
+    } else {
+      nextMap.set(det.requerimientoId, [det]);
+    }
+  }
+  memDetsByReqId = nextMap;
+}
+
+function mirrorHotCacheToLocalStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const hotReqs = memReqs.slice(0, MAX_LS_MIRROR_REQS);
+    const hotReqIds = new Set(hotReqs.map((r) => r.id));
+    const hotDets = memDets.filter((d) => hotReqIds.has(d.requerimientoId));
+    localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(hotReqs));
+    localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(hotDets));
+  } catch {
+    // QuotaExceededError silencioso: el historial completo sigue seguro en mem + IndexedDB
+  }
+}
+
+function mirrorProgsToLocalStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(PROGRAMACIONES_VIAJES_KEY, JSON.stringify(memProgs.slice(0, 120)));
+  } catch {
+    // IndexedDB conserva el 100%
+  }
+}
+
+function ensureMemInitialized(): void {
+  if (memInitialized || typeof window === 'undefined') return;
+  memInitialized = true;
+
+  try {
+    const rawReqs = localStorage.getItem(REQ_STORAGE_KEY);
+    if (rawReqs) {
+      const parsed = JSON.parse(rawReqs);
+      if (Array.isArray(parsed)) {
+        memReqs = parsed
+          .filter((r) => r && r.id && !isLegacyDemoReq(r))
+          .sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
+      }
+    }
+  } catch {
+    memReqs = [];
+  }
+
+  try {
+    const rawDets = localStorage.getItem(DET_STORAGE_KEY);
+    if (rawDets) {
+      const parsed = JSON.parse(rawDets);
+      if (Array.isArray(parsed)) {
+        memDets = parsed.filter((d) => d && d.id && !isLegacyDemoDet(d));
+      }
+    }
+  } catch {
+    memDets = [];
+  }
+  rebuildDetallesIndex();
+
+  try {
+    const rawProgs = localStorage.getItem(PROGRAMACIONES_VIAJES_KEY);
+    if (rawProgs) {
+      const parsed = JSON.parse(rawProgs);
+      if (Array.isArray(parsed)) {
+        memProgs = parsed;
+      }
+    }
+  } catch {
+    memProgs = [];
+  }
+}
+
+function mergeUpsertRequerimientos(incomingReqs: Requerimiento[], persistToIdb: boolean = true): boolean {
+  ensureMemInitialized();
+  const cleanIncoming = (incomingReqs || []).filter((r) => r && r.id && !isLegacyDemoReq(r));
+  if (cleanIncoming.length === 0) return false;
+
+  const byId = new Map<string, Requerimiento>();
+  for (const r of memReqs) {
+    byId.set(r.id, r);
+  }
+
+  const changedForIdb: Requerimiento[] = [];
+  for (const inc of cleanIncoming) {
+    const prev = byId.get(inc.id);
+    if (!prev) {
+      byId.set(inc.id, inc);
+      changedForIdb.push(inc);
+    } else {
+      const prevStamp = prev.updatedAt || prev.fechaRegistro || '';
+      const incStamp = inc.updatedAt || inc.fechaRegistro || '';
+      if (incStamp >= prevStamp || inc.estado !== prev.estado) {
+        byId.set(inc.id, inc);
+        changedForIdb.push(inc);
+      }
+    }
+  }
+
+  memReqs = Array.from(byId.values()).sort((a, b) =>
+    (b.fechaRegistro || '').localeCompare(a.fechaRegistro || '')
+  );
+  mirrorHotCacheToLocalStorage();
+  if (persistToIdb && changedForIdb.length > 0) {
+    void idbPutRequerimientos(changedForIdb, false);
+  }
+  return true;
+}
+
+function mergeUpsertDetalles(incomingDets: DetalleRequerimiento[], persistToIdb: boolean = true): boolean {
+  ensureMemInitialized();
+  const cleanIncoming = (incomingDets || []).filter((d) => d && d.id && !isLegacyDemoDet(d));
+  if (cleanIncoming.length === 0) return false;
+
+  const byId = new Map<string, DetalleRequerimiento>();
+  for (const d of memDets) {
+    byId.set(d.id, d);
+  }
+  for (const inc of cleanIncoming) {
+    byId.set(inc.id, inc);
+  }
+
+  memDets = Array.from(byId.values());
+  rebuildDetallesIndex();
+  mirrorHotCacheToLocalStorage();
+  if (persistToIdb) {
+    void idbPutDetalles(cleanIncoming, false);
+  }
+  return true;
+}
+
+function removeRequerimientoFromMem(id: string): boolean {
+  ensureMemInitialized();
+  const target = memReqs.find((r) => r.id === id || r.numeroRequerimiento === id);
+  if (!target) return false;
+  memReqs = memReqs.filter((r) => r.id !== target.id && r.numeroRequerimiento !== target.numeroRequerimiento);
+  memDets = memDets.filter(
+    (d) => d.requerimientoId !== target.id && d.numeroRequerimiento !== target.numeroRequerimiento
+  );
+  rebuildDetallesIndex();
+  mirrorHotCacheToLocalStorage();
+  void idbDeleteRequerimiento(target.id);
+  return true;
+}
+
+async function bridgeFirestoreReqsToExpressIfAdmin(reqs: Requerimiento[]): Promise<void> {
+  if (!hasLoadedExpressInitial || reqs.length === 0) return;
+  const sessionUser = getActiveSessionUser();
+  const token = getAuthToken();
+  if (!sessionUser || (sessionUser.rol !== 'admin' && sessionUser.rol !== 'receptor')) return;
+  if (!token || token.startsWith('static.')) return;
+
+  const missing = reqs.filter((r) => r.id && !knownExpressReqIds.has(r.id)).slice(0, 100);
+  if (missing.length === 0) return;
+
+  const batchItems = missing.map((r) => {
+    knownExpressReqIds.add(r.id);
+    return {
+      requerimiento: r,
+      detalles: getDetallesByRequerimientoId(r.id),
+    };
+  });
+
+  try {
+    await apiFetch(
+      '/api/requerimientos/batch',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ items: batchItems }),
+      },
+      10000
+    );
+  } catch {
+    // retry on future sync if needed
+  }
+}
 
 export function getStoredRequirementDraft(): RequerimientoDraft | null {
   try {
@@ -144,29 +369,45 @@ function broadcastLocalChange(): void {
   }
 }
 
-// Conexión y sincronización en tiempo real con Firebase Firestore
+// Hidratar historial completo desde IndexedDB al iniciar y conectar Firestore en tiempo real
 if (typeof window !== 'undefined') {
+  ensureMemInitialized();
+  idbLoadSnapshot()
+    .then((snap) => {
+      if (!snap) return;
+      let changed = false;
+      if (snap.requerimientos.length > 0) {
+        if (mergeUpsertRequerimientos(snap.requerimientos, false)) changed = true;
+      }
+      if (snap.detalles.length > 0) {
+        if (mergeUpsertDetalles(snap.detalles, false)) changed = true;
+      }
+      if (snap.programaciones.length > 0) {
+        const byId = new Map<string, ProgramacionViajesDia>();
+        memProgs.forEach((p) => byId.set(p.id, p));
+        snap.programaciones.forEach((p) => byId.set(p.id, p));
+        memProgs = Array.from(byId.values()).sort((a, b) =>
+          (b.fechaGeneracion || '').localeCompare(a.fechaGeneracion || '')
+        );
+        changed = true;
+      }
+      if (changed) {
+        notifyListeners();
+      }
+    })
+    .catch(() => {
+      // IndexedDB unavailable
+    });
+
   registerFirestoreSyncCallback((payload) => {
     let changed = false;
-    const pendingQueue = getSyncQueue();
 
     if (payload.requerimientos && Array.isArray(payload.requerimientos)) {
-      const cloudReqs = payload.requerimientos;
-      const cloudIds = new Set(cloudReqs.map((r) => r.id));
-      const unsyncedLocal = pendingQueue
-        .map((q) => q.requerimiento)
-        .filter((r) => !cloudIds.has(r.id));
-      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([...unsyncedLocal, ...cloudReqs]));
-      changed = true;
+      if (mergeUpsertRequerimientos(payload.requerimientos, true)) changed = true;
+      void bridgeFirestoreReqsToExpressIfAdmin(payload.requerimientos);
     }
     if (payload.detalles && Array.isArray(payload.detalles)) {
-      const cloudDets = payload.detalles;
-      const cloudDetIds = new Set(cloudDets.map((d) => d.id));
-      const unsyncedDets = pendingQueue
-        .flatMap((q) => q.detalles || [])
-        .filter((d) => !cloudDetIds.has(d.id));
-      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([...cloudDets, ...unsyncedDets]));
-      changed = true;
+      if (mergeUpsertDetalles(payload.detalles, true)) changed = true;
     }
     if (payload.users && Array.isArray(payload.users)) {
       const localUsers = getStoredUsers();
@@ -209,16 +450,14 @@ if (typeof window !== 'undefined') {
 
   registerFirebaseConnectedCallback(async (info) => {
     try {
+      await firestorePullAllNow();
       await processPendingSyncQueue();
-      // Si el administrador bootstrapped se conecta a Google Cloud, asegurar respaldo inicial de datos locales hacia Firestore
       if (info.isBootstrappedAdmin) {
-        const localReqs = getStoredRequerimientos();
-        const localDets = getStoredDetalles();
-        const batchQueue = localReqs.slice(0, 100);
-        for (const req of batchQueue) {
-          const reqDets = localDets.filter(
-            (d) => d.requerimientoId === req.id || d.numeroRequerimiento === req.numeroRequerimiento
-          );
+        const localReqs = getStoredRequerimientos()
+          .filter((req) => req?.id && !hasKnownFirestoreReqId(req.id))
+          .slice(0, 100);
+        for (const req of localReqs) {
+          const reqDets = getDetallesByRequerimientoId(req.id);
           await firestoreSaveRequerimiento(req, reqDets, true).catch(() => false);
         }
         const localUsers = getStoredUsers();
@@ -226,13 +465,11 @@ if (typeof window !== 'undefined') {
           await firestoreSaveUser(u).catch(() => false);
         }
       }
-      await firestorePullAllNow();
     } catch {
       // ignore non-fatal bootstrap sync errors
     }
   });
 
-  // Iniciar la escucha en segundo plano
   initializeFirestoreSync().catch((err) => {
     console.warn('[Firestore] Inicialización diferida:', err);
   });
@@ -252,6 +489,7 @@ async function apiFetch(
     const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     try {
       const res = await fetch(url, {
+        credentials: init.credentials || 'include',
         ...init,
         ...(controller ? { signal: controller.signal } : {}),
       });
@@ -270,6 +508,188 @@ async function apiFetch(
 
   if (lastRes) return lastRes;
   throw lastErr || new Error('No se pudo conectar con el servidor API.');
+}
+
+// -------------------------------------------------------------
+// REAL-TIME SSE STREAM (<200ms PUSH) & INCREMENTAL DELTA ENGINE
+// -------------------------------------------------------------
+let activeEventSource: EventSource | null = null;
+let sseConnected = false;
+let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let sseCandidateIndex = 0;
+
+function closeRealtimeSse(): void {
+  sseConnected = false;
+  if (sseReconnectTimer) {
+    clearTimeout(sseReconnectTimer);
+    sseReconnectTimer = null;
+  }
+  if (activeEventSource) {
+    try {
+      activeEventSource.close();
+    } catch {
+      // ignore
+    }
+    activeEventSource = null;
+  }
+}
+
+function applyDeltaEvent(ev: {
+  revision?: number;
+  kind?: string;
+  entityId?: string;
+  payload?: {
+    requerimiento?: Requerimiento;
+    detalles?: DetalleRequerimiento[];
+  };
+  requerimiento?: Requerimiento;
+  detalles?: DetalleRequerimiento[];
+}): void {
+  if (ev.revision) {
+    const prev = Number(localStorage.getItem(LAST_REVISION_KEY) || '0');
+    if (ev.revision > prev) {
+      localStorage.setItem(LAST_REVISION_KEY, String(ev.revision));
+    }
+  }
+
+  const reqObj = ev.requerimiento || ev.payload?.requerimiento;
+  const detsObj = ev.detalles || ev.payload?.detalles;
+
+  if (ev.kind === 'REQ_UPSERT' && reqObj) {
+    knownExpressReqIds.add(reqObj.id);
+    mergeUpsertRequerimientos([reqObj], true);
+    if (Array.isArray(detsObj) && detsObj.length > 0) {
+      mergeUpsertDetalles(detsObj, true);
+    }
+    if (isFirestoreAuthenticated() && getFirebaseUserInfo().isBootstrappedAdmin) {
+      if (hasKnownFirestoreReqId(reqObj.id)) {
+        void firestoreUpdateRequerimientoEstado(reqObj.id, reqObj.estado, {
+          updatedAt: reqObj.updatedAt,
+          fechaAnulacion: reqObj.fechaAnulacion,
+          usuarioAnulacion: reqObj.usuarioAnulacion,
+          motivoAnulacion: reqObj.motivoAnulacion,
+          historialTrazabilidad: reqObj.historialTrazabilidad,
+        }).catch(() => false);
+      } else {
+        const detsForCloud = Array.isArray(detsObj) && detsObj.length > 0
+          ? detsObj
+          : getDetallesByRequerimientoId(reqObj.id);
+        void firestoreSaveRequerimiento(reqObj, detsForCloud, true).catch(() => false);
+      }
+    }
+    lastSyncDate = new Date();
+    isOnline = true;
+    notifyListeners();
+  } else if (ev.kind === 'REQ_DELETE' && ev.entityId) {
+    removeRequerimientoFromMem(ev.entityId);
+    lastSyncDate = new Date();
+    notifyListeners();
+  } else if (ev.kind === 'MAESTROS_UPDATE' || ev.kind === 'USERS_UPDATE') {
+    void syncWithServerNow(true);
+  }
+}
+
+function ensureRealtimeSseConnected(): void {
+  if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
+  const token = getAuthToken();
+  if (!token || token.startsWith('static.')) {
+    closeRealtimeSse();
+    return;
+  }
+  if (activeEventSource && activeEventSource.readyState !== EventSource.CLOSED) {
+    return;
+  }
+
+  const candidates = getApiCandidates(`/api/sync/stream?token=${encodeURIComponent(token)}`);
+  const streamUrl = candidates[sseCandidateIndex % candidates.length] || candidates[0];
+  if (!streamUrl) return;
+
+  try {
+    const es = new EventSource(streamUrl, { withCredentials: true });
+    activeEventSource = es;
+
+    es.addEventListener('ready', (evt: MessageEvent) => {
+      sseConnected = true;
+      sseCandidateIndex = 0;
+      isOnline = true;
+      try {
+        const data = JSON.parse(evt.data || '{}');
+        const localRev = Number(localStorage.getItem(LAST_REVISION_KEY) || '0');
+        if (data.revision && data.revision > localRev && localRev > 0) {
+          void syncDeltaSince(localRev);
+        }
+      } catch {
+        // ignore
+      }
+    });
+
+    es.addEventListener('sync', (evt: MessageEvent) => {
+      try {
+        const parsed = JSON.parse(evt.data);
+        applyDeltaEvent(parsed);
+      } catch {
+        // ignore malformed frame
+      }
+    });
+
+    es.onerror = () => {
+      sseConnected = false;
+      sseCandidateIndex = (sseCandidateIndex + 1) % Math.max(candidates.length, 1);
+      try {
+        es.close();
+      } catch {
+        // ignore
+      }
+      if (activeEventSource === es) {
+        activeEventSource = null;
+      }
+      if (!sseReconnectTimer && getAuthToken() && !getAuthToken()!.startsWith('static.')) {
+        sseReconnectTimer = setTimeout(() => {
+          sseReconnectTimer = null;
+          ensureRealtimeSseConnected();
+        }, 4000);
+      }
+    };
+  } catch {
+    sseConnected = false;
+  }
+}
+
+async function syncDeltaSince(sinceRev: number): Promise<boolean> {
+  const token = getAuthToken();
+  if (!token || token.startsWith('static.')) return false;
+
+  try {
+    const res = await apiFetch(
+      `/api/sync/delta?since=${encodeURIComponent(String(sinceRev))}`,
+      {
+        headers: {
+          'Cache-Control': 'no-cache',
+          ...getAuthHeaders(),
+        },
+      },
+      6000
+    );
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (!res.ok || !ct.includes('application/json')) return false;
+
+    const delta = await res.json();
+    if (delta.fullSyncRequired || !Array.isArray(delta.events)) {
+      return syncWithServerNow();
+    }
+
+    for (const ev of delta.events) {
+      applyDeltaEvent(ev);
+    }
+    if (delta.currentRevision) {
+      localStorage.setItem(LAST_REVISION_KEY, String(delta.currentRevision));
+    }
+    lastSyncDate = new Date();
+    isOnline = true;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 let inFlightSyncPromise: Promise<boolean> | null = null;
@@ -310,6 +730,7 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
   const hasServerToken = Boolean(token && !token.startsWith('static.'));
 
   if (!hasServerToken && !fbConnected) {
+    closeRealtimeSse();
     return false;
   }
 
@@ -341,26 +762,27 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
 
           if (res.status === 401 && ct.includes('application/json')) {
             clearActiveSession();
+            closeRealtimeSse();
           } else if (res.ok && ct.includes('application/json')) {
             const data = await res.json();
             expressOk = true;
-            const pendingQueue = getSyncQueue();
+
+            if (typeof data.totalHistoricalCount === 'number') {
+              serverTotalHistoricalCount = data.totalHistoricalCount;
+            }
+            if (typeof data.oldestFecha === 'string' || data.oldestFecha === null) {
+              serverOldestFecha = data.oldestFecha;
+            }
 
             if (data.requerimientos && Array.isArray(data.requerimientos)) {
               const serverReqs: Requerimiento[] = data.requerimientos;
-              const serverIds = new Set(serverReqs.map((r) => r.id));
-              const pendingReqs = pendingQueue
-                .map((q) => q.requerimiento)
-                .filter((r) => !serverIds.has(r.id));
-              localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([...pendingReqs, ...serverReqs]));
+              serverReqs.forEach((r) => knownExpressReqIds.add(r.id));
+              hasLoadedExpressInitial = true;
+              mergeUpsertRequerimientos(serverReqs, true);
             }
             if (data.detalles && Array.isArray(data.detalles)) {
               const serverDets: DetalleRequerimiento[] = data.detalles;
-              const serverDetIds = new Set(serverDets.map((d) => d.id));
-              const pendingDets = pendingQueue
-                .flatMap((q) => q.detalles || [])
-                .filter((d) => !serverDetIds.has(d.id));
-              localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([...serverDets, ...pendingDets]));
+              mergeUpsertDetalles(serverDets, true);
             }
             if (data.users && Array.isArray(data.users)) {
               const safeUsers = data.users.map((u: AppUser) => ({ ...u, passwordHash: '', salt: '' }));
@@ -384,6 +806,8 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
             if (data.revision) {
               localStorage.setItem(LAST_REVISION_KEY, String(data.revision));
             }
+
+            ensureRealtimeSseConnected();
           }
         } catch {
           // Express unreachable; continue to Cloud Firestore
@@ -414,6 +838,92 @@ export async function syncWithServerNow(force: boolean = false): Promise<boolean
   return inFlightSyncPromise;
 }
 
+const loadedRangesCache = new Map<string, number>();
+const inFlightRangeRequests = new Map<string, Promise<void>>();
+
+export async function ensureDateRangeLoaded(desde?: string, hasta?: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const dCutoff = new Date();
+  dCutoff.setDate(dCutoff.getDate() - 14);
+  const cutoff14 = `${dCutoff.getFullYear()}-${String(dCutoff.getMonth() + 1).padStart(2, '0')}-${String(
+    dCutoff.getDate()
+  ).padStart(2, '0')}`;
+
+  if (desde && desde >= cutoff14) {
+    return;
+  }
+
+  const key = `${desde || 'MIN'}..${hasta || 'MAX'}`;
+  const lastFetched = loadedRangesCache.get(key) || 0;
+  if (Date.now() - lastFetched < 60_000) {
+    return;
+  }
+  const existingPromise = inFlightRangeRequests.get(key);
+  if (existingPromise) return existingPromise;
+
+  const task = (async () => {
+    const token = getAuthToken();
+    const hasServerToken = Boolean(token && !token.startsWith('static.'));
+    const fbConnected = isFirestoreAuthenticated();
+
+    const qs = new URLSearchParams();
+    if (desde) qs.set('desde', desde);
+    if (hasta) qs.set('hasta', hasta);
+    const rangeEndpoint = `/api/requerimientos/range${qs.toString() ? `?${qs.toString()}` : ''}`;
+
+    const expressPromise = hasServerToken
+      ? apiFetch(
+          rangeEndpoint,
+          {
+            headers: {
+              'Cache-Control': 'no-cache',
+              ...getAuthHeaders(),
+            },
+          },
+          10000
+        )
+          .then(async (res) => {
+            const ct = (res.headers.get('content-type') || '').toLowerCase();
+            if (res.ok && ct.includes('application/json')) {
+              return res.json();
+            }
+            return null;
+          })
+          .catch(() => null)
+      : Promise.resolve(null);
+
+    const firestorePromise = fbConnected
+      ? firestoreFetchByDateRange(desde, hasta).catch(() => null)
+      : Promise.resolve(null);
+
+    const [expData, fbData] = await Promise.all([expressPromise, firestorePromise]);
+    let mergedAny = false;
+
+    if (expData && Array.isArray(expData.requerimientos)) {
+      if (mergeUpsertRequerimientos(expData.requerimientos, true)) mergedAny = true;
+      if (Array.isArray(expData.detalles) && mergeUpsertDetalles(expData.detalles, true)) {
+        mergedAny = true;
+      }
+    }
+    if (fbData && Array.isArray(fbData.requerimientos)) {
+      if (mergeUpsertRequerimientos(fbData.requerimientos, true)) mergedAny = true;
+      if (Array.isArray(fbData.detalles) && mergeUpsertDetalles(fbData.detalles, true)) {
+        mergedAny = true;
+      }
+    }
+
+    loadedRangesCache.set(key, Date.now());
+    if (mergedAny) {
+      notifyListeners();
+    }
+  })().finally(() => {
+    inFlightRangeRequests.delete(key);
+  });
+
+  inFlightRangeRequests.set(key, task);
+  return task;
+}
+
 export function getSyncInfo() {
   return {
     isOnline,
@@ -423,11 +933,12 @@ export function getSyncInfo() {
   };
 }
 
-// Background poller: Checks if the web database has been updated by other users/devices (only when authenticated)
+// Background poller: uses delta sync & slows down automatically when real-time SSE stream is active
 if (typeof window !== 'undefined') {
   let isChecking = false;
+  let pollTick = 0;
 
-  const pollServer = async () => {
+  const pollServer = async (forceCheck: boolean = false) => {
     const token = getAuthToken();
     if (
       isChecking ||
@@ -438,6 +949,13 @@ if (typeof window !== 'undefined') {
     ) {
       return;
     }
+
+    pollTick++;
+    if (!forceCheck && sseConnected && pollTick % 6 !== 0) {
+      return;
+    }
+
+    ensureRealtimeSseConnected();
     isChecking = true;
 
     try {
@@ -455,6 +973,7 @@ if (typeof window !== 'undefined') {
 
       if (res.status === 401 && ct.includes('application/json')) {
         clearActiveSession();
+        closeRealtimeSse();
         return;
       }
 
@@ -464,7 +983,11 @@ if (typeof window !== 'undefined') {
         const localRev = Number(localStorage.getItem(LAST_REVISION_KEY) || '0');
 
         if (info.revision && info.revision > localRev) {
-          await syncWithServerNow();
+          if (localRev > 0) {
+            await syncDeltaSince(localRev);
+          } else {
+            await syncWithServerNow();
+          }
         }
       }
     } catch {
@@ -482,23 +1005,26 @@ if (typeof window !== 'undefined') {
     }
   }, 250);
 
-  setInterval(pollServer, 2500);
+  setInterval(() => pollServer(false), 2500);
 
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
+        ensureRealtimeSseConnected();
         processPendingSyncQueue();
-        pollServer();
+        pollServer(true);
       }
     });
   }
   window.addEventListener('focus', () => {
+    ensureRealtimeSseConnected();
     processPendingSyncQueue();
-    pollServer();
+    pollServer(true);
   });
   window.addEventListener('online', () => {
     isOnline = true;
     if (getAuthToken()) {
+      ensureRealtimeSseConnected();
       processPendingSyncQueue().finally(() => {
         syncWithServerNow(true);
       });
@@ -506,72 +1032,31 @@ if (typeof window !== 'undefined') {
   });
   window.addEventListener('offline', () => {
     isOnline = false;
+    closeRealtimeSse();
   });
 }
 
 // -------------------------------------------------------------
-// REQUERIMIENTOS & DETALLES
+// REQUERIMIENTOS & DETALLES (MEMORIA + INDEXEDDB ILIMITADO)
 // -------------------------------------------------------------
 export function getStoredRequerimientos(): Requerimiento[] {
-  try {
-    const raw = localStorage.getItem(REQ_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([]));
-      return [];
-    }
-    const parsed: Requerimiento[] = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    // Filtrar únicamente registros demo/mock residuales preservando 100% los datos reales históricos y de Firestore
-    const cleaned = parsed.filter(
-      (r) => !r.id?.startsWith('req-uuid-') && !/-ops-1\d\d$/.test(r.id || '')
-    );
-    if (cleaned.length !== parsed.length) {
-      localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(cleaned));
-    }
-    return cleaned;
-  } catch (err) {
-    console.error('Error loading requerimientos:', err);
-    return [];
-  }
+  ensureMemInitialized();
+  return memReqs;
 }
 
 export function getStoredDetalles(): DetalleRequerimiento[] {
-  try {
-    const raw = localStorage.getItem(DET_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([]));
-      return [];
-    }
-    const parsed: DetalleRequerimiento[] = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    // Filtrar únicamente detalles demo/mock residuales preservando 100% los detalles reales
-    const cleaned = parsed.filter(
-      (d) =>
-        !d.id?.startsWith('det-001-') &&
-        !d.id?.startsWith('det-002-') &&
-        !d.id?.startsWith('det-003-') &&
-        !d.id?.startsWith('det-179040001') &&
-        !/-ops-1\d\d$/.test(d.requerimientoId || '')
-    );
-    if (cleaned.length !== parsed.length) {
-      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(cleaned));
-    }
-    return cleaned;
-  } catch (err) {
-    console.error('Error loading detalles:', err);
-    return [];
-  }
+  ensureMemInitialized();
+  return memDets;
 }
 
 export function getDetallesByRequerimientoId(requerimientoId: string): DetalleRequerimiento[] {
-  const allDetalles = getStoredDetalles();
-  return allDetalles.filter((d) => d.requerimientoId === requerimientoId);
+  ensureMemInitialized();
+  return memDetsByReqId.get(requerimientoId) || [];
 }
 
 let localAllocatedMax = 0;
 
 // Genera automáticamente números consecutivos: REQ-000001, REQ-000002...
-// Con protección contra colisiones concurrentes y monotonicidad
 export function generateNextNumeroRequerimiento(): string {
   const reqs = getStoredRequerimientos();
   let maxNum = localAllocatedMax;
@@ -643,24 +1128,26 @@ function reconcileLocalRequirement(
 ): void {
   if (!serverReq) return;
   try {
-    const existingReqs = getStoredRequerimientos();
-    const idx = existingReqs.findIndex((r) => r.id === localId || r.id === serverReq.id);
+    ensureMemInitialized();
+    const idx = memReqs.findIndex((r) => r.id === localId || r.id === serverReq.id);
     if (idx !== -1) {
-      existingReqs[idx] = serverReq;
+      memReqs = [...memReqs];
+      memReqs[idx] = serverReq;
     } else {
-      existingReqs.unshift(serverReq);
+      memReqs = [serverReq, ...memReqs];
     }
-    localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(existingReqs.slice(0, 1500)));
 
     if (Array.isArray(serverDets) && serverDets.length > 0) {
-      const existingDets = getStoredDetalles().filter(
+      const existingDets = memDets.filter(
         (d) => d.requerimientoId !== localId && d.requerimientoId !== serverReq.id
       );
-      localStorage.setItem(
-        DET_STORAGE_KEY,
-        JSON.stringify([...existingDets, ...serverDets].slice(0, 5000))
-      );
+      memDets = [...existingDets, ...serverDets];
+      rebuildDetallesIndex();
+      void idbPutDetalles(serverDets, false);
     }
+
+    mirrorHotCacheToLocalStorage();
+    void idbPutRequerimientos([serverReq], false);
     broadcastLocalChange();
   } catch {
     // ignore
@@ -723,6 +1210,7 @@ export async function processPendingSyncQueue(): Promise<void> {
               localStorage.setItem(LAST_REVISION_KEY, String(json.revision));
             }
             if (json.requerimiento) {
+              knownExpressReqIds.add(json.requerimiento.id);
               reconcileLocalRequirement(item.id, json.requerimiento, json.detalles);
             }
             expressOk = true;
@@ -876,16 +1364,14 @@ function buildAndPersistLocalRequerimiento(
     ],
   };
 
-  // 1. Guardar de inmediato en memoria y localStorage para respuesta instantánea (0ms de latencia)
-  const existingReqs = getStoredRequerimientos();
-  const updatedReqs = [newRequerimiento, ...existingReqs];
-  const trimmedReqs = updatedReqs.length > 1500 ? updatedReqs.slice(0, 1500) : updatedReqs;
-  localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(trimmedReqs));
-
-  const existingDets = getStoredDetalles();
-  const updatedDets = [...existingDets, ...newDetalles];
-  const trimmedDets = updatedDets.length > 5000 ? updatedDets.slice(0, 5000) : updatedDets;
-  localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(trimmedDets));
+  // 1. Guardar sin límite en memoria + IndexedDB + espejo reciente en localStorage (0ms de latencia)
+  ensureMemInitialized();
+  memReqs = [newRequerimiento, ...memReqs];
+  memDets = [...memDets, ...newDetalles];
+  rebuildDetallesIndex();
+  mirrorHotCacheToLocalStorage();
+  void idbPutRequerimientos([newRequerimiento], false);
+  void idbPutDetalles(newDetalles, false);
 
   // Encolar preventivamente en Outbox hasta confirmar 200/201 del servidor
   addToSyncQueue(newRequerimiento, newDetalles);
@@ -1026,13 +1512,14 @@ export function updateRequerimientoEstado(
   usuario?: string,
   motivo?: string
 ) {
-  const reqs = getStoredRequerimientos();
+  ensureMemInitialized();
   const timestamp = new Date().toISOString();
   const userLabel = usuario || 'Admin / Transporte';
   let targetDocId = id;
   let updatedHistoryForFirestore: Requerimiento['historialTrazabilidad'] | undefined;
+  let changedReq: Requerimiento | null = null;
 
-  const updated = reqs.map((r) => {
+  memReqs = memReqs.map((r) => {
     if (r.id === id || r.numeroRequerimiento === id) {
       targetDocId = r.id;
       const history = r.historialTrazabilidad || [];
@@ -1047,7 +1534,7 @@ export function updateRequerimientoEstado(
         },
       ].slice(-50);
       updatedHistoryForFirestore = nextHistory;
-      return {
+      changedReq = {
         ...r,
         estado: nuevoEstado,
         updatedAt: timestamp,
@@ -1056,10 +1543,14 @@ export function updateRequerimientoEstado(
         motivoAnulacion: isAnulando ? (motivo || 'Anulado/borrado de la programación') : r.motivoAnulacion,
         historialTrazabilidad: nextHistory,
       };
+      return changedReq;
     }
     return r;
   });
-  localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(updated));
+  mirrorHotCacheToLocalStorage();
+  if (changedReq) {
+    void idbPutRequerimientos([changedReq], false);
+  }
 
   broadcastLocalChange();
 
@@ -1121,7 +1612,8 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
 
     // Para mantener la trazabilidad histórica de los días:
     // Se preserva el registro intacto en el historial marcado como ANULADO con toda su auditoría
-    const updatedReqs = reqs.map((r) => {
+    let changedReq: Requerimiento | null = null;
+    memReqs = reqs.map((r) => {
       if (r.id === target.id || r.numeroRequerimiento === target.numeroRequerimiento) {
         const history = r.historialTrazabilidad || [];
         const nextHistory = [
@@ -1134,7 +1626,7 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
           },
         ].slice(-50);
         updatedHistoryForFirestore = nextHistory;
-        return {
+        changedReq = {
           ...r,
           estado: 'ANULADO' as const,
           updatedAt: fechaHoraAnulacion,
@@ -1143,11 +1635,15 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
           motivoAnulacion: motivoText,
           historialTrazabilidad: nextHistory,
         };
+        return changedReq;
       }
       return r;
     });
 
-    localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(updatedReqs));
+    mirrorHotCacheToLocalStorage();
+    if (changedReq) {
+      void idbPutRequerimientos([changedReq], false);
+    }
     broadcastLocalChange();
 
     // Actualizar en Firebase Firestore conservando el documento en historial
@@ -1198,19 +1694,11 @@ export function deleteRequerimiento(id: string, usuario?: string, motivo?: strin
 // Eliminación forzada/física si fuese estrictamente necesario para depuración
 export function hardDeleteRequerimiento(id: string): boolean {
   try {
-    const reqs = getStoredRequerimientos();
-    const target = reqs.find((r) => r.id === id || r.numeroRequerimiento === id);
+    ensureMemInitialized();
+    const target = memReqs.find((r) => r.id === id || r.numeroRequerimiento === id);
     if (!target) return false;
 
-    const filteredReqs = reqs.filter((r) => r.id !== target.id && r.numeroRequerimiento !== target.numeroRequerimiento);
-    localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(filteredReqs));
-
-    const dets = getStoredDetalles();
-    const filteredDets = dets.filter(
-      (d) => d.requerimientoId !== target.id && d.numeroRequerimiento !== target.numeroRequerimiento
-    );
-    localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(filteredDets));
-
+    removeRequerimientoFromMem(target.id);
     broadcastLocalChange();
 
     firestoreDeleteRequerimiento(target.id, target.numeroRequerimiento).catch((err) => {
@@ -1242,8 +1730,14 @@ export function deleteBatchRequerimientos(ids: string[]): number {
 
 // Reset data to clean empty state (no demo data)
 export function resetDataToDefault(): void {
+  ensureMemInitialized();
+  memReqs = [];
+  memDets = [];
+  rebuildDetallesIndex();
   localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify([]));
   localStorage.setItem(DET_STORAGE_KEY, JSON.stringify([]));
+  void idbPutRequerimientos([], true);
+  void idbPutDetalles([], true);
   broadcastLocalChange();
 }
 
@@ -1564,29 +2058,22 @@ export function saveStoredUnidadesBus(unidades: MaestroUnidadBus[]): void {
 }
 
 export function getStoredProgramacionesViajes(): ProgramacionViajesDia[] {
-  try {
-    const raw = localStorage.getItem(PROGRAMACIONES_VIAJES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    console.error('Error loading programaciones viajes:', err);
-    return [];
-  }
+  ensureMemInitialized();
+  return memProgs;
 }
 
 export function saveStoredProgramacionViaje(prog: ProgramacionViajesDia): void {
   try {
-    const list = getStoredProgramacionesViajes();
-    const existingIndex = list.findIndex((p) => p.id === prog.id);
-    let updated: ProgramacionViajesDia[];
+    ensureMemInitialized();
+    const existingIndex = memProgs.findIndex((p) => p.id === prog.id);
     if (existingIndex >= 0) {
-      updated = [...list];
-      updated[existingIndex] = prog;
+      memProgs = [...memProgs];
+      memProgs[existingIndex] = prog;
     } else {
-      updated = [prog, ...list];
+      memProgs = [prog, ...memProgs];
     }
-    localStorage.setItem(PROGRAMACIONES_VIAJES_KEY, JSON.stringify(updated));
+    mirrorProgsToLocalStorage();
+    void idbPutProgramaciones([prog], false);
     broadcastLocalChange();
   } catch (err) {
     console.error('Error saving programacion viaje:', err);
@@ -1595,9 +2082,10 @@ export function saveStoredProgramacionViaje(prog: ProgramacionViajesDia): void {
 
 export function deleteStoredProgramacionViaje(id: string): void {
   try {
-    const list = getStoredProgramacionesViajes();
-    const updated = list.filter((p) => p.id !== id);
-    localStorage.setItem(PROGRAMACIONES_VIAJES_KEY, JSON.stringify(updated));
+    ensureMemInitialized();
+    memProgs = memProgs.filter((p) => p.id !== id);
+    mirrorProgsToLocalStorage();
+    void idbPutProgramaciones(memProgs, true);
     broadcastLocalChange();
   } catch (err) {
     console.error('Error deleting programacion viaje:', err);
@@ -1665,7 +2153,7 @@ export function exportToCSV(filename: string, rows: Record<string, unknown>[]): 
 }
 
 // -------------------------------------------------------------
-// RESPALDO Y GESTIÓN INTEGRAL DE LA BASE DE DATOS LOCAL
+// RESPALDO Y GESTIÓN INTEGRAL DE LA BASE DE DATOS LOCAL / HISTÓRICA
 // -------------------------------------------------------------
 export interface DatabaseStats {
   requerimientosCount: number;
@@ -1676,6 +2164,8 @@ export interface DatabaseStats {
   comedoresCount: number;
   totalSizeKB: number;
   lastUpdated: string;
+  serverHistoricalCount?: number | null;
+  oldestFecha?: string | null;
 }
 
 export function getDatabaseStats(): DatabaseStats {
@@ -1686,28 +2176,29 @@ export function getDatabaseStats(): DatabaseStats {
   const paraderos = getStoredParaderos();
   const comedores = getStoredComedores();
 
-  let totalChars = 0;
-  [REQ_STORAGE_KEY, DET_STORAGE_KEY, AREAS_STORAGE_KEY, FUNDOS_STORAGE_KEY, PARADEROS_STORAGE_KEY, COMEDORES_STORAGE_KEY].forEach((k) => {
-    const item = localStorage.getItem(k);
-    if (item) totalChars += item.length;
-  });
+  const estimatedBytes =
+    reqs.length * 680 +
+    dets.length * 220 +
+    (areas.length + fundos.length + paraderos.length + comedores.length) * 140;
 
   return {
-    requerimientosCount: reqs.length,
+    requerimientosCount: Math.max(reqs.length, serverTotalHistoricalCount || 0),
     detallesCount: dets.length,
     areasCount: areas.length,
     fundosCount: fundos.length,
     paraderosCount: paraderos.length,
     comedoresCount: comedores.length,
-    totalSizeKB: Math.round((totalChars * 2) / 1024 * 10) / 10,
+    totalSizeKB: Math.round((estimatedBytes / 1024) * 10) / 10,
     lastUpdated: reqs[0]?.fechaRegistro || new Date().toISOString(),
+    serverHistoricalCount: serverTotalHistoricalCount,
+    oldestFecha: serverOldestFecha,
   };
 }
 
 export function exportFullDatabaseBackup(): void {
   const backup = {
     sistema: 'CAMPOSOL - Sistema de Gestión y Requerimiento de Transporte',
-    version: '1.0.0',
+    version: '2.0.0',
     fechaExportacion: new Date().toISOString(),
     datos: {
       requerimientos: getStoredRequerimientos(),
@@ -1734,6 +2225,7 @@ export function exportFullDatabaseBackup(): void {
 
 export function importFullDatabaseBackup(rawJson: string): { success: boolean; message: string } {
   try {
+    ensureMemInitialized();
     const parsed = JSON.parse(rawJson);
     const data = parsed.datos || parsed;
 
@@ -1741,10 +2233,18 @@ export function importFullDatabaseBackup(rawJson: string): { success: boolean; m
       return { success: false, message: 'El archivo no contiene un formato de requerimientos válido.' };
     }
 
-    localStorage.setItem(REQ_STORAGE_KEY, JSON.stringify(data.requerimientos));
+    memReqs = (data.requerimientos as Requerimiento[])
+      .filter((r) => r && r.id && !isLegacyDemoReq(r))
+      .sort((a, b) => (b.fechaRegistro || '').localeCompare(a.fechaRegistro || ''));
+    void idbPutRequerimientos(memReqs, true);
+
     if (Array.isArray(data.detalles)) {
-      localStorage.setItem(DET_STORAGE_KEY, JSON.stringify(data.detalles));
+      memDets = (data.detalles as DetalleRequerimiento[]).filter((d) => d && d.id && !isLegacyDemoDet(d));
+      rebuildDetallesIndex();
+      void idbPutDetalles(memDets, true);
     }
+    mirrorHotCacheToLocalStorage();
+
     if (Array.isArray(data.areas)) {
       localStorage.setItem(AREAS_STORAGE_KEY, JSON.stringify(data.areas));
     }
@@ -1762,7 +2262,7 @@ export function importFullDatabaseBackup(rawJson: string): { success: boolean; m
     }
 
     broadcastLocalChange();
-    return { success: true, message: `Base de datos restaurada con éxito (${data.requerimientos.length} requerimientos).` };
+    return { success: true, message: `Base de datos restaurada con éxito (${memReqs.length} requerimientos).` };
   } catch (err) {
     return { success: false, message: 'Error al procesar el archivo JSON: ' + (err instanceof Error ? err.message : String(err)) };
   }

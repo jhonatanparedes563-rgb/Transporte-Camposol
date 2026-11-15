@@ -363,7 +363,7 @@ export function logoutSession(): void {
   if (typeof fetch !== 'undefined') {
     const logoutUrls = getApiCandidates('/api/auth/logout');
     if (logoutUrls[0]) {
-      fetch(logoutUrls[0], { method: 'POST', keepalive: true }).catch(() => {});
+      fetch(logoutUrls[0], { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
     }
   }
 }
@@ -393,6 +393,18 @@ export function getApiCandidates(endpoint: string): string[] {
 
   if (cachedWorkingApiPrefix !== null) {
     candidates.push(`${cachedWorkingApiPrefix}${clean}`);
+  }
+
+  const isStaticGhPages =
+    typeof window !== 'undefined' &&
+    window.location.hostname.toLowerCase().endsWith('.github.io') &&
+    Boolean(REMOTE_API_ORIGIN);
+
+  if (isStaticGhPages) {
+    const remoteUrl = `${REMOTE_API_ORIGIN}${clean}`;
+    if (!candidates.includes(remoteUrl)) {
+      candidates.push(remoteUrl);
+    }
   }
 
   if (!candidates.includes(clean)) {
@@ -445,6 +457,7 @@ async function fetchJsonApi(
       const res = await fetch(url, {
         method,
         headers,
+        credentials: 'include',
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
         ...(controller ? { signal: controller.signal } : {}),
       });
@@ -455,8 +468,14 @@ async function fetchJsonApi(
         const data = await res.json().catch(() => ({}));
         return { reachableJson: true, res, data };
       }
+      if (cachedWorkingApiPrefix !== null && url.startsWith(cachedWorkingApiPrefix)) {
+        cachedWorkingApiPrefix = null;
+      }
     } catch {
       if (timer) clearTimeout(timer);
+      if (cachedWorkingApiPrefix !== null && url.startsWith(cachedWorkingApiPrefix)) {
+        cachedWorkingApiPrefix = null;
+      }
       // Error de red, CORS, timeout o ruta no disponible en este origen
     }
   }
@@ -511,17 +530,24 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
   const token = getAuthToken();
   if (!token) return null;
   if (isStaticToken(token)) {
-    // Si existe servidor API activo en este origen (mismo dominio), exigir sesión real en servidor
+    // Intentar recuperar/actualizar sesión real desde cookie HTTP-only si el servidor ya está activo
+    const sessionAttempt = await fetchJsonApi('/api/auth/session', { method: 'GET' });
+    if (sessionAttempt.reachableJson && sessionAttempt.res?.ok && sessionAttempt.data?.user) {
+      if (typeof sessionAttempt.data.token === 'string' && sessionAttempt.data.token) {
+        setAuthToken(sessionAttempt.data.token);
+      }
+      const sanitized = stripSensitiveFields(sessionAttempt.data.user);
+      setActiveSessionUser(sanitized);
+      return sanitized;
+    }
+
+    // Si existe servidor API activo en este origen (mismo dominio) y rechazó sesión (401), exigir login real
     const sameOriginHealth = await fetchJsonApi('/api/health', { method: 'GET' });
     if (sameOriginHealth.reachableJson && sameOriginHealth.res?.ok) {
-      const isSameOrigin = typeof window !== 'undefined' && !sameOriginHealth.res.url.startsWith(REMOTE_API_ORIGIN);
-      if (isSameOrigin) {
-        const sessionAttempt = await fetchJsonApi('/api/auth/session', { method: 'GET' });
-        if (sessionAttempt.reachableJson && sessionAttempt.res?.ok && sessionAttempt.data?.user) {
-          const sanitized = stripSensitiveFields(sessionAttempt.data.user);
-          setActiveSessionUser(sanitized);
-          return sanitized;
-        }
+      const isSameOrigin =
+        typeof window !== 'undefined' &&
+        (!REMOTE_API_ORIGIN || !sameOriginHealth.res.url.startsWith(REMOTE_API_ORIGIN));
+      if (isSameOrigin && sessionAttempt.reachableJson && sessionAttempt.res?.status === 401) {
         clearActiveSession();
         return null;
       }
@@ -531,6 +557,7 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
   for (const url of getApiCandidates('/api/auth/session')) {
     try {
       const res = await fetch(url, {
+        credentials: 'include',
         headers: {
           ...getAuthHeaders(),
           'Cache-Control': 'no-cache',
@@ -538,6 +565,7 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
       });
       const ct = (res.headers.get('content-type') || '').toLowerCase();
       if (!ct.includes('application/json')) continue;
+      markWorkingApiUrl(url, '/api/auth/session');
 
       if (res.status === 401 || res.status === 403) {
         clearActiveSession();
@@ -545,6 +573,9 @@ export async function verifySessionWithServer(): Promise<AppUser | null> {
       }
       if (res.ok) {
         const data = await res.json();
+        if (typeof data?.token === 'string' && data.token) {
+          setAuthToken(data.token);
+        }
         if (data?.user) {
           const sanitized = stripSensitiveFields(data.user);
           setActiveSessionUser(sanitized);

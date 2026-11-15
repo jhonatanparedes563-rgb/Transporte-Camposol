@@ -33,7 +33,8 @@
         "fechaAnulacion": { "type": "string", "maxLength": 40 },
         "usuarioAnulacion": { "type": "string", "maxLength": 120 },
         "motivoAnulacion": { "type": "string", "maxLength": 300 },
-        "historialTrazabilidad": { "type": "array" }
+        "historialTrazabilidad": { "type": "array" },
+        "detallesCompactos": { "type": "array" }
       },
       "required": ["id", "numeroRequerimiento", "fecha", "area", "fundo", "movimiento", "horaRecojo", "usuario", "userId", "fechaRegistro", "totalPersonas", "estado"]
     },

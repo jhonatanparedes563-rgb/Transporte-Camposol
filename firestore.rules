@@ -74,7 +74,7 @@ service cloud.firestore {
           'horaRecojoNorte', 'horaRecojoSur', 'observaciones', 'usuario',
           'userId', 'firebaseUid', 'firebaseEmail', 'userUsername', 'userRole', 'fechaRegistro', 'updatedAt',
           'totalPersonas', 'estado', 'fechaAnulacion', 'usuarioAnulacion',
-          'motivoAnulacion', 'historialTrazabilidad'
+          'motivoAnulacion', 'historialTrazabilidad', 'detallesCompactos'
         ]) &&
         isValidId(data.id) &&
         data.numeroRequerimiento is string && data.numeroRequerimiento.size() >= 5 && data.numeroRequerimiento.size() <= 32 && data.numeroRequerimiento.matches('^REQ-[0-9]+$') &&
@@ -103,7 +103,8 @@ service cloud.firestore {
         isOptionalBoundedString(data, 'fechaAnulacion', 40) &&
         isOptionalBoundedString(data, 'usuarioAnulacion', 120) &&
         isOptionalBoundedString(data, 'motivoAnulacion', 300) &&
-        isOptionalBoundedMapList(data, 'historialTrazabilidad', 50);
+        isOptionalBoundedMapList(data, 'historialTrazabilidad', 50) &&
+        isOptionalBoundedMapList(data, 'detallesCompactos', 250);
     }
 
     function isValidDetalle(data) {

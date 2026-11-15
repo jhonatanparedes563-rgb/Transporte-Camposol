@@ -13,19 +13,11 @@ import {
   Calendar,
   Route,
   Users,
-  Cloud,
 } from 'lucide-react';
 import {
   authenticateUser,
   requestPasswordRecovery,
 } from '../services/authService';
-import {
-  connectCloudSyncWithGoogle,
-} from '../services/storageService';
-import {
-  subscribeToFirebaseAuth,
-  disconnectGoogleFirebase,
-} from '../services/firestoreService';
 import { AppUser } from '../types';
 import { getPublicAssetUrl } from './CamposolLogo';
 import imgValleyFleetBg from '../assets/images/camposol_valley_fleet_bg_1794672840329.jpg';
@@ -56,31 +48,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [recoverySuccess, setRecoverySuccess] = useState(false);
   const [recoveryMessage, setRecoveryMessage] = useState('');
   const [honeypot, setHoneypot] = useState('');
-  const [fbAuthInfo, setFbAuthInfo] = useState<{ connected: boolean; email: string | null }>({
-    connected: false,
-    email: null,
-  });
-  const [isLinkingCloud, setIsLinkingCloud] = useState(false);
-  const [cloudLinkError, setCloudLinkError] = useState('');
-
-  useEffect(() => {
-    return subscribeToFirebaseAuth((info) => {
-      setFbAuthInfo({ connected: info.connected, email: info.email });
-    });
-  }, []);
-
-  const handleConnectGoogleCloud = async () => {
-    setCloudLinkError('');
-    setIsLinkingCloud(true);
-    try {
-      const res = await connectCloudSyncWithGoogle();
-      if (!res.success && res.error) {
-        setCloudLinkError(res.error);
-      }
-    } finally {
-      setIsLinkingCloud(false);
-    }
-  };
 
   useEffect(() => {
     try {
@@ -531,44 +498,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       <span>Iniciar sesión</span>
                     )}
                   </button>
-
-                  {/* Vinculación opcional Google Cloud Firestore para trabajo 100% en línea entre dispositivos */}
-                  <div className="pt-1">
-                    {!fbAuthInfo.connected ? (
-                      <button
-                        type="button"
-                        id="btn-login-connect-google"
-                        onClick={handleConnectGoogleCloud}
-                        disabled={isLinkingCloud}
-                        className="w-full py-2.5 px-4 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] text-[#1B3A57] font-semibold text-xs rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                      >
-                        {isLinkingCloud ? (
-                          <div className="w-4 h-4 border-2 border-[#1B3A57]/30 border-t-[#1B3A57] rounded-full animate-spin" />
-                        ) : (
-                          <Cloud className="w-4 h-4 text-[#22A846]" />
-                        )}
-                        <span>Vincular Nube Google (Tiempo Real)</span>
-                      </button>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-[#EAF7E4] border border-[#C6E9B4] text-[11px] text-[#14532D]">
-                        <span className="truncate font-semibold">
-                          Nube Google vinculada: <strong>{fbAuthInfo.email}</strong>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => disconnectGoogleFirebase()}
-                          className="shrink-0 font-bold text-[#15803D] hover:underline cursor-pointer"
-                        >
-                          Desvincular
-                        </button>
-                      </div>
-                    )}
-                    {cloudLinkError && (
-                      <div className="mt-1.5 text-[11px] font-semibold text-[#DC2626] bg-[#FDECEC] border border-[#FECACA] rounded-xl px-2.5 py-1.5">
-                        {cloudLinkError}
-                      </div>
-                    )}
-                  </div>
                 </form>
               </div>
             )}

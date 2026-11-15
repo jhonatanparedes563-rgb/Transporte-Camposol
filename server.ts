@@ -3,53 +3,17 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import {
-  INITIAL_REQUERIMIENTOS,
-  INITIAL_DETALLES,
-  MAESTRO_AREAS,
-  MAESTRO_FUNDOS,
   MAESTRO_ZONAS,
-  MAESTRO_PARADEROS,
-  MAESTRO_COMEDORES,
 } from './src/data/masterData';
-import { INITIAL_USERS } from './src/services/authService';
 import {
   Requerimiento,
   DetalleRequerimiento,
   AppUser,
   RequerimientoDraft,
-  MaestroZona,
-  MaestroParadero,
-  MaestroArea,
-  MaestroFundo,
-  MaestroComedor,
   UserRole,
   EstadoRequerimiento,
 } from './src/types';
-
-interface RecoveryTicket {
-  id: string;
-  userId: string;
-  usuario: string;
-  nombre: string;
-  requestedAt: string;
-  ip: string;
-  estado: 'PENDIENTE' | 'ATENDIDO';
-}
-
-interface ServerDb {
-  version: number;
-  revision: number;
-  lastUpdated: string;
-  requerimientos: Requerimiento[];
-  detalles: DetalleRequerimiento[];
-  users: AppUser[];
-  areas: MaestroArea[];
-  fundos: MaestroFundo[];
-  zonas?: MaestroZona[];
-  paraderos: MaestroParadero[];
-  comedores: MaestroComedor[];
-  recoveryRequests?: RecoveryTicket[];
-}
+import { SqlitePersistence } from './src/server/sqliteDb';
 
 interface AuthenticatedRequest extends Request {
   authUser?: AppUser;
@@ -59,7 +23,6 @@ interface AuthenticatedRequest extends Request {
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
 const SECRET_FILE = path.join(DATA_DIR, '.session-secret');
-const LEGACY_MISMATCHED_HEX = '8b7fca13f70e9b9868778d91c1074bf820689b0d10bc94ebcfb0efda21bf4687';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
 const VALID_ESTADOS: EstadoRequerimiento[] = [
   'PENDIENTE',
@@ -70,9 +33,14 @@ const VALID_ESTADOS: EstadoRequerimiento[] = [
   'ANULADO',
 ];
 
-let inMemoryDb: ServerDb | null = null;
-let currentRevision = 1;
-let lastAllocatedNumber = 0;
+let persistence: SqlitePersistence | null = null;
+
+function getStore(): SqlitePersistence {
+  if (!persistence) {
+    persistence = new SqlitePersistence(DATA_DIR, DATA_FILE);
+  }
+  return persistence;
+}
 
 function loadOrCreateSessionSecret(): string {
   if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 32) {
@@ -202,6 +170,10 @@ function extractTokenFromRequest(req: Request): string | null {
     const token = authHeader.slice(7).trim();
     if (token) return token;
   }
+  const queryToken = typeof req.query?.token === 'string' ? req.query.token.trim() : '';
+  if (queryToken) {
+    return queryToken;
+  }
   const cookieHeader = req.headers.cookie;
   if (typeof cookieHeader === 'string') {
     const cookies = cookieHeader.split(';');
@@ -233,202 +205,59 @@ function isValidUsername(u: string): boolean {
   return /^[a-zA-Z0-9._\-]{3,32}$/.test(u);
 }
 
-function isSyntheticTestRow(r: Requerimiento): boolean {
-  const id = r.id || '';
-  const usuario = r.usuario || '';
-  return (
-    id.startsWith('stress-') ||
-    id.startsWith('req-uuid-') ||
-    /-ops-1\d\d$/.test(id) ||
-    usuario.startsWith('Test Supervisor')
-  );
+function getDateDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-function initDb(): ServerDb {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
+// -------------------------------------------------------------
+// REAL-TIME SERVER-SENT EVENTS (SSE) HUB (<200ms Mobile -> Web)
+// -------------------------------------------------------------
+interface SseClient {
+  res: Response;
+  user: AppUser;
+  role: UserRole;
+}
 
-    if (fs.existsSync(DATA_FILE)) {
-      const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-      const parsed = JSON.parse(raw) as ServerDb;
-      if (parsed && Array.isArray(parsed.requerimientos)) {
-        let dirty = false;
+const sseClients = new Set<SseClient>();
 
-        // Depurar exclusivamente registros sintéticos/bot residuales sin tocar datos reales
-        const cleanReqs = parsed.requerimientos.filter((r) => !isSyntheticTestRow(r));
-        if (cleanReqs.length !== parsed.requerimientos.length) {
-          const validIds = new Set(cleanReqs.map((r) => r.id));
-          parsed.requerimientos = cleanReqs;
-          parsed.detalles = (parsed.detalles || []).filter((d) => validIds.has(d.requerimientoId));
-          dirty = true;
+function broadcastRealtimeEvent(evt: {
+  revision: number;
+  kind: 'REQ_UPSERT' | 'REQ_DELETE' | 'MAESTROS_UPDATE' | 'USERS_UPDATE';
+  entityId?: string;
+  requerimiento?: Requerimiento;
+  detalles?: DetalleRequerimiento[];
+}): void {
+  if (sseClients.size === 0) return;
+
+  for (const client of sseClients) {
+    try {
+      if (client.role === 'usuario') {
+        if (evt.kind === 'USERS_UPDATE') continue;
+        if (evt.requerimiento && !userOwnsRequirement(client.user, evt.requerimiento)) {
+          continue;
         }
-
-        if (!Array.isArray(parsed.zonas) || parsed.zonas.length === 0) {
-          parsed.zonas = MAESTRO_ZONAS;
-          dirty = true;
-        }
-        if (!Array.isArray(parsed.recoveryRequests)) {
-          parsed.recoveryRequests = [];
-          dirty = true;
-        }
-
-        // Migrar únicamente hashes heredados incompatibles sin alterar usuarios reales personalizados
-        const bootstrapSeed = process.env.INITIAL_SEED_PASSWORD || ['camposol', '2026'].join('');
-        parsed.users = (parsed.users && parsed.users.length > 0 ? parsed.users : INITIAL_USERS).map((u) => {
-          if (!u.passwordHash || u.passwordHash === LEGACY_MISMATCHED_HEX) {
-            dirty = true;
-            return {
-              ...u,
-              passwordHash: hashPasswordScrypt(bootstrapSeed),
-              salt: 'scrypt',
-            };
-          }
-          return u;
-        });
-
-        // Asegurar cuentas operativas iniciales vinculadas a requerimientos reales (ej. eparedes) sin sobrescribir existentes
-        for (const seedUser of INITIAL_USERS) {
-          const exists = parsed.users.some(
-            (u) => u.id === seedUser.id || u.usuario.toLowerCase() === seedUser.usuario.toLowerCase()
-          );
-          if (!exists) {
-            parsed.users.push({ ...seedUser });
-            dirty = true;
-          }
-        }
-
-        inMemoryDb = parsed;
-        currentRevision = parsed.revision || 1;
-        syncMaxAllocatedNumber(parsed.requerimientos);
-
-        if (dirty) {
-          fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
-        }
-        return inMemoryDb as ServerDb;
       }
-    }
-  } catch (err) {
-    console.error('Error loading db.json, creating initial store:', err);
-  }
-
-  const bootstrapSeed = process.env.INITIAL_SEED_PASSWORD || ['camposol', '2026'].join('');
-  const seededUsers = INITIAL_USERS.map((u) => ({
-    ...u,
-    passwordHash:
-      u.passwordHash && /^[a-f0-9]{64}$/i.test(u.passwordHash)
-        ? u.passwordHash
-        : hashPasswordScrypt(bootstrapSeed),
-    salt:
-      u.passwordHash && /^[a-f0-9]{64}$/i.test(u.passwordHash)
-        ? u.salt || 'camposol_salt_2026'
-        : 'scrypt',
-  }));
-
-  const initialDb: ServerDb = {
-    version: 1,
-    revision: 1,
-    lastUpdated: new Date().toISOString(),
-    requerimientos: INITIAL_REQUERIMIENTOS,
-    detalles: INITIAL_DETALLES,
-    users: seededUsers,
-    areas: MAESTRO_AREAS,
-    fundos: MAESTRO_FUNDOS,
-    zonas: MAESTRO_ZONAS,
-    paraderos: MAESTRO_PARADEROS,
-    comedores: MAESTRO_COMEDORES,
-    recoveryRequests: [],
-  };
-
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing initial db.json:', err);
-  }
-
-  inMemoryDb = initialDb;
-  currentRevision = 1;
-  return initialDb;
-}
-
-function getDb(): ServerDb {
-  if (!inMemoryDb) {
-    return initDb();
-  }
-  return inMemoryDb;
-}
-
-let isSaving = false;
-let saveScheduled = false;
-let pendingDbToSave: ServerDb | null = null;
-
-async function flushDbToDisk(): Promise<void> {
-  if (isSaving) {
-    saveScheduled = true;
-    return;
-  }
-  isSaving = true;
-  saveScheduled = false;
-
-  try {
-    const dataToPersist = pendingDbToSave || inMemoryDb;
-    if (dataToPersist) {
-      if (!fs.existsSync(DATA_DIR)) {
-        await fs.promises.mkdir(DATA_DIR, { recursive: true });
-      }
-      const uniqueTmp = path.join(
-        DATA_DIR,
-        `db.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`
-      );
-      await fs.promises.writeFile(uniqueTmp, JSON.stringify(dataToPersist, null, 2), 'utf-8');
-      await fs.promises.rename(uniqueTmp, DATA_FILE);
-    }
-  } catch (err) {
-    console.error('[SERVER] Error persistiendo db.json de manera asíncrona:', err);
-  } finally {
-    isSaving = false;
-    if (saveScheduled) {
-      setImmediate(flushDbToDisk);
+      client.res.write(`event: sync\ndata: ${JSON.stringify(evt)}\n\n`);
+    } catch {
+      sseClients.delete(client);
     }
   }
 }
 
-function persistDb(db: ServerDb): void {
-  currentRevision++;
-  db.revision = currentRevision;
-  db.lastUpdated = new Date().toISOString();
-  inMemoryDb = db;
-  pendingDbToSave = db;
-
-  setImmediate(() => {
-    flushDbToDisk().catch((err) => console.error('[SERVER] Async flush error:', err));
-  });
-}
-
-function syncMaxAllocatedNumber(reqs: Requerimiento[]) {
-  for (const r of reqs) {
-    const match = (r.numeroRequerimiento || '').match(/REQ-(\d+)/);
-    if (match && match[1]) {
-      const val = parseInt(match[1], 10);
-      if (val > lastAllocatedNumber) lastAllocatedNumber = val;
+setInterval(() => {
+  for (const client of sseClients) {
+    try {
+      client.res.write(': keepalive\n\n');
+    } catch {
+      sseClients.delete(client);
     }
   }
-}
-
-function generateNextNumero(reqs: Requerimiento[]): string {
-  let maxNum = lastAllocatedNumber;
-  for (const r of reqs) {
-    const match = (r.numeroRequerimiento || '').match(/REQ-(\d+)/);
-    if (match && match[1]) {
-      const val = parseInt(match[1], 10);
-      if (val > maxNum) maxNum = val;
-    }
-  }
-  const nextVal = maxNum + 1;
-  lastAllocatedNumber = nextVal;
-  return `REQ-${nextVal.toString().padStart(6, '0')}`;
-}
+}, 25_000).unref();
 
 // -------------------------------------------------------------
 // ANTI-BOT RATE LIMITERS & DEDUP GUARDS
@@ -508,8 +337,8 @@ function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunctio
   if (!payload) {
     return res.status(401).json({ error: 'Sesión expirada o token inválido. Inicie sesión nuevamente.' });
   }
-  const db = getDb();
-  const user = db.users.find((u) => u.id === payload.uid);
+  const meta = getStore().getMeta();
+  const user = meta.users.find((u) => u.id === payload.uid);
   if (!user || user.estado !== 'ACTIVO') {
     return res.status(401).json({ error: 'Usuario inactivo o no autorizado.' });
   }
@@ -547,8 +376,11 @@ async function startServer() {
       origin &&
       (/^https:\/\/[a-z0-9\-]+\.github\.io$/i.test(origin) ||
         /^https:\/\/[a-z0-9\-]+\.run\.app$/i.test(origin) ||
+        /^https:\/\/[a-z0-9\-]+\.web\.app$/i.test(origin) ||
+        /^https:\/\/[a-z0-9\-]+\.firebaseapp\.com$/i.test(origin) ||
         /^http:\/\/localhost(:\d+)?$/i.test(origin) ||
-        /^http:\/\/127\.0\.0\.1(:\d+)?$/i.test(origin));
+        /^http:\/\/127\.0\.0\.1(:\d+)?$/i.test(origin) ||
+        /^http:\/\/(192\.168|10\.|172\.(1[6-9]|2\d|3[0-1]))\.[0-9.]+(:\d+)?$/i.test(origin));
 
     if (isAllowedOrigin && (req.url.startsWith('/api/') || req.url.startsWith('/Transporte-Camposol/api/'))) {
       res.setHeader('Access-Control-Allow-Origin', origin);
@@ -563,7 +395,7 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '5mb' }));
 
   // Soportar rutas API tanto bajo /api/* como bajo /Transporte-Camposol/api/*
   app.use((req, _res, next) => {
@@ -573,7 +405,7 @@ async function startServer() {
     next();
   });
 
-  initDb();
+  const store = getStore();
 
   // -------------------------------------------------------------
   // HEALTH & AUTHENTICATION ROUTES
@@ -583,6 +415,7 @@ async function startServer() {
       status: 'ok',
       service: 'CAMPOSOL Transporte API',
       timestamp: new Date().toISOString(),
+      stats: getStore().getTotalStats(),
     });
   });
 
@@ -609,9 +442,10 @@ async function startServer() {
       });
     }
 
-    const db = getDb();
-    const userIdx = db.users.findIndex((u) => u.usuario.toLowerCase() === cleanUsername);
-    const user = userIdx >= 0 ? db.users[userIdx] : undefined;
+    const dbStore = getStore();
+    const meta = dbStore.getMeta();
+    const userIdx = meta.users.findIndex((u) => u.usuario.toLowerCase() === cleanUsername);
+    const user = userIdx >= 0 ? meta.users[userIdx] : undefined;
 
     if (!user || !verifyPasswordHash(cleanPass, user.passwordHash, user.salt)) {
       checkRateLimit(failKey, 8, 10 * 60 * 1000);
@@ -628,14 +462,13 @@ async function startServer() {
 
     rateBuckets.delete(failKey);
 
-    // Auto-upgrade legacy SHA-256 hashes to salted scrypt on successful login
     if (!user.passwordHash.startsWith('scrypt$')) {
       user.passwordHash = hashPasswordScrypt(cleanPass);
       user.salt = 'scrypt';
     }
     user.ultimoAcceso = new Date().toISOString();
-    db.users[userIdx] = user;
-    persistDb(db);
+    meta.users[userIdx] = user;
+    dbStore.saveUsers(meta.users, false);
 
     const token = signSessionToken(user);
     const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
@@ -660,9 +493,11 @@ async function startServer() {
   });
 
   app.get('/api/auth/session', requireAuth, (req: AuthenticatedRequest, res) => {
+    const refreshedToken = signSessionToken(req.authUser!);
     res.json({
       success: true,
       user: req.authUser,
+      token: refreshedToken,
     });
   });
 
@@ -685,16 +520,17 @@ async function startServer() {
       return res.status(400).json({ error: 'Por favor ingrese su usuario o correo institucional.' });
     }
 
-    const db = getDb();
-    const matched = db.users.find((u) => {
+    const dbStore = getStore();
+    const meta = dbStore.getMeta();
+    const matched = meta.users.find((u) => {
       const uName = u.usuario.toLowerCase();
       const uEmail = (u.email || `${uName}@camposol.com.pe`).toLowerCase();
       return uName === clean || uEmail === clean;
     });
 
     if (matched && matched.estado === 'ACTIVO') {
-      db.recoveryRequests = db.recoveryRequests || [];
-      db.recoveryRequests.unshift({
+      const list = [...(meta.recoveryRequests || [])];
+      list.unshift({
         id: `rec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         userId: matched.id,
         usuario: matched.usuario,
@@ -703,13 +539,9 @@ async function startServer() {
         ip,
         estado: 'PENDIENTE',
       });
-      if (db.recoveryRequests.length > 200) {
-        db.recoveryRequests = db.recoveryRequests.slice(0, 200);
-      }
-      persistDb(db);
+      dbStore.saveRecoveryRequests(list.slice(0, 200));
     }
 
-    // Respuesta uniforme sin enumeración de cuentas ni exposición de PII
     res.json({
       success: true,
       message:
@@ -725,89 +557,167 @@ async function startServer() {
       return res.status(400).json({ error: 'La nueva contraseña debe tener entre 8 y 128 caracteres.' });
     }
 
-    const db = getDb();
-    const idx = db.users.findIndex((u) => u.id === req.authUser!.id);
+    const dbStore = getStore();
+    const meta = dbStore.getMeta();
+    const idx = meta.users.findIndex((u) => u.id === req.authUser!.id);
     if (idx === -1) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
-    const user = db.users[idx];
+    const user = meta.users[idx];
     if (!verifyPasswordHash(currentPassword, user.passwordHash, user.salt)) {
       return res.status(401).json({ error: 'La contraseña actual ingresada es incorrecta.' });
     }
 
     user.passwordHash = hashPasswordScrypt(newPassword);
     user.salt = 'scrypt';
-    db.users[idx] = user;
-    persistDb(db);
+    meta.users[idx] = user;
+    dbStore.saveUsers(meta.users, false);
 
     res.json({ success: true, message: 'Contraseña actualizada correctamente.' });
   });
 
   // -------------------------------------------------------------
-  // PROTECTED SYNC & DATA ROUTES
+  // PROTECTED REAL-TIME SSE, DELTA SYNC & ARCHIVE DATA ROUTES
   // -------------------------------------------------------------
-  app.get('/api/sync/version', requireAuth, rateLimitMiddleware('read', 600, 60_000), (req: AuthenticatedRequest, res) => {
-    const db = getDb();
-    const visibleReqs =
-      req.authRole === 'usuario'
-        ? db.requerimientos.filter((r) => userOwnsRequirement(req.authUser!, r))
-        : db.requerimientos;
+  app.get('/api/sync/stream', requireAuth, (req: AuthenticatedRequest, res) => {
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
 
-    res.json({
-      revision: db.revision,
-      lastUpdated: db.lastUpdated,
-      count: visibleReqs.length,
+    const client: SseClient = {
+      res,
+      user: req.authUser!,
+      role: req.authRole!,
+    };
+    sseClients.add(client);
+
+    res.write(
+      `event: ready\ndata: ${JSON.stringify({ revision: getStore().getRevision(), connectedAt: new Date().toISOString() })}\n\n`
+    );
+
+    req.on('close', () => {
+      sseClients.delete(client);
     });
   });
 
-  app.get('/api/data', requireAuth, rateLimitMiddleware('read', 120, 60_000), (req: AuthenticatedRequest, res) => {
-    const db = getDb();
+  app.get('/api/sync/version', requireAuth, rateLimitMiddleware('read', 600, 60_000), (req: AuthenticatedRequest, res) => {
+    const dbStore = getStore();
+    res.json({
+      revision: dbStore.getRevision(),
+      lastUpdated: dbStore.getLastUpdated(),
+      count: dbStore.getTotalStats().totalRequerimientos,
+    });
+  });
+
+  app.get('/api/sync/delta', requireAuth, rateLimitMiddleware('read', 600, 60_000), (req: AuthenticatedRequest, res) => {
+    const since = Math.max(0, parseInt(String(req.query.since || '0'), 10) || 0);
+    const dbStore = getStore();
+    const delta = dbStore.getDeltasSince(since);
+
+    if (req.authRole === 'usuario') {
+      delta.events = delta.events.filter((ev) => {
+        if (ev.kind === 'USERS_UPDATE') return false;
+        if (ev.kind === 'REQ_UPSERT' && ev.payload?.requerimiento) {
+          return userOwnsRequirement(req.authUser!, ev.payload.requerimiento as Requerimiento);
+        }
+        return true;
+      });
+    }
+
+    res.json(delta);
+  });
+
+  app.get('/api/data', requireAuth, rateLimitMiddleware('read', 240, 60_000), (req: AuthenticatedRequest, res) => {
+    const dbStore = getStore();
+    const meta = dbStore.getMeta();
     const isUsuario = req.authRole === 'usuario';
     const isAdmin = req.authRole === 'admin';
 
-    const visibleReqs = isUsuario
-      ? db.requerimientos.filter((r) => userOwnsRequirement(req.authUser!, r))
-      : db.requerimientos;
+    const desdeParam = typeof req.query.desde === 'string' && isValidDateString(req.query.desde) ? req.query.desde : undefined;
+    const hastaParam = typeof req.query.hasta === 'string' && isValidDateString(req.query.hasta) ? req.query.hasta : undefined;
+    const loadAll = req.query.all === '1';
 
-    const visibleReqIds = new Set(visibleReqs.map((r) => r.id));
-    const visibleDetalles = isUsuario
-      ? db.detalles.filter((d) => visibleReqIds.has(d.requerimientoId))
-      : db.detalles;
+    const stats = dbStore.getTotalStats();
+    const effectiveDesde =
+      desdeParam ||
+      (!loadAll && stats.totalRequerimientos > 4500 ? getDateDaysAgo(60) : undefined);
+
+    let visibleReqs = dbStore.queryRequerimientos({
+      desde: effectiveDesde,
+      hasta: hastaParam,
+      limit: loadAll ? undefined : 20000,
+    });
+
+    if (isUsuario) {
+      visibleReqs = visibleReqs.filter((r) => userOwnsRequirement(req.authUser!, r));
+    }
+
+    const visibleReqIds = visibleReqs.map((r) => r.id);
+    const visibleDetalles = dbStore.getDetallesForRequerimientos(visibleReqIds);
 
     const visibleUsers = isAdmin
-      ? db.users.map(sanitizeUser)
+      ? meta.users.map(sanitizeUser)
       : [req.authUser!];
 
     res.json({
-      version: db.version,
-      revision: db.revision,
-      lastUpdated: db.lastUpdated,
+      version: meta.version,
+      revision: meta.revision,
+      lastUpdated: meta.lastUpdated,
       requerimientos: visibleReqs,
       detalles: visibleDetalles,
       users: visibleUsers,
-      areas: db.areas,
-      fundos: db.fundos,
-      zonas: db.zonas || MAESTRO_ZONAS,
-      paraderos: db.paraderos,
-      comedores: db.comedores,
+      areas: meta.areas,
+      fundos: meta.fundos,
+      zonas: meta.zonas || MAESTRO_ZONAS,
+      paraderos: meta.paraderos,
+      comedores: meta.comedores,
+      windowDesde: effectiveDesde || null,
+      totalHistoricalCount: stats.totalRequerimientos,
+      oldestFecha: stats.oldestFecha,
     });
   });
 
-  app.get('/api/requerimientos', requireAuth, rateLimitMiddleware('read', 240, 60_000), (req: AuthenticatedRequest, res) => {
-    const db = getDb();
-    const list =
-      req.authRole === 'usuario'
-        ? db.requerimientos.filter((r) => userOwnsRequirement(req.authUser!, r))
-        : db.requerimientos;
+  app.get('/api/requerimientos/range', requireAuth, rateLimitMiddleware('read', 240, 60_000), (req: AuthenticatedRequest, res) => {
+    const dbStore = getStore();
+    const desde = typeof req.query.desde === 'string' && isValidDateString(req.query.desde) ? req.query.desde : undefined;
+    const hasta = typeof req.query.hasta === 'string' && isValidDateString(req.query.hasta) ? req.query.hasta : undefined;
+
+    let reqs = dbStore.queryRequerimientos({ desde, hasta, limit: 30000 });
+    if (req.authRole === 'usuario') {
+      reqs = reqs.filter((r) => userOwnsRequirement(req.authUser!, r));
+    }
+    const dets = dbStore.getDetallesForRequerimientos(reqs.map((r) => r.id));
+
+    res.json({
+      requerimientos: reqs,
+      detalles: dets,
+      revision: dbStore.getRevision(),
+    });
+  });
+
+  app.get('/api/requerimientos', requireAuth, rateLimitMiddleware('read', 300, 60_000), (req: AuthenticatedRequest, res) => {
+    const dbStore = getStore();
+    const desde = typeof req.query.desde === 'string' && isValidDateString(req.query.desde) ? req.query.desde : undefined;
+    const hasta = typeof req.query.hasta === 'string' && isValidDateString(req.query.hasta) ? req.query.hasta : undefined;
+
+    let list = dbStore.queryRequerimientos({ desde, hasta, limit: 25000 });
+    if (req.authRole === 'usuario') {
+      list = list.filter((r) => userOwnsRequirement(req.authUser!, r));
+    }
     res.json(list);
   });
 
-  app.post('/api/requerimientos', requireAuth, rateLimitMiddleware('write', 90, 60_000), (req: AuthenticatedRequest, res) => {
+  app.post('/api/requerimientos', requireAuth, rateLimitMiddleware('write', 180, 60_000), (req: AuthenticatedRequest, res) => {
     try {
       if (hasHoneypotTriggered(req.body)) {
         return res.status(400).json({ error: 'Solicitud rechazada por validación de seguridad.' });
       }
 
-      const db = getDb();
+      const dbStore = getStore();
+      const meta = dbStore.getMeta();
       const body = req.body;
       const actor = req.authUser!;
 
@@ -819,13 +729,14 @@ async function startServer() {
         const rawDets: DetalleRequerimiento[] = Array.isArray(body.detalles) ? body.detalles : [];
 
         // Idempotencia por ID
-        const existingIdx = db.requerimientos.findIndex((r) => r.id === rawReq.id);
-        if (existingIdx !== -1) {
+        const existing = dbStore.getRequerimientoById(rawReq.id);
+        if (existing) {
           return res.status(200).json({
             success: true,
             alreadyExists: true,
-            requerimiento: db.requerimientos[existingIdx],
-            revision: db.revision,
+            requerimiento: existing,
+            detalles: dbStore.getDetallesForRequerimientos([existing.id]),
+            revision: dbStore.getRevision(),
           });
         }
 
@@ -833,18 +744,18 @@ async function startServer() {
           return res.status(400).json({ error: 'Formato de fecha inválido (esperado YYYY-MM-DD).' });
         }
 
-        // Validar detalles y recalcular totalPersonas del lado servidor (anti-manipulación)
         let computedTotal = 0;
         const cleanReqId =
           typeof rawReq.id === 'string' && /^[a-zA-Z0-9_\-]{4,128}$/.test(rawReq.id)
             ? rawReq.id
             : `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-        const existingConflict = db.requerimientos.some((r) => r.numeroRequerimiento === rawReq.numeroRequerimiento);
+        const hasValidNum =
+          typeof rawReq.numeroRequerimiento === 'string' && /^REQ-[0-9]{1,12}$/.test(rawReq.numeroRequerimiento);
         const numero =
-          !existingConflict && typeof rawReq.numeroRequerimiento === 'string' && /^REQ-[0-9]{1,12}$/.test(rawReq.numeroRequerimiento)
+          hasValidNum && !dbStore.findNumeroExists(rawReq.numeroRequerimiento)
             ? rawReq.numeroRequerimiento
-            : generateNextNumero(db.requerimientos);
+            : dbStore.generateNextNumero();
 
         for (const d of rawDets) {
           const qty = Math.floor(Number(d.cantidad));
@@ -876,7 +787,6 @@ async function startServer() {
           return res.status(400).json({ error: 'El requerimiento debe incluir al menos 1 pasajero (máx. 5000).' });
         }
 
-        // Anti-bot duplicate submit lock (5s window keyed by exact stops signature)
         const stopsSig = newDets
           .map((d) => `${d.comedor}:${d.paradero}:${d.cantidad}`)
           .sort()
@@ -888,7 +798,7 @@ async function startServer() {
             success: true,
             alreadyExists: true,
             requerimiento: dup.req,
-            revision: db.revision,
+            revision: dbStore.getRevision(),
           });
         }
 
@@ -938,7 +848,7 @@ async function startServer() {
           return res.status(400).json({ error: 'Formato de fecha inválido (esperado YYYY-MM-DD).' });
         }
 
-        const nextNumero = generateNextNumero(db.requerimientos);
+        const nextNumero = dbStore.generateNextNumero();
         const reqId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
         let totalPersonas = 0;
@@ -951,13 +861,13 @@ async function startServer() {
                   return res.status(400).json({ error: 'La cantidad por paradero no puede exceder 500 pasajeros.' });
                 }
                 totalPersonas += cantidad;
-                const masterMatch = db.paraderos?.find(
+                const masterMatch = meta.paraderos?.find(
                   (p) => p.paradero.trim().toLowerCase() === paradero.trim().toLowerCase()
                 );
                 const resolvedZona =
                   masterMatch?.zona ||
                   (masterMatch?.zonaId
-                    ? db.zonas?.find((z) => z.id === masterMatch.zonaId)?.zonaOperativa
+                    ? meta.zonas?.find((z) => z.id === masterMatch.zonaId)?.zonaOperativa
                     : undefined) ||
                   'SUR';
                 newDets.push({
@@ -987,7 +897,7 @@ async function startServer() {
             success: true,
             alreadyExists: true,
             requerimiento: dup.req,
-            revision: db.revision,
+            revision: dbStore.getRevision(),
           });
         }
 
@@ -1031,15 +941,20 @@ async function startServer() {
         recentSubmissions.set(dedupKey, { req: newReq, expiresAt: Date.now() + 10_000 });
       }
 
-      db.requerimientos = [newReq, ...db.requerimientos];
-      db.detalles = [...db.detalles, ...newDets];
-      persistDb(db);
+      const revision = dbStore.insertRequerimiento(newReq, newDets);
+      broadcastRealtimeEvent({
+        revision,
+        kind: 'REQ_UPSERT',
+        entityId: newReq.id,
+        requerimiento: newReq,
+        detalles: newDets,
+      });
 
       res.status(201).json({
         success: true,
         requerimiento: newReq,
         detalles: newDets,
-        revision: db.revision,
+        revision,
       });
     } catch (err: any) {
       console.error('Error saving requirement:', err);
@@ -1051,48 +966,59 @@ async function startServer() {
     '/api/requerimientos/batch',
     requireAuth,
     requireRole('admin', 'receptor'),
-    rateLimitMiddleware('write', 30, 60_000),
+    rateLimitMiddleware('write', 60, 60_000),
     (req, res) => {
       try {
-        const db = getDb();
+        const dbStore = getStore();
         const items: Array<{ requerimiento: Requerimiento; detalles?: DetalleRequerimiento[] }> = req.body?.items || [];
-        if (!Array.isArray(items) || items.length === 0 || items.length > 200) {
-          return res.status(400).json({ error: 'Se requiere entre 1 y 200 elementos válidos por lote.' });
+        if (!Array.isArray(items) || items.length === 0 || items.length > 500) {
+          return res.status(400).json({ error: 'Se requiere entre 1 y 500 elementos válidos por lote.' });
         }
 
-        const addedReqs: Requerimiento[] = [];
-        const addedDets: DetalleRequerimiento[] = [];
+        const validBatch: Array<{ requerimiento: Requerimiento; detalles: DetalleRequerimiento[] }> = [];
 
         items.forEach((item) => {
           const r = item?.requerimiento;
           if (!r || !r.id || !isValidDateString(r.fecha)) return;
           if ((r.totalPersonas || 0) < 1 || (r.totalPersonas || 0) > 5000) return;
 
-          if (!db.requerimientos.some((ex) => ex.id === r.id)) {
-            if (db.requerimientos.some((ex) => ex.numeroRequerimiento === r.numeroRequerimiento)) {
-              r.numeroRequerimiento = generateNextNumero(db.requerimientos);
+          if (!dbStore.getRequerimientoById(r.id)) {
+            if (dbStore.findNumeroExists(r.numeroRequerimiento)) {
+              r.numeroRequerimiento = dbStore.generateNextNumero();
             }
-            addedReqs.push(r);
+            const validDets: DetalleRequerimiento[] = [];
             if (Array.isArray(item.detalles)) {
               item.detalles.forEach((d) => {
                 if ((Number(d.cantidad) || 0) >= 1 && (Number(d.cantidad) || 0) <= 500) {
                   d.numeroRequerimiento = r.numeroRequerimiento;
-                  addedDets.push(d);
+                  validDets.push(d);
                 }
               });
             }
+            validBatch.push({ requerimiento: r, detalles: validDets });
           }
         });
 
-        db.requerimientos = [...addedReqs, ...db.requerimientos];
-        db.detalles = [...addedDets, ...db.detalles];
-        persistDb(db);
+        let revision = dbStore.getRevision();
+        if (validBatch.length > 0) {
+          revision = dbStore.insertBatchRequerimientos(validBatch);
+          for (const item of validBatch) {
+            broadcastRealtimeEvent({
+              revision,
+              kind: 'REQ_UPSERT',
+              entityId: item.requerimiento.id,
+              requerimiento: item.requerimiento,
+              detalles: item.detalles,
+            });
+          }
+        }
 
+        const totalDets = validBatch.reduce((acc, x) => acc + x.detalles.length, 0);
         res.status(201).json({
           success: true,
-          count: addedReqs.length,
-          detallesCount: addedDets.length,
-          revision: db.revision,
+          count: validBatch.length,
+          detallesCount: totalDets,
+          revision,
         });
       } catch (err: any) {
         console.error('Error in batch requirement insert:', err);
@@ -1101,7 +1027,7 @@ async function startServer() {
     }
   );
 
-  app.put('/api/requerimientos/:id/estado', requireAuth, rateLimitMiddleware('write', 120, 60_000), (req: AuthenticatedRequest, res) => {
+  app.put('/api/requerimientos/:id/estado', requireAuth, rateLimitMiddleware('write', 180, 60_000), (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
       const estado = req.body?.estado as EstadoRequerimiento;
@@ -1112,15 +1038,13 @@ async function startServer() {
         return res.status(400).json({ error: 'Estado de requerimiento no válido.' });
       }
 
-      const db = getDb();
-      const idx = db.requerimientos.findIndex((r) => r.id === id || r.numeroRequerimiento === id);
-      if (idx === -1) {
+      const dbStore = getStore();
+      const target = dbStore.getRequerimientoById(id);
+      if (!target) {
         return res.status(404).json({ error: 'Requerimiento no encontrado.' });
       }
 
-      const target = db.requerimientos[idx];
       const actor = req.authUser!;
-
       if (actor.rol === 'usuario') {
         if (!userOwnsRequirement(actor, target)) {
           return res.status(403).json({ error: 'No tiene permisos sobre este requerimiento.' });
@@ -1142,7 +1066,7 @@ async function startServer() {
         },
       ].slice(-50);
 
-      db.requerimientos[idx] = {
+      const updated: Requerimiento = {
         ...target,
         estado,
         updatedAt: timestamp,
@@ -1152,11 +1076,18 @@ async function startServer() {
         historialTrazabilidad: updatedHistory,
       };
 
-      persistDb(db);
+      const revision = dbStore.updateRequerimiento(updated);
+      broadcastRealtimeEvent({
+        revision,
+        kind: 'REQ_UPSERT',
+        entityId: updated.id,
+        requerimiento: updated,
+      });
+
       res.json({
         success: true,
-        requerimiento: db.requerimientos[idx],
-        revision: db.revision,
+        requerimiento: updated,
+        revision,
       });
     } catch (err: any) {
       res.status(500).json({ error: 'Error actualizando estado.' });
@@ -1167,19 +1098,18 @@ async function startServer() {
     '/api/requerimientos/:id',
     requireAuth,
     requireRole('admin', 'receptor'),
-    rateLimitMiddleware('write', 90, 60_000),
+    rateLimitMiddleware('write', 120, 60_000),
     (req: AuthenticatedRequest, res) => {
       try {
         const { id } = req.params;
         const updates = req.body || {};
-        const db = getDb();
+        const dbStore = getStore();
 
-        const idx = db.requerimientos.findIndex((r) => r.id === id || r.numeroRequerimiento === id);
-        if (idx === -1) {
+        const current = dbStore.getRequerimientoById(id);
+        if (!current) {
           return res.status(404).json({ error: 'Requerimiento no encontrado.' });
         }
 
-        const current = db.requerimientos[idx];
         const next: Requerimiento = { ...current, updatedAt: new Date().toISOString() };
 
         if (updates.fecha && isValidDateString(updates.fecha)) next.fecha = updates.fecha;
@@ -1191,12 +1121,18 @@ async function startServer() {
         if (typeof updates.observaciones === 'string') next.observaciones = sanitizeText(updates.observaciones, 500);
         if (updates.estado && VALID_ESTADOS.includes(updates.estado)) next.estado = updates.estado;
 
-        db.requerimientos[idx] = next;
-        persistDb(db);
+        const revision = dbStore.updateRequerimiento(next);
+        broadcastRealtimeEvent({
+          revision,
+          kind: 'REQ_UPSERT',
+          entityId: next.id,
+          requerimiento: next,
+        });
+
         res.json({
           success: true,
           requerimiento: next,
-          revision: db.revision,
+          revision,
         });
       } catch (err: any) {
         res.status(500).json({ error: 'Error actualizando requerimiento.' });
@@ -1208,7 +1144,7 @@ async function startServer() {
     '/api/requerimientos/batch-status',
     requireAuth,
     requireRole('admin', 'receptor'),
-    rateLimitMiddleware('write', 40, 60_000),
+    rateLimitMiddleware('write', 60, 60_000),
     (req: AuthenticatedRequest, res) => {
       try {
         const { ids, estado } = req.body || {};
@@ -1219,15 +1155,17 @@ async function startServer() {
           return res.status(400).json({ error: 'Estado no válido.' });
         }
 
-        const db = getDb();
+        const dbStore = getStore();
         const actor = req.authUser!;
         const timestamp = new Date().toISOString();
         let updatedCount = 0;
+        let lastRevision = dbStore.getRevision();
 
-        db.requerimientos = db.requerimientos.map((r) => {
-          if (ids.includes(r.id) || ids.includes(r.numeroRequerimiento)) {
+        for (const idOrNum of ids) {
+          const r = dbStore.getRequerimientoById(String(idOrNum));
+          if (r) {
             updatedCount++;
-            return {
+            const updated: Requerimiento = {
               ...r,
               estado,
               updatedAt: timestamp,
@@ -1241,25 +1179,30 @@ async function startServer() {
                 },
               ].slice(-50),
             };
+            lastRevision = dbStore.updateRequerimiento(updated);
+            broadcastRealtimeEvent({
+              revision: lastRevision,
+              kind: 'REQ_UPSERT',
+              entityId: updated.id,
+              requerimiento: updated,
+            });
           }
-          return r;
-        });
+        }
 
-        persistDb(db);
-        res.json({ success: true, count: updatedCount, revision: db.revision });
+        res.json({ success: true, count: updatedCount, revision: lastRevision });
       } catch (err: any) {
         res.status(500).json({ error: 'Error en actualización masiva.' });
       }
     }
   );
 
-  app.delete('/api/requerimientos/:id', requireAuth, rateLimitMiddleware('write', 60, 60_000), (req: AuthenticatedRequest, res) => {
+  app.delete('/api/requerimientos/:id', requireAuth, rateLimitMiddleware('write', 90, 60_000), (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
-      const db = getDb();
+      const dbStore = getStore();
       const actor = req.authUser!;
 
-      const target = db.requerimientos.find((r) => r.id === id || r.numeroRequerimiento === id);
+      const target = dbStore.getRequerimientoById(id);
       if (!target) {
         return res.status(404).json({ error: 'Requerimiento no encontrado.' });
       }
@@ -1271,58 +1214,71 @@ async function startServer() {
       }
 
       const timestamp = new Date().toISOString();
-      target.estado = 'ANULADO';
-      target.updatedAt = timestamp;
-      target.fechaAnulacion = timestamp;
-      target.usuarioAnulacion = actor.nombre;
-      target.motivoAnulacion = 'Anulado de la programación diaria';
-      target.historialTrazabilidad = [
-        ...(target.historialTrazabilidad || []),
-        {
-          fecha: timestamp,
-          usuario: actor.nombre,
-          accion: 'ANULADO / BORRADO',
-          detalle: 'Requerimiento conservado en historial para trazabilidad.',
-        },
-      ].slice(-50);
+      const updated: Requerimiento = {
+        ...target,
+        estado: 'ANULADO',
+        updatedAt: timestamp,
+        fechaAnulacion: timestamp,
+        usuarioAnulacion: actor.nombre,
+        motivoAnulacion: 'Anulado de la programación diaria',
+        historialTrazabilidad: [
+          ...(target.historialTrazabilidad || []),
+          {
+            fecha: timestamp,
+            usuario: actor.nombre,
+            accion: 'ANULADO / BORRADO',
+            detalle: 'Requerimiento conservado en historial para trazabilidad.',
+          },
+        ].slice(-50),
+      };
 
-      persistDb(db);
-      res.json({ success: true, deletedId: target.id, anulado: true, revision: db.revision });
+      const revision = dbStore.updateRequerimiento(updated);
+      broadcastRealtimeEvent({
+        revision,
+        kind: 'REQ_UPSERT',
+        entityId: updated.id,
+        requerimiento: updated,
+      });
+
+      res.json({ success: true, deletedId: updated.id, anulado: true, revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error anulando requerimiento.' });
     }
   });
 
   app.get('/api/detalles', requireAuth, rateLimitMiddleware('read', 240, 60_000), (req: AuthenticatedRequest, res) => {
-    const db = getDb();
+    const dbStore = getStore();
     const reqId = req.query.requerimientoId as string;
     const isUsuario = req.authRole === 'usuario';
 
-    let visibleDetalles = db.detalles;
-    if (isUsuario) {
-      const visibleIds = new Set(
-        db.requerimientos.filter((r) => userOwnsRequirement(req.authUser!, r)).map((r) => r.id)
-      );
-      visibleDetalles = visibleDetalles.filter((d) => visibleIds.has(d.requerimientoId));
+    if (reqId) {
+      const parent = dbStore.getRequerimientoById(reqId);
+      if (!parent) return res.json([]);
+      if (isUsuario && !userOwnsRequirement(req.authUser!, parent)) {
+        return res.status(403).json({ error: 'No tiene permisos.' });
+      }
+      return res.json(dbStore.getDetallesForRequerimientos([parent.id]));
     }
 
-    if (reqId) {
-      return res.json(visibleDetalles.filter((d) => d.requerimientoId === reqId || d.numeroRequerimiento === reqId));
+    let reqs = dbStore.queryRequerimientos({ desde: getDateDaysAgo(60), limit: 20000 });
+    if (isUsuario) {
+      reqs = reqs.filter((r) => userOwnsRequirement(req.authUser!, r));
     }
-    res.json(visibleDetalles);
+    res.json(dbStore.getDetallesForRequerimientos(reqs.map((r) => r.id)));
   });
 
   // -------------------------------------------------------------
   // ADMIN-ONLY USER MANAGEMENT & RECOVERY TICKETS
   // -------------------------------------------------------------
   app.get('/api/users', requireAuth, requireRole('admin'), rateLimitMiddleware('read', 120, 60_000), (_req, res) => {
-    const db = getDb();
-    res.json(db.users.map(sanitizeUser));
+    const meta = getStore().getMeta();
+    res.json(meta.users.map(sanitizeUser));
   });
 
   app.post('/api/users', requireAuth, requireRole('admin'), rateLimitMiddleware('write', 40, 60_000), (req, res) => {
     try {
-      const db = getDb();
+      const dbStore = getStore();
+      const meta = dbStore.getMeta();
       const body = req.body || {};
       const cleanUsername = sanitizeText(body.usuario, 32).toLowerCase();
       const nombre = sanitizeText(body.nombre, 120);
@@ -1339,7 +1295,7 @@ async function startServer() {
       if (rawPassword.length < 8 || rawPassword.length > 128) {
         return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
       }
-      if (db.users.some((u) => u.usuario.toLowerCase() === cleanUsername)) {
+      if (meta.users.some((u) => u.usuario.toLowerCase() === cleanUsername)) {
         return res.status(409).json({ error: `El usuario "${cleanUsername}" ya existe en el sistema.` });
       }
 
@@ -1359,9 +1315,9 @@ async function startServer() {
         fechaCreacion: new Date().toISOString(),
       };
 
-      db.users.push(newUser);
-      persistDb(db);
-      res.status(201).json({ success: true, user: sanitizeUser(newUser), revision: db.revision });
+      const nextUsers = [...meta.users, newUser];
+      const revision = dbStore.saveUsers(nextUsers, true);
+      res.status(201).json({ success: true, user: sanitizeUser(newUser), revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error creando usuario.' });
     }
@@ -1371,9 +1327,10 @@ async function startServer() {
     try {
       const { id } = req.params;
       const updates = req.body || {};
-      const db = getDb();
+      const dbStore = getStore();
+      const meta = dbStore.getMeta();
 
-      const idx = db.users.findIndex((u) => u.id === id);
+      const idx = meta.users.findIndex((u) => u.id === id);
       if (idx === -1) {
         if (!/^[a-zA-Z0-9_\-]{4,128}$/.test(id)) {
           return res.status(400).json({ error: 'Identificador de usuario inválido.' });
@@ -1383,7 +1340,7 @@ async function startServer() {
         if (!nombre || nombre.length < 2 || !isValidUsername(cleanUsername)) {
           return res.status(404).json({ error: 'Usuario no encontrado.' });
         }
-        if (db.users.some((u) => u.usuario.toLowerCase() === cleanUsername)) {
+        if (meta.users.some((u) => u.usuario.toLowerCase() === cleanUsername)) {
           return res.status(409).json({ error: `El usuario "${cleanUsername}" ya está en uso.` });
         }
         const rol: UserRole =
@@ -1406,19 +1363,18 @@ async function startServer() {
           estado: updates.estado === 'INACTIVO' ? 'INACTIVO' : 'ACTIVO',
           fechaCreacion: updates.fechaCreacion || new Date().toISOString(),
         };
-        db.users.push(restoredUser);
-        persistDb(db);
-        return res.json({ success: true, user: sanitizeUser(restoredUser), revision: db.revision });
+        const revision = dbStore.saveUsers([...meta.users, restoredUser], true);
+        return res.json({ success: true, user: sanitizeUser(restoredUser), revision });
       }
 
-      const target = { ...db.users[idx] };
+      const target = { ...meta.users[idx] };
 
       if (typeof updates.usuario === 'string' && updates.usuario.trim()) {
         const cleanUsername = sanitizeText(updates.usuario, 32).toLowerCase();
         if (!isValidUsername(cleanUsername)) {
           return res.status(400).json({ error: 'Nombre de usuario con formato inválido.' });
         }
-        const collision = db.users.find((u) => u.id !== id && u.usuario.toLowerCase() === cleanUsername);
+        const collision = meta.users.find((u) => u.id !== id && u.usuario.toLowerCase() === cleanUsername);
         if (collision) {
           return res.status(409).json({ error: `El usuario "${cleanUsername}" ya está en uso.` });
         }
@@ -1448,9 +1404,9 @@ async function startServer() {
         target.salt = 'scrypt';
       }
 
-      db.users[idx] = target;
-      persistDb(db);
-      res.json({ success: true, user: sanitizeUser(target), revision: db.revision });
+      meta.users[idx] = target;
+      const revision = dbStore.saveUsers(meta.users, true);
+      res.json({ success: true, user: sanitizeUser(target), revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error actualizando usuario.' });
     }
@@ -1464,17 +1420,18 @@ async function startServer() {
         return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres.' });
       }
 
-      const db = getDb();
-      const idx = db.users.findIndex((u) => u.id === id);
+      const dbStore = getStore();
+      const meta = dbStore.getMeta();
+      const idx = meta.users.findIndex((u) => u.id === id);
       if (idx === -1) {
         return res.status(404).json({ error: 'Usuario no encontrado.' });
       }
 
-      db.users[idx].passwordHash = hashPasswordScrypt(nuevaContrasena);
-      db.users[idx].salt = 'scrypt';
-      persistDb(db);
+      meta.users[idx].passwordHash = hashPasswordScrypt(nuevaContrasena);
+      meta.users[idx].salt = 'scrypt';
+      const revision = dbStore.saveUsers(meta.users, false);
 
-      res.json({ success: true, revision: db.revision });
+      res.json({ success: true, revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error restableciendo contraseña.' });
     }
@@ -1483,9 +1440,10 @@ async function startServer() {
   app.delete('/api/users/:id', requireAuth, requireRole('admin'), rateLimitMiddleware('write', 20, 60_000), (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
-      const db = getDb();
+      const dbStore = getStore();
+      const meta = dbStore.getMeta();
 
-      const target = db.users.find((u) => u.id === id);
+      const target = meta.users.find((u) => u.id === id);
       if (!target) {
         return res.status(404).json({ error: 'El usuario no existe o ya fue eliminado.' });
       }
@@ -1494,44 +1452,51 @@ async function startServer() {
         return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta de administrador activa.' });
       }
 
-      const activeAdmins = db.users.filter((u) => u.rol === 'admin' && u.estado === 'ACTIVO');
+      const activeAdmins = meta.users.filter((u) => u.rol === 'admin' && u.estado === 'ACTIVO');
       if (target.rol === 'admin' && activeAdmins.length <= 1) {
         return res.status(400).json({ error: 'No se puede eliminar el único administrador activo del sistema.' });
       }
 
-      db.users = db.users.filter((u) => u.id !== id);
-      persistDb(db);
-      res.json({ success: true, deletedId: id, revision: db.revision });
+      const remaining = meta.users.filter((u) => u.id !== id);
+      const revision = dbStore.saveUsers(remaining, true);
+      res.json({ success: true, deletedId: id, revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error eliminando usuario.' });
     }
   });
 
   app.get('/api/recovery-requests', requireAuth, requireRole('admin'), (_req, res) => {
-    const db = getDb();
-    res.json(db.recoveryRequests || []);
+    const meta = getStore().getMeta();
+    res.json(meta.recoveryRequests || []);
   });
 
   // Master catalogs synchronization (Admin only)
   app.post('/api/maestros', requireAuth, requireRole('admin'), rateLimitMiddleware('write', 40, 60_000), (req, res) => {
     try {
       const { zonas, paraderos, fundos, areas, comedores } = req.body || {};
-      const db = getDb();
+      const dbStore = getStore();
 
-      if (Array.isArray(zonas)) db.zonas = zonas.slice(0, 200);
-      if (Array.isArray(paraderos)) db.paraderos = paraderos.slice(0, 500);
-      if (Array.isArray(fundos)) db.fundos = fundos.slice(0, 200);
-      if (Array.isArray(areas)) db.areas = areas.slice(0, 200);
-      if (Array.isArray(comedores)) db.comedores = comedores.slice(0, 200);
+      const revision = dbStore.saveMaestros({
+        ...(Array.isArray(zonas) ? { zonas: zonas.slice(0, 200) } : {}),
+        ...(Array.isArray(paraderos) ? { paraderos: paraderos.slice(0, 500) } : {}),
+        ...(Array.isArray(fundos) ? { fundos: fundos.slice(0, 200) } : {}),
+        ...(Array.isArray(areas) ? { areas: areas.slice(0, 200) } : {}),
+        ...(Array.isArray(comedores) ? { comedores: comedores.slice(0, 200) } : {}),
+      });
+      const meta = dbStore.getMeta();
 
-      persistDb(db);
+      broadcastRealtimeEvent({
+        revision,
+        kind: 'MAESTROS_UPDATE',
+      });
+
       res.json({
         success: true,
-        revision: db.revision,
-        zonasCount: db.zonas?.length || 0,
-        paraderosCount: db.paraderos.length,
-        fundosCount: db.fundos.length,
-        areasCount: db.areas.length,
+        revision,
+        zonasCount: meta.zonas?.length || 0,
+        paraderosCount: meta.paraderos.length,
+        fundosCount: meta.fundos.length,
+        areasCount: meta.areas.length,
       });
     } catch (err: any) {
       res.status(500).json({ error: 'Error guardando catálogos maestros.' });
@@ -1544,10 +1509,10 @@ async function startServer() {
       if (!Array.isArray(paraderos)) {
         return res.status(400).json({ error: 'Se requiere un arreglo válido de paraderos.' });
       }
-      const db = getDb();
-      db.paraderos = paraderos.slice(0, 500);
-      persistDb(db);
-      res.json({ success: true, count: db.paraderos.length, revision: db.revision });
+      const dbStore = getStore();
+      const revision = dbStore.saveMaestros({ paraderos: paraderos.slice(0, 500) });
+      broadcastRealtimeEvent({ revision, kind: 'MAESTROS_UPDATE' });
+      res.json({ success: true, count: dbStore.getMeta().paraderos.length, revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error guardando paraderos.' });
     }
@@ -1599,38 +1564,17 @@ async function startServer() {
     app.get('*', (_req, res) => {
       const indexPath = path.join(distPath, 'index.html');
       if (fs.existsSync(indexPath)) {
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
         res.sendFile(indexPath);
       } else {
-        res.status(200).send('<!doctype html><html><head><meta http-equiv="refresh" content="3"><title>Cargando CAMPOSOL</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h2>Iniciando sistema CAMPOSOL...</h2><p>Actualizando interfaz, espere unos segundos...</p></body></html>');
+        res.status(404).send('Not found');
       }
     });
   }
 
-  // Global error handler
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error('[CAMPOSOL Server Error]:', err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Error interno del servidor.' });
-    }
-  });
-
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[CAMPOSOL] Servidor principal activo en http://0.0.0.0:${PORT}`);
+    console.log(`[SERVER] CAMPOSOL Transporte API corriendo en http://localhost:${PORT} (SQLite WAL activo)`);
   });
-
-  if (PORT !== 3000) {
-    try {
-      const secondary = app.listen(3000, '0.0.0.0', () => {
-        console.log(`[CAMPOSOL] Servidor secundario activo en http://0.0.0.0:3000`);
-      });
-      secondary.on('error', () => {});
-    } catch {
-      // Ignored if port 3000 is occupied
-    }
-  }
 }
 
 startServer();
