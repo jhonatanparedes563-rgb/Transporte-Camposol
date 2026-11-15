@@ -16,6 +16,7 @@ import {
   PlusCircle,
   Eye,
   Inbox,
+  Filter,
 } from 'lucide-react';
 import {
   Requerimiento,
@@ -343,6 +344,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
   });
   const [formWarning, setFormWarning] = useState<string | null>(null);
   const [showExcelPreview, setShowExcelPreview] = useState<boolean>(false);
+  const [showFiltersBar, setShowFiltersBar] = useState<boolean>(true);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'ok' | 'warn' } | null>(null);
 
   const showToast = useCallback((text: string, type: 'ok' | 'warn' = 'ok') => {
@@ -881,66 +883,56 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
       )}
 
-      {/* Franja KPI Superior */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between">
+      {/* Franja KPI Superior (Barra única limpia sin bordes gruesos) */}
+      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-[0_1px_2px_rgba(15,23,42,0.03)] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-[#EEF2F6]">
+        <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-slate-500">Solicitudes</div>
-            <div className="text-xl font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">
+            <div className="text-[11px] font-medium text-slate-400">Solicitudes</div>
+            <div className="text-lg font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">
               {consideredReqsCount}
             </div>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-[#F1F5F9] text-[#1B3A57] flex items-center justify-center shrink-0">
-            <Layers className="w-4 h-4" />
-          </div>
+          <Layers className="w-4 h-4 text-slate-300 shrink-0" />
         </div>
 
-        <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-amber-400 shadow-2xs flex items-center justify-between">
+        <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-slate-500">Sin Móvil</div>
-            <div className="text-xl font-bold text-[#B45309] tabular-nums leading-tight mt-0.5">
+            <div className="text-[11px] font-medium text-slate-400">Sin Móvil</div>
+            <div className="text-lg font-bold text-[#B45309] tabular-nums leading-tight mt-0.5">
               {pendingAssignmentCount}
             </div>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-[#FFF6E0] text-[#B45309] flex items-center justify-center shrink-0">
-            <Clock className="w-4 h-4" />
-          </div>
+          <Clock className="w-4 h-4 text-amber-400/70 shrink-0" />
         </div>
 
-        <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-[#55A529] shadow-2xs flex items-center justify-between">
+        <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-slate-500">Ocupabilidad</div>
-            <div className="text-xl font-bold text-[#2F7D18] tabular-nums leading-tight mt-0.5">
+            <div className="text-[11px] font-medium text-slate-400">Ocupabilidad</div>
+            <div className="text-lg font-bold text-[#2F7D18] tabular-nums leading-tight mt-0.5">
               {zoneSummary.ocupacionGlobal}%
             </div>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-4 h-4" />
-          </div>
+          <CheckCircle2 className="w-4 h-4 text-[#55A529]/70 shrink-0" />
         </div>
 
-        <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-[#0082B3] shadow-2xs flex items-center justify-between">
+        <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-slate-500">Unidades</div>
-            <div className="text-xl font-bold text-[#0082B3] tabular-nums leading-tight mt-0.5">
+            <div className="text-[11px] font-medium text-slate-400">Unidades</div>
+            <div className="text-lg font-bold text-[#0082B3] tabular-nums leading-tight mt-0.5">
               {rows.length}
             </div>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center shrink-0">
-            <CheckCheck className="w-4 h-4" />
-          </div>
+          <CheckCheck className="w-4 h-4 text-[#0082B3]/70 shrink-0" />
         </div>
 
-        <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between">
+        <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-slate-500">Total Personal</div>
-            <div className="text-xl font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">
+            <div className="text-[11px] font-medium text-slate-400">Total Personal</div>
+            <div className="text-lg font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">
               {totalDistributedPeople}
             </div>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-[#F1F5F9] text-[#1B3A57] flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4" />
-          </div>
+          <Users className="w-4 h-4 text-slate-300 shrink-0" />
         </div>
       </div>
 
@@ -955,20 +947,20 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       )}
 
       {/* Panel Principal */}
-      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-[0_1px_3px_rgba(15,23,42,0.03)] overflow-hidden">
         {/* Cabecera del Panel */}
         <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-[#1B3A57] leading-tight">
+            <h3 className="text-[15px] font-bold text-[#1B3A57] leading-tight">
               Generación de programación
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-slate-400 mt-0.5">
               Visualizar, optimizar y asignar recorridos
             </p>
           </div>
 
-          {/* Botones de Acción con Ícono Arriba + Buscador Píldora */}
-          <div className="flex items-center gap-3 flex-wrap">
+          {/* Botones de Acción con Ícono Arriba + Buscador Píldora + Toggle Filtros */}
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               type="button"
               onClick={handleDownloadExcel}
@@ -1018,20 +1010,34 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Palabra clave"
-                className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
+                className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
               />
               <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowFiltersBar((v) => !v)}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${
+                showFiltersBar
+                  ? 'bg-[#F3F8F0] border-[#C6E9B4] text-[#2F7D18]'
+                  : 'bg-white border-[#DCE4EC] text-slate-500 hover:bg-slate-50'
+              }`}
+              title={showFiltersBar ? 'Ocultar filtros' : 'Mostrar filtros'}
+            >
+              <Filter className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
         {/* Filtros Limpios Encuadrados en Todo el Ancho */}
-        <div className="px-5 pt-2 pb-4">
+        {showFiltersBar && (
+        <div className="px-5 pt-1 pb-4">
           <div className="flex flex-col lg:flex-row lg:items-center gap-3">
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Fecha */}
               <div className="relative">
-                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                   Fecha
                 </label>
                 <select
@@ -1040,7 +1046,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     setHasManualDateSelection(true);
                     setSelectedFecha(e.target.value);
                   }}
-                  className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                  className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                 >
                   <option value="TODOS">Todas</option>
                   {dateOptions.map((dateStr) => (
@@ -1053,13 +1059,13 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
               {/* Procesos */}
               <div className="relative">
-                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                   Procesos
                 </label>
                 <select
                   value={procesoEstadoFilter}
                   onChange={(e) => setProcesoEstadoFilter(e.target.value as ProcesoEstadoFilter)}
-                  className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                  className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                 >
                   <option value="ACTIVOS">Activos</option>
                   <option value="PENDIENTE_APROBADO">Pend. y Aprob.</option>
@@ -1071,13 +1077,13 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
               {/* Turno */}
               <div className="relative">
-                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                   Turno
                 </label>
                 <select
                   value={turnoFilter}
                   onChange={(e) => setTurnoFilter(e.target.value)}
-                  className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                  className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                 >
                   <option value="TODOS">Todos</option>
                   <option value="MAÑANA">Mañana</option>
@@ -1088,13 +1094,13 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
               {/* Estado */}
               <div className="relative">
-                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                   Estado
                 </label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                  className="w-full h-9 px-3.5 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                  className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                 >
                   <option value="TODOS">Todos</option>
                   <option value="pendiente">Sin asignar</option>
@@ -1104,32 +1110,33 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               </div>
             </div>
 
-            {/* Selectores rápidos de Zona + Restablecer */}
-            <div className="shrink-0 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-medium text-slate-400 mr-0.5">Zona:</span>
-              {(
-                [
-                  { id: 'TODOS', label: 'Todos' },
-                  { id: 'NORTE', label: 'Norte' },
-                  { id: 'SUR', label: 'Sur' },
-                  ...(hasMixedBlueLineRows
-                    ? [{ id: 'LÍNEA AZUL' as const, label: 'Línea Azul' }]
-                    : []),
-                ] as Array<{ id: ZoneFilter; label: string }>
-              ).map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setZoneTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
-                    zoneTab === tab.id
-                      ? 'bg-[#22A846] text-white border-[#22A846]'
-                      : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            {/* Control segmentado único de Zona + Restablecer */}
+            <div className="shrink-0 flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center p-1 bg-[#F4F7FA] border border-[#E2E8F0] rounded-full">
+                {(
+                  [
+                    { id: 'TODOS', label: 'Todos' },
+                    { id: 'NORTE', label: 'Norte' },
+                    { id: 'SUR', label: 'Sur' },
+                    ...(hasMixedBlueLineRows
+                      ? [{ id: 'LÍNEA AZUL' as const, label: 'Línea Azul' }]
+                      : []),
+                  ] as Array<{ id: ZoneFilter; label: string }>
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setZoneTab(tab.id)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                      zoneTab === tab.id
+                        ? 'bg-[#22A846] text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
               {hasActiveTableFilters && (
                 <button
@@ -1140,7 +1147,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     setStatusFilter('TODOS');
                     setSearchQuery('');
                   }}
-                  className="px-3.5 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
+                  className="h-9 px-4 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
                 >
                   Restablecer
                 </button>
@@ -1148,8 +1155,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
             </div>
           </div>
         </div>
+        )}
 
-        {/* Tabla Limpia con Cabecera Celeste Corporativa */}
+        {/* Tabla Limpia con Cabecera Celeste Corporativa y Filas de Una Línea */}
         <div className="overflow-x-auto max-h-[calc(100vh-340px)]">
           <table className="w-full text-left text-[12px]">
             <thead className="sticky top-0 z-10 bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
@@ -1160,11 +1168,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                 <th className="py-2.5 px-3 whitespace-nowrap">Ruta</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Área</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Fundo</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Paraderos del recorrido</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Paraderos</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Movimiento</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Hora</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Unidad</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Personal</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Ocupación</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Proveedor / Móvil</th>
                 <th className="py-2.5 px-3 text-center whitespace-nowrap">Estado</th>
                 <th className="py-2.5 px-3 text-center whitespace-nowrap border-l border-[#D4E9F7]/70">
@@ -1194,16 +1202,20 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                   const pct = row.cap > 0 ? Math.round((row.people / row.cap) * 100) : 0;
                   const overCap = row.people > row.cap;
                   const missingAssign = isPendingAssignment(row);
+                  const stopsFullTitle =
+                    row.stopDetails.length > 0
+                      ? row.stopDetails.map((s) => `${s.paradero} (${s.cantidad})`).join(' → ')
+                      : row.stopsText;
 
                   return (
                     <tr key={row.id} className="hover:bg-[#F7FBFE] transition-colors">
-                      <td className="py-3 px-3 text-[12px] font-normal text-[#334155] tabular-nums whitespace-nowrap">
+                      <td className="py-3 px-3 text-[12px] font-normal text-slate-400 tabular-nums whitespace-nowrap">
                         {String(idx + 1).padStart(2, '0')}
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
                         <span
-                          className="text-[12px] font-normal text-[#334155] block truncate max-w-[160px]"
+                          className="text-[12px] font-medium text-[#1B3A57] block truncate max-w-[140px]"
                           title={row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
                         >
                           {row.reqCodes.length > 0 ? row.reqCodes.join(', ') : 'Manual'}
@@ -1218,7 +1230,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
                       <td className="py-3 px-3 whitespace-nowrap">
                         <span
-                          className="text-[12px] font-normal text-[#334155] block truncate max-w-[170px]"
+                          className="text-[12px] font-normal text-[#334155] block truncate max-w-[160px]"
                           title={
                             row.zonasEspecificas && row.zonasEspecificas.length > 1
                               ? `Última zona: ${row.zonaDestinoFinal} · Recorrido: ${row.zonasEspecificas.join(' → ')}`
@@ -1234,23 +1246,20 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="text-[12px] font-normal text-[#334155]">{row.fundo}</span>
+                        <span className="text-[12px] font-normal text-[#334155] block truncate max-w-[150px]" title={row.fundo}>
+                          {row.fundo}
+                        </span>
                       </td>
 
-                      <td className="py-3 px-3 max-w-[340px]">
-                        <div className="text-[12px] font-normal text-[#334155] leading-snug">
-                          {row.stopDetails.length > 0 ? (
-                            row.stopDetails.map((s, sIdx) => (
-                              <React.Fragment key={`${s.paradero}-${sIdx}`}>
-                                {sIdx > 0 && <span className="mx-1">→</span>}
-                                <span>{s.paradero}</span>
-                                <span className="tabular-nums ml-0.5">({s.cantidad})</span>
-                              </React.Fragment>
-                            ))
-                          ) : (
-                            <span>{row.stopsText}</span>
-                          )}
-                        </div>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(row)}
+                          className="text-[12px] font-normal text-[#334155] hover:text-[#2F7D18] block truncate max-w-[230px] text-left cursor-pointer"
+                          title={stopsFullTitle}
+                        >
+                          {stopsFullTitle}
+                        </button>
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
@@ -1268,73 +1277,64 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap tabular-nums">
-                        <div className="text-[12px] font-normal text-[#334155]">
-                          {row.people} / {row.cap} pers.
-                        </div>
-                        <div className="text-[12px] font-normal text-[#334155] mt-0.5">
-                          {pct}% ocupación
-                        </div>
+                        <span className="text-[12px] font-normal text-[#334155]">
+                          {row.people}/{row.cap}
+                        </span>
+                        <span className="text-[11px] text-slate-400 ml-1.5">
+                          ({pct}%)
+                        </span>
                       </td>
 
                       <td className="py-3 px-3 whitespace-nowrap">
                         {missingAssign ? (
-                          <span className="text-[12px] font-normal text-[#334155]">Por asignar</span>
+                          <span className="text-[12px] text-slate-400">Por asignar</span>
                         ) : (
-                          <div>
-                            <div className="text-[12px] font-normal text-[#334155]">
-                              {row.provider} • {row.plate}
-                            </div>
-                            <div className="text-[12px] font-normal text-[#334155] mt-0.5 truncate max-w-[180px]">
-                              {row.driver}
-                            </div>
-                          </div>
+                          <span
+                            className="text-[12px] font-normal text-[#334155] block truncate max-w-[180px]"
+                            title={`${row.provider} · ${row.plate} · ${row.driver}`}
+                          >
+                            {row.provider} · {row.plate}
+                          </span>
                         )}
                       </td>
 
-                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
                         {overCap ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#FDECEC] text-[#DC2626] border border-[#FECACA] whitespace-nowrap">
-                            <AlertTriangle className="w-3 h-3 text-[#DC2626]" />
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#DC2626] whitespace-nowrap">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
                             Excede cap.
                           </span>
                         ) : missingAssign ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFF6E0] text-[#B45309] border border-[#FDE68A] whitespace-nowrap">
-                            <Clock className="w-3 h-3 text-[#B45309]" />
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#B45309] whitespace-nowrap">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                             Sin asignar
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] whitespace-nowrap">
-                            <CheckCircle2 className="w-3 h-3 text-[#2F7D18]" />
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#2F7D18] whitespace-nowrap">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#55A529] shrink-0" />
                             Listo
                           </span>
                         )}
                       </td>
 
-                      <td className="py-2.5 px-3 border-l border-slate-100 whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5">
+                      <td className="py-3 px-3 border-l border-slate-100 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
                             onClick={() => openEditModal(row)}
-                            className="p-1 rounded-md text-[#3D8B1C] hover:bg-[#EAF7E4] transition-colors cursor-pointer"
-                            title="Editar unidad y paraderos"
+                            className="p-1.5 rounded-full text-[#3D8B1C] hover:bg-[#EAF7E4] transition-colors cursor-pointer"
+                            title={missingAssign ? 'Asignar placa y conductor' : 'Editar unidad y paraderos'}
+                            aria-label={missingAssign ? 'Asignar móvil' : 'Editar recorrido'}
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
 
                           <button
                             type="button"
-                            onClick={() => openEditModal(row)}
-                            className="px-2.5 py-0.5 bg-white hover:bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
-                            title={missingAssign ? 'Asignar placa y conductor' : 'Modificar móvil'}
-                          >
-                            {missingAssign ? 'Asignar' : 'Editar'}
-                          </button>
-
-                          <button
-                            type="button"
                             onClick={() => handleDeleteRow(row.id)}
-                            className="p-1 rounded-md text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] transition-colors cursor-pointer"
+                            className="p-1.5 rounded-full text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] transition-colors cursor-pointer"
                             title="Quitar recorrido"
+                            aria-label="Quitar recorrido"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

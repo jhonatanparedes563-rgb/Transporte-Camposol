@@ -209,6 +209,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   const [supervisorModalReq, setSupervisorModalReq] = useState<Requerimiento | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [copiedReqId, setCopiedReqId] = useState<string | null>(null);
+  const [showFiltersBar, setShowFiltersBar] = useState<boolean>(true);
 
   const areas = useMemo(() => getStoredAreas(), []);
   const fundos = useMemo(() => getStoredFundos(), []);
@@ -444,49 +445,49 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     return filteredRequerimientos.slice(start, start + pageSize);
   }, [filteredRequerimientos, currentPage, pageSize]);
 
-  // Status badge styling helper (Tipografía uniforme para Gerencia)
+  // Status label styling helper (Tipografía limpia con indicador sutil, sin cápsulas recargadas)
   const renderEstadoBadge = (estado: EstadoRequerimiento) => {
     switch (estado) {
       case 'PENDIENTE':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs whitespace-nowrap">
-            <Clock className="w-3 h-3 text-amber-600" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#B45309] whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
             PENDIENTE
           </span>
         );
       case 'APROBADO':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs whitespace-nowrap">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#2F7D18] whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#55A529] shrink-0" />
             APROBADO
           </span>
         );
       case 'ATENDIDO':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs whitespace-nowrap">
-            <CheckCheck className="w-3 h-3 text-blue-600" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#0082B3] whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0082B3] shrink-0" />
             ATENDIDO
           </span>
         );
       case 'RECHAZADO':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-50 text-red-800 border border-red-200 shadow-2xs whitespace-nowrap">
-            <XCircle className="w-3 h-3 text-red-600" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#DC2626] whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
             RECHAZADO
           </span>
         );
       case 'ANULADO':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs whitespace-nowrap">
-            <XCircle className="w-3 h-3 text-rose-600" />
-            ANULADO (Historial)
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#DC2626] whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+            ANULADO
           </span>
         );
       case 'EN REVISIÓN':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs whitespace-nowrap">
-            <AlertCircle className="w-3 h-3 text-purple-600" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-purple-700 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
             EN REVISIÓN
           </span>
         );
@@ -646,7 +647,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#EEF3F7] text-[#1B3A57] overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-[#F3F6FA] text-[#1B3A57] overflow-hidden font-sans">
       {/* Toast alert */}
       {toastMessage && (
         <div className="fixed top-4 right-6 z-50 bg-[#1B3A57] text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold border border-[#55A529]/50 animate-in fade-in slide-in-from-top-3 duration-200">
@@ -891,11 +892,11 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
       {/* ------------------------------------------------------------- */}
       {/* MAIN CONTAINER: Top Header + Content Area                     */}
       {/* ------------------------------------------------------------- */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#EEF3F7]">
-        {/* TOP BAR: Título Principal + Subtítulo Verde + Tarjetas Derecha */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F3F6FA]">
+        {/* TOP BAR: Título Principal + Subtítulo Verde + Controles Limpios Derecha */}
         <header className="px-6 pt-4 pb-2 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-[#1B3A57] tracking-tight leading-tight">
+            <h1 className="text-[22px] font-bold text-[#1B3A57] tracking-tight leading-tight">
               {currentSection === 'procesos' && 'Procesos'}
               {currentSection === 'historial' && 'Historial'}
               {currentSection === 'generador' && 'Programación'}
@@ -905,7 +906,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
               {currentSection === 'nuevo' && 'Nuevo Requerimiento'}
               {currentSection === 'usuarios' && 'Maestro de Usuarios'}
             </h1>
-            <div className="text-xs font-semibold text-[#55A529] mt-0.5">
+            <div className="text-xs font-medium text-[#55A529] mt-0.5">
               {currentSection === 'procesos' && 'Recepción de Requerimientos'}
               {currentSection === 'historial' && 'Historial & Trazabilidad de Requerimientos'}
               {currentSection === 'generador' && 'Generador de Programación'}
@@ -917,36 +918,21 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
             </div>
           </div>
 
-          {/* Top Right Header Elements */}
-          <div className="flex items-center gap-2.5">
-            {/* Live Web Sync Badge */}
-            <div
-              id="header-cloud-sync-badge"
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#E2E8F0] text-[#2F7D18] text-xs font-semibold shadow-2xs"
-              title="Base de datos en la nube (Firestore) activa. Los requerimientos se sincronizan automáticamente en tiempo real entre todos los usuarios."
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7CD64B] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#55A529]"></span>
-              </span>
-              <span className="text-[11px]">Base Cloud Firestore Activa</span>
-            </div>
-
-            {/* Manual Sync Button */}
+          {/* Top Right Header Elements (Estilo limpio sin etiquetas de telemetría) */}
+          <div className="flex items-center gap-2">
             <button
               id="header-sync-btn"
               type="button"
               onClick={handleManualSync}
               disabled={isManualSyncing}
-              className={`p-2 rounded-xl bg-white text-slate-600 hover:text-[#55A529] border border-[#E2E8F0] shadow-2xs transition-all cursor-pointer ${
+              className={`w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-500 hover:text-[#55A529] border border-[#E2E8F0] transition-colors cursor-pointer ${
                 isManualSyncing ? 'animate-spin text-[#55A529]' : ''
               }`}
-              title="Sincronizar ahora con el servidor web"
+              title="Actualizar datos"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
 
-            {/* Bell Notification Button */}
             <button
               id="header-notification-btn"
               onClick={() => {
@@ -954,37 +940,33 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                 setCurrentSection('procesos');
                 showToast(`Filtrando ${metrics.pendientes} requerimientos pendientes`);
               }}
-              className="relative p-2 rounded-xl bg-white border border-[#E2E8F0] text-slate-600 hover:text-[#1B3A57] shadow-2xs transition-colors cursor-pointer"
+              className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-[#E2E8F0] text-slate-600 hover:text-[#1B3A57] transition-colors cursor-pointer"
               title={`${metrics.pendientes} requerimientos pendientes de atención`}
             >
               <Bell className="w-4 h-4" />
               {metrics.pendientes > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D97706] ring-2 ring-white"></span>
+                <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#D97706] ring-2 ring-white"></span>
               )}
             </button>
 
-            {/* Official Camposol User Profile Card */}
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-white border border-[#E2E8F0] rounded-xl shadow-2xs">
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-white border border-[#E2E8F0] rounded-xl">
               <div className="w-7 h-7 rounded-full bg-[#F3F8F0] text-[#55A529] flex items-center justify-center shrink-0 border border-[#D4E9C9]">
                 {userRole === 'receptor' ? (
                   <Inbox className="w-3.5 h-3.5" />
                 ) : (
-                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <User className="w-3.5 h-3.5" />
                 )}
               </div>
               <div className="text-left hidden sm:block leading-tight">
-                <span className="text-[11px] font-semibold text-[#2F7D18] tracking-tight block uppercase">
+                <span className="text-[11px] font-semibold text-[#1B3A57] tracking-tight block uppercase">
                   {currentUser?.nombre ||
                     (userRole === 'receptor'
                       ? 'Roberto Gonzáles'
                       : 'Administrador del Sistema')}
                 </span>
-                <span className="text-[10px] font-medium text-[#64748B]">
+                <span className="text-[10px] font-medium text-[#55A529]">
                   @{currentUser?.usuario || (userRole === 'receptor' ? 'receptor' : 'admin')}{' '}
-                  · {userRole === 'receptor' ? 'RECEPTOR' : 'ADMIN'} ·{' '}
-                  {currentUser?.area === 'OPERACIONES AGRÍCOLAS' || currentUser?.area === 'OPERACIONES' || !currentUser?.area
-                    ? 'TDP'
-                    : currentUser.area}
+                  · {userRole === 'receptor' ? 'RECEPTOR' : 'ADMIN'}
                 </span>
               </div>
             </div>
@@ -1443,76 +1425,66 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           {/* Sub-view: Procesos (Table + KPIs + Filters) */}
           {currentSection === 'procesos' && (
             <>
-          {/* Top KPI Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between">
+          {/* Top KPI Metrics Strip (Barra única limpia sin bordes gruesos) */}
+          <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-[0_1px_2px_rgba(15,23,42,0.03)] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-[#EEF2F6]">
+            <div className="px-4 py-2.5 flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-slate-500">Solicitudes</div>
-                <div className="text-xl font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">{metrics.total}</div>
+                <div className="text-[11px] font-medium text-slate-400">Solicitudes</div>
+                <div className="text-lg font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">{metrics.total}</div>
               </div>
-              <div className="w-8 h-8 rounded-xl bg-[#F1F5F9] text-[#1B3A57] flex items-center justify-center shrink-0">
-                <Layers className="w-4 h-4" />
-              </div>
+              <Layers className="w-4 h-4 text-slate-300 shrink-0" />
             </div>
 
-            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-amber-400 shadow-2xs flex items-center justify-between">
+            <div className="px-4 py-2.5 flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-slate-500">Pendientes</div>
-                <div className="text-xl font-bold text-[#B45309] tabular-nums leading-tight mt-0.5">{metrics.pendientes}</div>
+                <div className="text-[11px] font-medium text-slate-400">Pendientes</div>
+                <div className="text-lg font-bold text-[#B45309] tabular-nums leading-tight mt-0.5">{metrics.pendientes}</div>
               </div>
-              <div className="w-8 h-8 rounded-xl bg-[#FFF6E0] text-[#B45309] flex items-center justify-center shrink-0">
-                <Clock className="w-4 h-4" />
-              </div>
+              <Clock className="w-4 h-4 text-amber-400/70 shrink-0" />
             </div>
 
-            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-[#55A529] shadow-2xs flex items-center justify-between">
+            <div className="px-4 py-2.5 flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-slate-500">Aprobados</div>
-                <div className="text-xl font-bold text-[#2F7D18] tabular-nums leading-tight mt-0.5">{metrics.aprobados}</div>
+                <div className="text-[11px] font-medium text-slate-400">Aprobados</div>
+                <div className="text-lg font-bold text-[#2F7D18] tabular-nums leading-tight mt-0.5">{metrics.aprobados}</div>
               </div>
-              <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
+              <CheckCircle2 className="w-4 h-4 text-[#55A529]/70 shrink-0" />
             </div>
 
-            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] border-l-4 border-l-[#0082B3] shadow-2xs flex items-center justify-between">
+            <div className="px-4 py-2.5 flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-slate-500">Atendidos</div>
-                <div className="text-xl font-bold text-[#0082B3] tabular-nums leading-tight mt-0.5">{metrics.atendidos}</div>
+                <div className="text-[11px] font-medium text-slate-400">Atendidos</div>
+                <div className="text-lg font-bold text-[#0082B3] tabular-nums leading-tight mt-0.5">{metrics.atendidos}</div>
               </div>
-              <div className="w-8 h-8 rounded-xl bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center shrink-0">
-                <CheckCheck className="w-4 h-4" />
-              </div>
+              <CheckCheck className="w-4 h-4 text-[#0082B3]/70 shrink-0" />
             </div>
 
-            <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] shadow-2xs flex items-center justify-between">
+            <div className="px-4 py-2.5 flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-semibold text-slate-500">Total Personal</div>
-                <div className="text-xl font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">{metrics.totalPasajeros}</div>
+                <div className="text-[11px] font-medium text-slate-400">Total Personal</div>
+                <div className="text-lg font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">{metrics.totalPasajeros}</div>
               </div>
-              <div className="w-8 h-8 rounded-xl bg-[#F1F5F9] text-[#1B3A57] flex items-center justify-center shrink-0">
-                <Users className="w-4 h-4" />
-              </div>
+              <Users className="w-4 h-4 text-slate-300 shrink-0" />
             </div>
           </div>
 
           {/* ------------------------------------------------------------- */}
-          {/* HIGH-PRECISION STRUCTURED FILTERS PANEL                      */}
+          {/* PANEL PRINCIPAL LIMPIO ESTILO CORPORATIVO CAMPOSOL            */}
           {/* ------------------------------------------------------------- */}
-          <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-[0_1px_3px_rgba(15,23,42,0.03)] overflow-hidden">
             {/* Top Toolbar Header */}
             <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-[#1B3A57] leading-tight">
+                <h3 className="text-[15px] font-bold text-[#1B3A57] leading-tight">
                   Recepción de requerimientos
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-[11px] text-slate-400 mt-0.5">
                   Visualizar, filtrar y gestionar requerimientos
                 </p>
               </div>
 
-              {/* Right Action Icons + Pill Search */}
-              <div className="flex items-center gap-3 flex-wrap">
+              {/* Right Action Icons + Pill Search + Filter Toggle */}
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <button
                   id="btn-export-excel-header"
                   type="button"
@@ -1540,51 +1512,66 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     placeholder="Palabra clave"
-                    className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
+                    className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
                   />
                   <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowFiltersBar((v) => !v)}
+                  className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${
+                    showFiltersBar
+                      ? 'bg-[#F3F8F0] border-[#C6E9B4] text-[#2F7D18]'
+                      : 'bg-white border-[#DCE4EC] text-slate-500 hover:bg-slate-50'
+                  }`}
+                  title={showFiltersBar ? 'Ocultar filtros avanzados' : 'Mostrar filtros avanzados'}
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
-            {/* Floating-Label Pill Filter Inputs (4-column executive layout, zero clipping) */}
-            <div className="px-5 pt-2 pb-4 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-3.5 gap-y-3.5">
+            {/* Clean Collapsible Filter Grid + Selection Batch Bar */}
+            {(showFiltersBar || selectedReqIds.length > 0) && (
+            <div className="px-5 pt-1 pb-4 space-y-3">
+              {showFiltersBar && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Fecha Desde */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                     Fecha desde
                   </label>
                   <input
                     type="date"
                     value={filterFechaDesde}
                     onChange={(e) => setFilterFechaDesde(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                   />
                 </div>
 
                 {/* Fecha Hasta */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                     Fecha hasta
                   </label>
                   <input
                     type="date"
                     value={filterFechaHasta}
                     onChange={(e) => setFilterFechaHasta(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
                   />
                 </div>
 
                 {/* Área */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                     Área
                   </label>
                   <select
                     value={filterArea}
                     onChange={(e) => setFilterArea(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                   >
                     <option value="TODAS">Todas</option>
                     {areas.map((a) => (
@@ -1597,13 +1584,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
                 {/* Fundo */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                     Fundo
                   </label>
                   <select
                     value={filterFundo}
                     onChange={(e) => setFilterFundo(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                   >
                     <option value="TODOS">Todos</option>
                     {fundos.map((f) => (
@@ -1616,13 +1603,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
                 {/* Supervisor / Solicitante */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                     Solicitante
                   </label>
                   <select
                     value={filterSupervisor}
                     onChange={(e) => setFilterSupervisor(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                   >
                     <option value="TODOS">Todos</option>
                     {supervisoresList.map((sup) => (
@@ -1635,13 +1622,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
                 {/* Estado */}
                 <div className="relative">
-                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+                  <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                     Estado
                   </label>
                   <select
                     value={filterEstado}
                     onChange={(e) => setFilterEstado(e.target.value)}
-                    className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors"
+                    className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
                   >
                     <option value="TODOS">Todos</option>
                     <option value="PENDIENTE">PENDIENTE</option>
@@ -1653,10 +1640,9 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   </select>
                 </div>
 
-                {/* Quick Date Presets + Limpiar aligned cleanly in Row 2 */}
-                <div className="sm:col-span-2 flex flex-wrap items-center justify-between lg:justify-end gap-2 self-center">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-gray-400 mr-0.5">Rápido:</span>
+                {/* Segmented Date Presets + Restablecer (sin ruido de píldoras sueltas) */}
+                <div className="sm:col-span-2 flex flex-wrap items-center justify-end gap-2.5 self-center">
+                  <div className="inline-flex items-center p-1 bg-[#F4F7FA] border border-[#E2E8F0] rounded-full">
                     <button
                       type="button"
                       onClick={() => {
@@ -1664,10 +1650,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                         setFilterFechaDesde(hoy);
                         setFilterFechaHasta(hoy);
                       }}
-                      className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
                         filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
-                          ? 'bg-[#22A846] text-white border-[#22A846]'
-                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+                          ? 'bg-[#22A846] text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       Hoy
@@ -1679,10 +1665,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                         setFilterFechaDesde(ayer);
                         setFilterFechaHasta(ayer);
                       }}
-                      className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
                         filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr()
-                          ? 'bg-[#22A846] text-white border-[#22A846]'
-                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+                          ? 'bg-[#22A846] text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       Ayer
@@ -1694,10 +1680,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                         setFilterFechaDesde(manana);
                         setFilterFechaHasta(manana);
                       }}
-                      className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
                         filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr()
-                          ? 'bg-[#22A846] text-white border-[#22A846]'
-                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+                          ? 'bg-[#22A846] text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       Mañana
@@ -1708,25 +1694,26 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                         setFilterFechaDesde('');
                         setFilterFechaHasta('');
                       }}
-                      className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
                         !filterFechaDesde && !filterFechaHasta
-                          ? 'bg-[#1B3A57] text-white border-[#1B3A57]'
-                          : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+                          ? 'bg-[#1B3A57] text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Todo el historial
+                      Todo
                     </button>
                   </div>
 
                   <button
                     type="button"
                     onClick={handleResetFilters}
-                    className="px-4 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
+                    className="h-9 px-4 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
                   >
                     Restablecer
                   </button>
                 </div>
               </div>
+              )}
 
               {selectedReqIds.length > 0 && (
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
@@ -1737,32 +1724,33 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     <button
                       type="button"
                       onClick={handleBatchApprove}
-                      className="px-3 py-1 bg-[#22A846] hover:bg-[#1B8F3A] text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3.5 py-1.5 bg-[#22A846] hover:bg-[#1B8F3A] text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>Aprobar Seleccionados</span>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Aprobar</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleBatchAtender}
-                      className="px-3 py-1 bg-[#0082B3] hover:bg-[#006B94] text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3.5 py-1.5 bg-[#0082B3] hover:bg-[#006B94] text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      <CheckCheck className="w-3 h-3" />
-                      <span>Marcar Atendidos</span>
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      <span>Atender</span>
                     </button>
                     <button
                       id="btn-batch-delete"
                       type="button"
                       onClick={handleBatchDelete}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      <Trash2 className="w-3 h-3" />
-                      <span>Eliminar</span>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Anular</span>
                     </button>
                   </div>
                 </div>
               )}
             </div>
+            )}
 
             {/* Clean Light-Blue Table Header + Flat White Rows */}
             <div className="overflow-x-auto max-h-[calc(100vh-340px)]">
@@ -1856,46 +1844,37 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                               />
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap">
-                              <button
-                                onClick={() => onOpenRequirementDetail(req)}
-                                className="text-[12px] font-normal text-[#334155] hover:underline transition-colors text-left whitespace-nowrap cursor-pointer"
-                                title="Ver detalle del requerimiento"
-                              >
-                                {req.numeroRequerimiento}
-                              </button>
-                              <div className="text-[12px] font-normal text-[#334155] whitespace-nowrap mt-0.5">
-                                {req.fechaRegistro ? req.fechaRegistro.slice(0, 10) : '-'}
-                                {formatHoraSimple(req.fechaRegistro) ? ` • ${formatHoraSimple(req.fechaRegistro)}` : ''}
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => onOpenRequirementDetail(req)}
+                                  className="text-[12px] font-medium text-[#1B3A57] hover:text-[#2F7D18] hover:underline transition-colors text-left whitespace-nowrap cursor-pointer"
+                                  title={req.fechaRegistro ? `Registrado: ${req.fechaRegistro.slice(0, 10)} ${formatHoraSimple(req.fechaRegistro)}` : 'Ver detalle del requerimiento'}
+                                >
+                                  {req.numeroRequerimiento}
+                                </button>
+                                {formatHoraSimple(req.fechaRegistro) && (
+                                  <span className="text-[11px] text-slate-400 tabular-nums">
+                                    · {formatHoraSimple(req.fechaRegistro)}
+                                  </span>
+                                )}
                               </div>
                             </td>
-                            <td className="py-3 px-3 whitespace-nowrap">
+                            <td className="py-3 px-3 whitespace-nowrap tabular-nums">
                               <span className="text-[12px] font-normal text-[#334155]">{req.fecha}</span>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() => toggleExpandReq(req.id)}
-                                className="text-[12px] font-normal text-[#334155] hover:underline flex items-center gap-0.5 cursor-pointer whitespace-nowrap"
-                                title="Haz clic para desplegar el resumen de paraderos"
+                                className="text-[12px] font-normal text-[#334155] hover:text-[#2F7D18] flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                                title="Desplegar resumen por paradero"
                               >
                                 <span>{paraderosCount} paradero{paraderosCount !== 1 ? 's' : ''}</span>
                                 {expandedReqIds.includes(req.id) ? (
-                                  <ChevronUp className="w-3 h-3 text-[#334155]" />
+                                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
                                 ) : (
-                                  <ChevronDown className="w-3 h-3 text-[#334155]" />
+                                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                                 )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSupervisorModalReq(req);
-                                }}
-                                className="text-[12px] font-normal text-[#334155] hover:underline flex items-center gap-0.5 mt-0.5 cursor-pointer whitespace-nowrap"
-                                title="Ver detalle completo de paraderos"
-                              >
-                                <span>Ver detalle</span>
-                                <ChevronRight className="w-3 h-3 text-[#334155]" />
                               </button>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap">
@@ -1909,51 +1888,39 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 {req.movimiento}
                               </span>
                             </td>
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <div className="text-[12px] font-normal text-[#334155]">
+                            <td className="py-3 px-3 whitespace-nowrap tabular-nums">
+                              <span className="text-[12px] font-normal text-[#334155]">
                                 {(() => {
                                   const h = getHorarioDisplay(req);
                                   if (h.isIngreso) {
-                                    return (
-                                      <span>
-                                        Norte: {h.horaNorte} | Sur: {h.horaSur}
-                                      </span>
-                                    );
+                                    return `N: ${h.horaNorte} | S: ${h.horaSur}`;
                                   }
-                                  return <span>{h.horaNormal}</span>;
+                                  return h.horaNormal;
                                 })()}
-                              </div>
+                              </span>
                             </td>
-                            <td className="py-3 px-3 whitespace-nowrap">
+                            <td className="py-3 px-3 whitespace-nowrap tabular-nums">
                               <span className="text-[12px] font-normal text-[#334155]">
                                 {req.totalPersonas} pers.
                               </span>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap">
                               <span
-                                className="text-[12px] font-normal text-[#334155] block truncate max-w-[200px]"
-                                title={req.usuario || 'Solicitante'}
+                                className="text-[12px] font-normal text-[#334155] block truncate max-w-[190px]"
+                                title={req.observaciones ? `${req.usuario || 'Solicitante'} — ${req.observaciones}` : (req.usuario || 'Solicitante')}
                               >
                                 {req.usuario || 'Solicitante'}
                               </span>
-                              {req.observaciones && (
-                                <span
-                                  className="text-[12px] font-normal text-[#334155] block truncate max-w-[200px] mt-0.5"
-                                  title={req.observaciones}
-                                >
-                                  {req.observaciones}
-                                </span>
-                              )}
                             </td>
-                            <td className="py-2.5 px-3 text-center">
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
                               {renderEstadoBadge(req.estado)}
                             </td>
-                            <td className="py-2.5 px-3 border-l border-slate-100">
-                              <div className="flex items-center justify-center gap-1.5">
+                            <td className="py-3 px-3 border-l border-slate-100 whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1">
                                 {/* Ver Detalle */}
                                 <button
                                   onClick={() => onOpenRequirementDetail(req)}
-                                  className="p-1 rounded-full text-[#3D8B1C] hover:bg-[#EAF7E4] transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-full text-[#3D8B1C] hover:bg-[#EAF7E4] transition-colors cursor-pointer"
                                   title="Ver detalles y desglose de paraderos"
                                   aria-label="Ver detalles"
                                 >
@@ -1964,10 +1931,11 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 {req.estado !== 'APROBADO' && req.estado !== 'ATENDIDO' && (
                                   <button
                                     onClick={() => handleQuickStatusChange(req.id, 'APROBADO')}
-                                    className="px-2.5 py-0.5 bg-white hover:bg-[#EAF7E4] text-[#2F7D18] border border-[#C6E9B4] rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
+                                    className="p-1.5 rounded-full text-[#2F7D18] hover:bg-[#EAF7E4] transition-colors cursor-pointer"
                                     title="Aprobar requerimiento"
+                                    aria-label="Aprobar requerimiento"
                                   >
-                                    Aprobar
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
 
@@ -1975,20 +1943,21 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                 {req.estado === 'APROBADO' && (
                                   <button
                                     onClick={() => handleQuickStatusChange(req.id, 'ATENDIDO')}
-                                    className="px-2.5 py-0.5 bg-white hover:bg-[#E6F3FB] text-[#0082B3] border border-[#D4E9F7] rounded-full text-[10px] font-medium transition-colors whitespace-nowrap cursor-pointer"
+                                    className="p-1.5 rounded-full text-[#0082B3] hover:bg-[#E6F3FB] transition-colors cursor-pointer"
                                     title="Marcar como atendido"
+                                    aria-label="Marcar como atendido"
                                   >
-                                    Atender
+                                    <CheckCheck className="w-3.5 h-3.5" />
                                   </button>
                                 )}
 
-                                {/* Eliminar requerimiento */}
+                                {/* Eliminar / Anular requerimiento */}
                                 <button
                                   id={`btn-eliminar-req-${req.id}`}
                                   onClick={() => setReqToDelete(req)}
-                                  className="p-1 rounded-full text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] transition-colors cursor-pointer"
-                                  title="Eliminar requerimiento"
-                                  aria-label="Eliminar requerimiento"
+                                  className="p-1.5 rounded-full text-amber-600 hover:text-[#DC2626] hover:bg-[#FDECEC] transition-colors cursor-pointer"
+                                  title="Anular requerimiento"
+                                  aria-label="Anular requerimiento"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
