@@ -31,14 +31,18 @@ import {
   firestoreDeleteRequerimiento,
   firestoreSaveMasterData,
   firestoreSaveUser,
+  firestoreSaveUserCredential,
   firestorePullAllNow,
   firestoreFetchByDateRange,
   isFirestoreAuthenticated,
   getFirebaseUserInfo,
   connectWithGoogleFirebase,
   hasKnownFirestoreReqId,
+  hasKnownFirestoreUserId,
+  getKnownFirestoreCredUpdatedAt,
   hasMasterDataInFirestore,
   formatFriendlyFirestoreError,
+  UserCredentialRecord,
 } from './firestoreService';
 import {
   getAuthHeaders,
@@ -53,6 +57,10 @@ import {
   recoverServerSessionIfPossible,
   isHostedExpressOrigin,
   notifyCookieCheckRequired,
+  mergeUsersIntoStorage,
+  mergeCloudUserCredentials,
+  flushPendingUserSyncQueue,
+  getLocalStaticCredEntries,
 } from './authService';
 
 export { isHostedExpressOrigin };
@@ -73,7 +81,6 @@ const PARADEROS_STORAGE_KEY = 'camposol_maestro_paraderos_v1';
 const COMEDORES_STORAGE_KEY = 'camposol_maestro_comedores_v1';
 const UNIDADES_BUS_STORAGE_KEY = 'camposol_maestro_unidades_bus_v1';
 const PROGRAMACIONES_VIAJES_KEY = 'camposol_programaciones_viajes_v1';
-const USERS_STORAGE_KEY = 'camposol_users_v2';
 const LAST_REVISION_KEY = 'camposol_last_revision_v1';
 const DRAFT_REQ_STORAGE_KEY = 'camposol_current_req_draft_v1';
 const MAX_LS_MIRROR_REQS = 450;
@@ -325,6 +332,40 @@ async function bridgeFirestoreReqsToExpressIfAdmin(reqs: Requerimiento[]): Promi
   }
 }
 
+async function bridgeCloudUsersToExpressIfAdmin(
+  users?: AppUser[],
+  userCredentials?: UserCredentialRecord[]
+): Promise<void> {
+  const sessionUser = getActiveSessionUser();
+  const token = getAuthToken();
+  if (!sessionUser || sessionUser.rol !== 'admin' || !token || isStaticToken(token) || expressSessionRejected) {
+    return;
+  }
+  const hasUsers = Array.isArray(users) && users.length > 0;
+  const hasCreds = Array.isArray(userCredentials) && userCredentials.length > 0;
+  if (!hasUsers && !hasCreds) return;
+
+  try {
+    await apiFetch(
+      '/api/users/sync-cloud',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          ...(hasUsers ? { users } : {}),
+          ...(hasCreds ? { credentials: userCredentials } : {}),
+        }),
+      },
+      8000
+    );
+  } catch {
+    // Retry on subsequent sync cycle
+  }
+}
+
 export function getStoredRequirementDraft(): RequerimientoDraft | null {
   try {
     const raw = localStorage.getItem(DRAFT_REQ_STORAGE_KEY);
@@ -476,12 +517,16 @@ if (typeof window !== 'undefined') {
       if (mergeUpsertDetalles(payload.detalles, true)) changed = true;
     }
     if (payload.users && Array.isArray(payload.users)) {
-      const localUsers = getStoredUsers();
-      const byId = new Map<string, AppUser>();
-      localUsers.forEach((u) => byId.set(u.id, u));
-      payload.users.forEach((u) => byId.set(u.id, u));
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(Array.from(byId.values())));
-      changed = true;
+      if (mergeUsersIntoStorage(payload.users)) changed = true;
+    }
+    if (payload.userCredentials && Array.isArray(payload.userCredentials)) {
+      if (mergeCloudUserCredentials(payload.userCredentials)) changed = true;
+    }
+    if (
+      (payload.users && payload.users.length > 0) ||
+      (payload.userCredentials && payload.userCredentials.length > 0)
+    ) {
+      void bridgeCloudUsersToExpressIfAdmin(payload.users, payload.userCredentials);
     }
     const pendingMaster = getPendingMasterSyncKeys();
     if (payload.areas && Array.isArray(payload.areas) && !pendingMaster.has('areas')) {
@@ -518,6 +563,7 @@ if (typeof window !== 'undefined') {
   registerFirebaseConnectedCallback(async (info) => {
     try {
       await firestorePullAllNow();
+      await flushPendingUserSyncQueue().catch(() => {});
       await processPendingSyncQueue(true);
 
       if (info.isBootstrappedAdmin) {
@@ -547,8 +593,31 @@ if (typeof window !== 'undefined') {
           }
         }
         const localUsers = getStoredUsers();
+        const localCreds = getLocalStaticCredEntries();
+        const credRecordsToBridge: UserCredentialRecord[] = [];
         for (const u of localUsers) {
-          await firestoreSaveUser(u).catch(() => false);
+          if (!hasKnownFirestoreUserId(u.id)) {
+            await firestoreSaveUser(u).catch(() => false);
+          }
+          const localCred = localCreds[u.id];
+          if (localCred && localCred.passwordHash) {
+            const credRec: UserCredentialRecord = {
+              id: u.id,
+              usuario: u.usuario.toLowerCase(),
+              passwordHash: localCred.passwordHash,
+              salt: localCred.salt || 'camposol_salt_2026',
+              adminUpdated: localCred.adminUpdated !== false,
+              updatedAt: localCred.updatedAt || u.passwordUpdatedAt || u.fechaCreacion || new Date().toISOString(),
+            };
+            credRecordsToBridge.push(credRec);
+            const cloudTs = getKnownFirestoreCredUpdatedAt(u.id);
+            if (cloudTs === null || (credRec.updatedAt && credRec.updatedAt > cloudTs)) {
+              await firestoreSaveUserCredential(credRec).catch(() => false);
+            }
+          }
+        }
+        if (localUsers.length > 0 || credRecordsToBridge.length > 0) {
+          void bridgeCloudUsersToExpressIfAdmin(localUsers, credRecordsToBridge);
         }
       }
       notifyListeners();
@@ -961,6 +1030,9 @@ export async function syncWithServerDetailed(force: boolean = false): Promise<{
     let firestoreOk = false;
     let failReason: SyncOutcomeReason = 'network';
     try {
+      if (fbConnected) {
+        await flushPendingUserSyncQueue().catch(() => {});
+      }
       const queueStatus = await processPendingSyncQueueInternal(force);
       if (queueStatus === 'session_expired' && !fbConnected) {
         closeRealtimeSse();
@@ -1010,8 +1082,7 @@ export async function syncWithServerDetailed(force: boolean = false): Promise<{
               mergeUpsertDetalles(serverDets, true);
             }
             if (data.users && Array.isArray(data.users)) {
-              const safeUsers = data.users.map((u: AppUser) => ({ ...u, passwordHash: '', salt: '' }));
-              localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(safeUsers));
+              mergeUsersIntoStorage(data.users);
             }
             const pendingMaster = getPendingMasterSyncKeys();
             if (data.areas && Array.isArray(data.areas) && !pendingMaster.has('areas')) {

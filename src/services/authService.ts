@@ -1,5 +1,14 @@
 import { AppUser, UserRole, UserStatus } from '../types';
-import { firestoreSaveUser, firestoreDeleteUser } from './firestoreService';
+import {
+  firestoreSaveUser,
+  firestoreDeleteUser,
+  firestoreSaveUserCredential,
+  firestoreDeleteUserCredential,
+  firestorePullUsersAndCredentialsForLogin,
+  waitForFirebaseAuthReady,
+  isFirestoreAuthenticated,
+  UserCredentialRecord,
+} from './firestoreService';
 
 const USERS_STORAGE_KEY = 'camposol_users_v2';
 const SESSION_STORAGE_KEY = 'camposol_session_user_v2';
@@ -224,9 +233,23 @@ export function getAuthHeaders(): Record<string, string> {
 }
 
 const STATIC_CREDS_STORAGE_KEY = 'camposol_static_creds_v1';
+const PENDING_USER_SYNC_KEY = 'camposol_pending_user_sync_v1';
 
-type StaticCredEntry = { passwordHash: string; salt: string; adminUpdated?: boolean };
+export type StaticCredEntry = {
+  passwordHash: string;
+  salt: string;
+  adminUpdated?: boolean;
+  updatedAt?: string;
+};
 type StaticCredMap = Record<string, StaticCredEntry>;
+
+interface PendingUserSyncOp {
+  kind: 'UPSERT_USER' | 'DELETE_USER';
+  userId: string;
+  user?: AppUser;
+  credential?: UserCredentialRecord;
+  queuedAt: string;
+}
 
 function isValidSha256Hex(hash: unknown): hash is string {
   return typeof hash === 'string' && /^[a-f0-9]{64}$/i.test(hash) && hash.toLowerCase() !== LEGACY_MISMATCHED_HEX;
@@ -246,6 +269,7 @@ function readStaticCreds(): StaticCredMap {
           passwordHash: v.passwordHash,
           salt: typeof v.salt === 'string' && v.salt ? v.salt : DEFAULT_SALT,
           ...(v.adminUpdated ? { adminUpdated: true } : {}),
+          ...(typeof v.updatedAt === 'string' && v.updatedAt ? { updatedAt: v.updatedAt } : {}),
         };
       } else {
         pruned = true;
@@ -266,6 +290,156 @@ function writeStaticCreds(map: StaticCredMap): void {
   } catch {
     // ignore
   }
+}
+
+export function getLocalStaticCredEntries(): StaticCredMap {
+  return readStaticCreds();
+}
+
+export function mergeUsersIntoStorage(incomingUsers: AppUser[]): boolean {
+  if (!Array.isArray(incomingUsers) || incomingUsers.length === 0) return false;
+  const current = getStoredUsers();
+  const pendingIds = new Set(readPendingUserSyncQueue().map((op) => op.userId));
+  const byId = new Map<string, AppUser>();
+  current.forEach((u) => byId.set(u.id, stripSensitiveFields(u)));
+
+  for (const rawUser of incomingUsers) {
+    if (!rawUser || !rawUser.id || !rawUser.usuario) continue;
+    const cleanIncoming = stripSensitiveFields(rawUser);
+    const uname = cleanIncoming.usuario.trim().toLowerCase();
+    for (const [existingId, existingUser] of Array.from(byId.entries())) {
+      if (
+        existingId !== cleanIncoming.id &&
+        existingUser.usuario.trim().toLowerCase() === uname &&
+        !pendingIds.has(existingId)
+      ) {
+        byId.delete(existingId);
+      }
+    }
+    byId.set(cleanIncoming.id, cleanIncoming);
+  }
+
+  const merged = Array.from(byId.values());
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(merged));
+  return true;
+}
+
+export function mergeCloudUserCredentials(cloudCreds: UserCredentialRecord[]): boolean {
+  if (!Array.isArray(cloudCreds) || cloudCreds.length === 0) return false;
+  const creds = readStaticCreds();
+  let changed = false;
+  for (const c of cloudCreds) {
+    if (!c?.id || !isValidSha256Hex(c.passwordHash)) continue;
+    const local = creds[c.id];
+    const cloudTs = c.updatedAt || '';
+    const localTs = local?.updatedAt || '';
+    const shouldOverwrite =
+      !local ||
+      (!localTs && Boolean(cloudTs)) ||
+      (cloudTs && localTs && cloudTs >= localTs) ||
+      (c.adminUpdated && !local.adminUpdated);
+    if (shouldOverwrite) {
+      const nextEntry: StaticCredEntry = {
+        passwordHash: c.passwordHash.toLowerCase(),
+        salt: c.salt || DEFAULT_SALT,
+        adminUpdated: c.adminUpdated !== false,
+        updatedAt: cloudTs || new Date().toISOString(),
+      };
+      if (
+        !local ||
+        local.passwordHash !== nextEntry.passwordHash ||
+        local.salt !== nextEntry.salt ||
+        Boolean(local.adminUpdated) !== Boolean(nextEntry.adminUpdated) ||
+        local.updatedAt !== nextEntry.updatedAt
+      ) {
+        creds[c.id] = nextEntry;
+        changed = true;
+      }
+    }
+  }
+  if (changed) {
+    writeStaticCreds(creds);
+  }
+  return changed;
+}
+
+function readPendingUserSyncQueue(): PendingUserSyncOp[] {
+  try {
+    const raw = localStorage.getItem(PENDING_USER_SYNC_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingUserSyncQueue(items: PendingUserSyncOp[]): void {
+  try {
+    localStorage.setItem(PENDING_USER_SYNC_KEY, JSON.stringify(items));
+  } catch {
+    // ignore
+  }
+}
+
+function enqueuePendingUserSync(op: PendingUserSyncOp): void {
+  const queue = readPendingUserSyncQueue().filter((x) => x.userId !== op.userId);
+  queue.push(op);
+  writePendingUserSyncQueue(queue);
+}
+
+function removePendingUserSync(userId: string): void {
+  const queue = readPendingUserSyncQueue();
+  const filtered = queue.filter((x) => x.userId !== userId);
+  if (filtered.length !== queue.length) {
+    writePendingUserSyncQueue(filtered);
+  }
+}
+
+async function syncUserAndCredentialToFirestore(
+  user?: AppUser,
+  credential?: UserCredentialRecord
+): Promise<boolean> {
+  if (!isFirestoreAuthenticated()) {
+    return false;
+  }
+  try {
+    if (user) {
+      await firestoreSaveUser(user);
+    }
+    if (credential) {
+      await firestoreSaveUserCredential(credential);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function flushPendingUserSyncQueue(): Promise<void> {
+  if (!isFirestoreAuthenticated()) return;
+  const queue = readPendingUserSyncQueue();
+  if (queue.length === 0) return;
+
+  const remaining: PendingUserSyncOp[] = [];
+  for (const op of queue) {
+    try {
+      if (op.kind === 'DELETE_USER') {
+        await firestoreDeleteUser(op.userId).catch(() => false);
+        await firestoreDeleteUserCredential(op.userId).catch(() => false);
+      } else {
+        if (op.user) {
+          await firestoreSaveUser(op.user);
+        }
+        if (op.credential) {
+          await firestoreSaveUserCredential(op.credential);
+        }
+      }
+    } catch {
+      remaining.push(op);
+    }
+  }
+  writePendingUserSyncQueue(remaining);
 }
 
 function migrateLegacyHashesFromRawUsers(): void {
@@ -718,7 +892,13 @@ export async function authenticateUser(
     _hp: honeypot,
   });
 
-  if (!apiAttempt.reachableJson && !apiAttempt.cookieCheckRequired && typeof navigator !== 'undefined' && navigator.onLine) {
+  if (
+    !apiAttempt.reachableJson &&
+    !apiAttempt.cookieCheckRequired &&
+    isHostedExpressOrigin() &&
+    typeof navigator !== 'undefined' &&
+    navigator.onLine
+  ) {
     await new Promise((r) => setTimeout(r, 600));
     apiAttempt = await postJsonApi('/api/auth/login', {
       usuario: cleanUsername,
@@ -757,10 +937,27 @@ export async function authenticateUser(
     };
   }
 
-  // Solo si el servidor backend no existe en este entorno (ej. despliegue estático / offline sin API JSON)
+  // En despliegue estático o móvil sin API JSON, consultar primero las cuentas y credenciales cifradas sincronizadas en Cloud Firestore
   const cooldownMsg = checkStaticRateLimit(cleanUsername);
   if (cooldownMsg) {
     return { success: false, error: cooldownMsg };
+  }
+
+  try {
+    await waitForFirebaseAuthReady(1500);
+    if (isFirestoreAuthenticated() && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+      const cloudLoginData = await firestorePullUsersAndCredentialsForLogin(3500);
+      if (cloudLoginData) {
+        if (cloudLoginData.users.length > 0) {
+          mergeUsersIntoStorage(cloudLoginData.users);
+        }
+        if (cloudLoginData.userCredentials.length > 0) {
+          mergeCloudUserCredentials(cloudLoginData.userCredentials);
+        }
+      }
+    }
+  } catch {
+    // Continuar con copia local si Firestore falla
   }
 
   migrateLegacyHashesFromRawUsers();
@@ -773,17 +970,26 @@ export async function authenticateUser(
     }
   }
 
-  const staticMatch = mergedCandidates.find((u) => u.usuario.toLowerCase() === cleanUsername);
+  const matchingUsers = mergedCandidates
+    .filter((u) => u.usuario.toLowerCase() === cleanUsername)
+    .sort((a, b) => {
+      const tsA = credsMap[a.id]?.updatedAt || a.passwordUpdatedAt || a.fechaCreacion || '';
+      const tsB = credsMap[b.id]?.updatedAt || b.passwordUpdatedAt || b.fechaCreacion || '';
+      return tsB.localeCompare(tsA);
+    });
+
+  const staticMatch = matchingUsers[0];
   if (staticMatch) {
     const seedMatch = INITIAL_USERS.find(
       (u) => u.id === staticMatch.id || u.usuario.toLowerCase() === cleanUsername
     );
-    const localCred = credsMap[staticMatch.id] || (seedMatch ? credsMap[seedMatch.id] : undefined);
+    const localCred =
+      matchingUsers.map((u) => credsMap[u.id]).find((c) => Boolean(c && isValidSha256Hex(c.passwordHash))) ||
+      (seedMatch ? credsMap[seedMatch.id] : undefined);
     const candidateCreds: StaticCredEntry[] = [];
     if (localCred && isValidSha256Hex(localCred.passwordHash)) {
       candidateCreds.push(localCred);
-    }
-    if (seedMatch && isValidSha256Hex(seedMatch.passwordHash) && !localCred?.adminUpdated) {
+    } else if (seedMatch && isValidSha256Hex(seedMatch.passwordHash)) {
       candidateCreds.push({ passwordHash: seedMatch.passwordHash, salt: seedMatch.salt });
     }
 
@@ -806,10 +1012,6 @@ export async function authenticateUser(
           success: false,
           error: 'SU USUARIO SE ENCUENTRA INACTIVO. CONTACTE AL ADMINISTRADOR.',
         };
-      }
-      if (localCred && !localCred.adminUpdated && seedMatch) {
-        delete credsMap[staticMatch.id];
-        writeStaticCreds(credsMap);
       }
       recordStaticLoginFail(cleanUsername, true);
       const safeUser = stripSensitiveFields({
@@ -839,7 +1041,7 @@ function getAuthorizedLocalAdmin(): AppUser | null {
   return actor;
 }
 
-// Crear nuevo usuario (Solo Administrador vía API autenticada o modo estático verificado)
+// Crear nuevo usuario (Solo Administrador vía API autenticada o modo estático + sincronización con Firestore)
 export async function createNewUser(data: {
   nombre: string;
   usuario: string;
@@ -851,9 +1053,9 @@ export async function createNewUser(data: {
   cultivo?: string;
   estado: UserStatus;
 }): Promise<{ success: boolean; user?: AppUser; error?: string }> {
-  const cleanUsername = data.usuario.trim().toLowerCase();
-  const cleanNombre = data.nombre.trim();
-  const cleanPass = data.contrasena.trim();
+  const cleanUsername = normalizeCredentialText(data.usuario).toLowerCase();
+  const cleanNombre = normalizeCredentialText(data.nombre);
+  const cleanPass = normalizeCredentialText(data.contrasena);
 
   if (!cleanNombre || cleanNombre.length < 2) {
     return { success: false, error: 'El nombre completo es obligatorio (mín. 2 caracteres).' };
@@ -865,12 +1067,20 @@ export async function createNewUser(data: {
     return { success: false, error: 'La contraseña debe tener al menos 8 caracteres.' };
   }
 
+  const nowIso = new Date().toISOString();
+  const passwordHash = await hashPassword(cleanPass, DEFAULT_SALT);
   const token = getAuthToken();
+
   if (!isStaticToken(token)) {
     const attempt = await fetchJsonApi('/api/users', {
       method: 'POST',
       auth: true,
-      body: data as unknown as Record<string, unknown>,
+      body: {
+        ...data,
+        nombre: cleanNombre,
+        usuario: cleanUsername,
+        contrasena: cleanPass,
+      } as unknown as Record<string, unknown>,
     });
 
     if (attempt.reachableJson && attempt.res) {
@@ -878,9 +1088,38 @@ export async function createNewUser(data: {
         return { success: false, error: attempt.data?.error || 'No se pudo crear el usuario.' };
       }
       const safeUser = stripSensitiveFields(attempt.data.user);
-      const existing = getStoredUsers();
+      const creds = readStaticCreds();
+      creds[safeUser.id] = {
+        passwordHash,
+        salt: DEFAULT_SALT,
+        adminUpdated: true,
+        updatedAt: nowIso,
+      };
+      writeStaticCreds(creds);
+
+      const existing = getStoredUsers().filter((u) => u.id !== safeUser.id);
       saveStoredUsers([...existing, safeUser]);
-      firestoreSaveUser(safeUser).catch(() => {});
+
+      const credRecord: UserCredentialRecord = {
+        id: safeUser.id,
+        usuario: safeUser.usuario.toLowerCase(),
+        passwordHash,
+        salt: DEFAULT_SALT,
+        adminUpdated: true,
+        updatedAt: nowIso,
+      };
+      const synced = await syncUserAndCredentialToFirestore(safeUser, credRecord);
+      if (!synced) {
+        enqueuePendingUserSync({
+          kind: 'UPSERT_USER',
+          userId: safeUser.id,
+          user: safeUser,
+          credential: credRecord,
+          queuedAt: nowIso,
+        });
+      } else {
+        removePendingUserSync(safeUser.id);
+      }
       return { success: true, user: safeUser };
     }
   }
@@ -894,9 +1133,13 @@ export async function createNewUser(data: {
   }
 
   const newId = `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-  const passwordHash = await hashPassword(cleanPass, DEFAULT_SALT);
   const creds = readStaticCreds();
-  creds[newId] = { passwordHash, salt: DEFAULT_SALT, adminUpdated: true };
+  creds[newId] = {
+    passwordHash,
+    salt: DEFAULT_SALT,
+    adminUpdated: true,
+    updatedAt: nowIso,
+  };
   writeStaticCreds(creds);
 
   const safeUser = stripSensitiveFields({
@@ -911,25 +1154,57 @@ export async function createNewUser(data: {
     fundo: data.fundo || 'AGRICULTOR 2',
     cultivo: data.cultivo || (data.rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'),
     estado: data.estado || 'ACTIVO',
-    fechaCreacion: new Date().toISOString(),
+    fechaCreacion: nowIso,
   });
 
   saveStoredUsers([...currentUsers, safeUser]);
-  firestoreSaveUser(safeUser).catch(() => {});
+  const credRecord: UserCredentialRecord = {
+    id: safeUser.id,
+    usuario: safeUser.usuario.toLowerCase(),
+    passwordHash,
+    salt: DEFAULT_SALT,
+    adminUpdated: true,
+    updatedAt: nowIso,
+  };
+  const synced = await syncUserAndCredentialToFirestore(safeUser, credRecord);
+  if (!synced) {
+    enqueuePendingUserSync({
+      kind: 'UPSERT_USER',
+      userId: safeUser.id,
+      user: safeUser,
+      credential: credRecord,
+      queuedAt: nowIso,
+    });
+  } else {
+    removePendingUserSync(safeUser.id);
+  }
   return { success: true, user: safeUser };
 }
 
-// Actualizar usuario existente (Solo Administrador vía API autenticada o modo estático verificado)
+// Actualizar usuario existente (Solo Administrador vía API autenticada o modo estático + sincronización con Firestore)
 export async function updateExistingUser(
   userId: string,
   updates: Partial<Omit<AppUser, 'id' | 'passwordHash' | 'salt'>> & { nuevaContrasena?: string }
 ): Promise<{ success: boolean; user?: AppUser; error?: string }> {
+  const cleanNewPass = updates.nuevaContrasena ? normalizeCredentialText(updates.nuevaContrasena) : '';
+  if (cleanNewPass && cleanNewPass.length < 8) {
+    return { success: false, error: 'La contraseña debe tener al menos 8 caracteres.' };
+  }
+
+  const nowIso = new Date().toISOString();
+  const newPassHash = cleanNewPass ? await hashPassword(cleanNewPass, DEFAULT_SALT) : null;
   const token = getAuthToken();
+
   if (!isStaticToken(token)) {
     const attempt = await fetchJsonApi(`/api/users/${encodeURIComponent(userId)}`, {
       method: 'PUT',
       auth: true,
-      body: updates as unknown as Record<string, unknown>,
+      body: {
+        ...updates,
+        ...(updates.usuario ? { usuario: normalizeCredentialText(updates.usuario).toLowerCase() } : {}),
+        ...(updates.nombre ? { nombre: normalizeCredentialText(updates.nombre) } : {}),
+        ...(cleanNewPass ? { nuevaContrasena: cleanNewPass } : {}),
+      } as unknown as Record<string, unknown>,
     });
 
     if (attempt.reachableJson && attempt.res) {
@@ -944,7 +1219,51 @@ export async function updateExistingUser(
         ? list.map((u) => (u.id === userId ? safeUser : u))
         : [...list, safeUser];
       saveStoredUsers(updatedList);
-      firestoreSaveUser(safeUser).catch(() => {});
+
+      let credRecord: UserCredentialRecord | undefined;
+      if (newPassHash) {
+        const creds = readStaticCreds();
+        creds[userId] = {
+          passwordHash: newPassHash,
+          salt: DEFAULT_SALT,
+          adminUpdated: true,
+          updatedAt: nowIso,
+        };
+        writeStaticCreds(creds);
+        credRecord = {
+          id: safeUser.id,
+          usuario: safeUser.usuario.toLowerCase(),
+          passwordHash: newPassHash,
+          salt: DEFAULT_SALT,
+          adminUpdated: true,
+          updatedAt: nowIso,
+        };
+      } else {
+        const existingCred = readStaticCreds()[userId];
+        if (existingCred && updates.usuario) {
+          credRecord = {
+            id: safeUser.id,
+            usuario: safeUser.usuario.toLowerCase(),
+            passwordHash: existingCred.passwordHash,
+            salt: existingCred.salt || DEFAULT_SALT,
+            adminUpdated: existingCred.adminUpdated !== false,
+            updatedAt: nowIso,
+          };
+        }
+      }
+
+      const synced = await syncUserAndCredentialToFirestore(safeUser, credRecord);
+      if (!synced) {
+        enqueuePendingUserSync({
+          kind: 'UPSERT_USER',
+          userId: safeUser.id,
+          user: safeUser,
+          ...(credRecord ? { credential: credRecord } : {}),
+          queuedAt: nowIso,
+        });
+      } else {
+        removePendingUserSync(safeUser.id);
+      }
 
       const currentSession = getActiveSessionUser();
       if (currentSession && currentSession.id === userId) {
@@ -964,7 +1283,9 @@ export async function updateExistingUser(
     return { success: false, error: 'Usuario no encontrado.' };
   }
 
-  const cleanUsername = updates.usuario ? updates.usuario.trim().toLowerCase() : target.usuario;
+  const cleanUsername = updates.usuario
+    ? normalizeCredentialText(updates.usuario).toLowerCase()
+    : target.usuario;
   if (!/^[a-zA-Z0-9._\-]{3,32}$/.test(cleanUsername)) {
     return { success: false, error: 'Nombre de usuario con formato inválido.' };
   }
@@ -975,14 +1296,36 @@ export async function updateExistingUser(
     return { success: false, error: 'No puedes desactivar tu propia cuenta de administrador.' };
   }
 
-  if (updates.nuevaContrasena && updates.nuevaContrasena.trim()) {
-    const np = updates.nuevaContrasena.trim();
-    if (np.length < 8) {
-      return { success: false, error: 'La contraseña debe tener al menos 8 caracteres.' };
-    }
+  let credRecord: UserCredentialRecord | undefined;
+  if (newPassHash) {
     const creds = readStaticCreds();
-    creds[userId] = { passwordHash: await hashPassword(np, DEFAULT_SALT), salt: DEFAULT_SALT, adminUpdated: true };
+    creds[userId] = {
+      passwordHash: newPassHash,
+      salt: DEFAULT_SALT,
+      adminUpdated: true,
+      updatedAt: nowIso,
+    };
     writeStaticCreds(creds);
+    credRecord = {
+      id: target.id,
+      usuario: cleanUsername,
+      passwordHash: newPassHash,
+      salt: DEFAULT_SALT,
+      adminUpdated: true,
+      updatedAt: nowIso,
+    };
+  } else {
+    const existingCred = readStaticCreds()[userId];
+    if (existingCred && updates.usuario) {
+      credRecord = {
+        id: target.id,
+        usuario: cleanUsername,
+        passwordHash: existingCred.passwordHash,
+        salt: existingCred.salt || DEFAULT_SALT,
+        adminUpdated: existingCred.adminUpdated !== false,
+        updatedAt: nowIso,
+      };
+    }
   }
 
   const safeUser = stripSensitiveFields({
@@ -990,14 +1333,25 @@ export async function updateExistingUser(
     ...updates,
     id: target.id,
     usuario: cleanUsername,
-    nombre: updates.nombre !== undefined ? updates.nombre.trim() : target.nombre,
+    nombre: updates.nombre !== undefined ? normalizeCredentialText(updates.nombre) : target.nombre,
     email: updates.email !== undefined ? updates.email.trim().toLowerCase() : target.email,
     passwordHash: '',
     salt: '',
   });
 
   saveStoredUsers(currentUsers.map((u) => (u.id === userId ? safeUser : u)));
-  firestoreSaveUser(safeUser).catch(() => {});
+  const synced = await syncUserAndCredentialToFirestore(safeUser, credRecord);
+  if (!synced) {
+    enqueuePendingUserSync({
+      kind: 'UPSERT_USER',
+      userId: safeUser.id,
+      user: safeUser,
+      ...(credRecord ? { credential: credRecord } : {}),
+      queuedAt: nowIso,
+    });
+  } else {
+    removePendingUserSync(safeUser.id);
+  }
 
   const currentSession = getActiveSessionUser();
   if (currentSession && currentSession.id === userId) {
@@ -1032,6 +1386,7 @@ export async function deleteStoredUser(
     return { success: false, error: 'No puedes eliminar tu propia cuenta de administrador en sesión.' };
   }
 
+  const nowIso = new Date().toISOString();
   const token = getAuthToken();
   if (!isStaticToken(token)) {
     const attempt = await fetchJsonApi(`/api/users/${encodeURIComponent(userId)}`, {
@@ -1044,9 +1399,20 @@ export async function deleteStoredUser(
         return { success: false, error: attempt.data?.error || 'No fue posible eliminar el usuario.' };
       }
 
+      const creds = readStaticCreds();
+      delete creds[userId];
+      writeStaticCreds(creds);
+
       const remaining = getStoredUsers().filter((u) => u.id !== userId);
       saveStoredUsers(remaining);
-      firestoreDeleteUser(userId).catch(() => {});
+
+      if (isFirestoreAuthenticated()) {
+        await firestoreDeleteUser(userId).catch(() => {});
+        await firestoreDeleteUserCredential(userId).catch(() => {});
+        removePendingUserSync(userId);
+      } else {
+        enqueuePendingUserSync({ kind: 'DELETE_USER', userId, queuedAt: nowIso });
+      }
       return { success: true };
     }
   }
@@ -1063,47 +1429,112 @@ export async function deleteStoredUser(
 
   const remaining = getStoredUsers().filter((u) => u.id !== userId);
   saveStoredUsers(remaining);
-  firestoreDeleteUser(userId).catch(() => {});
+
+  if (isFirestoreAuthenticated()) {
+    await firestoreDeleteUser(userId).catch(() => {});
+    await firestoreDeleteUserCredential(userId).catch(() => {});
+    removePendingUserSync(userId);
+  } else {
+    enqueuePendingUserSync({ kind: 'DELETE_USER', userId, queuedAt: nowIso });
+  }
   return { success: true };
 }
 
-// Restablecer contraseña de usuario (Solo Administrador vía API autenticada o modo estático verificado)
+// Restablecer contraseña de usuario (Solo Administrador vía API autenticada, almacenamiento local y Cloud Firestore)
 export async function resetUserPassword(
   userId: string,
   nuevaContrasena: string
 ): Promise<{ success: boolean; error?: string }> {
-  const cleanPass = nuevaContrasena.trim();
+  const cleanPass = normalizeCredentialText(nuevaContrasena);
   if (cleanPass.length < 8) {
     return { success: false, error: 'La nueva contraseña debe tener al menos 8 caracteres.' };
   }
 
+  const nowIso = new Date().toISOString();
+  const passwordHash = await hashPassword(cleanPass, DEFAULT_SALT);
+  const localTarget =
+    getStoredUsers().find((u) => u.id === userId) ||
+    INITIAL_USERS.find((u) => u.id === userId) ||
+    null;
+
   const token = getAuthToken();
+  let expressHandled = false;
+  let serverUser: AppUser | null = localTarget ? stripSensitiveFields(localTarget) : null;
+
   if (!isStaticToken(token)) {
-    const attempt = await fetchJsonApi(`/api/users/${encodeURIComponent(userId)}/reset-password`, {
+    let attempt = await fetchJsonApi(`/api/users/${encodeURIComponent(userId)}/reset-password`, {
       method: 'POST',
       auth: true,
-      body: { nuevaContrasena: cleanPass },
+      body: {
+        nuevaContrasena: cleanPass,
+        ...(localTarget ? { userSnapshot: stripSensitiveFields(localTarget) } : {}),
+      },
     });
+
+    if (attempt.reachableJson && attempt.res?.status === 404 && localTarget) {
+      attempt = await fetchJsonApi(`/api/users/${encodeURIComponent(userId)}`, {
+        method: 'PUT',
+        auth: true,
+        body: {
+          ...stripSensitiveFields(localTarget),
+          nuevaContrasena: cleanPass,
+        } as unknown as Record<string, unknown>,
+      });
+    }
 
     if (attempt.reachableJson && attempt.res) {
       if (!attempt.res.ok || !attempt.data?.success) {
         return { success: false, error: attempt.data?.error || 'No se pudo restablecer la contraseña.' };
       }
-      return { success: true };
+      expressHandled = true;
+      if (attempt.data.user) {
+        serverUser = stripSensitiveFields(attempt.data.user);
+      }
     }
   }
 
-  const localAdmin = getAuthorizedLocalAdmin();
-  if (!localAdmin) return { success: false, error: ADMIN_REQUIRED_MSG };
-
-  const target = getStoredUsers().find((u) => u.id === userId);
-  if (!target) {
-    return { success: false, error: 'Usuario no encontrado.' };
+  if (!expressHandled) {
+    const localAdmin = getAuthorizedLocalAdmin();
+    if (!localAdmin) return { success: false, error: ADMIN_REQUIRED_MSG };
+    if (!localTarget) {
+      return { success: false, error: 'Usuario no encontrado.' };
+    }
   }
 
   const creds = readStaticCreds();
-  creds[userId] = { passwordHash: await hashPassword(cleanPass, DEFAULT_SALT), salt: DEFAULT_SALT, adminUpdated: true };
+  creds[userId] = {
+    passwordHash,
+    salt: DEFAULT_SALT,
+    adminUpdated: true,
+    updatedAt: nowIso,
+  };
   writeStaticCreds(creds);
+
+  const usernameLower = (serverUser?.usuario || localTarget?.usuario || '').trim().toLowerCase();
+  const credRecord: UserCredentialRecord | undefined = usernameLower
+    ? {
+        id: userId,
+        usuario: usernameLower,
+        passwordHash,
+        salt: DEFAULT_SALT,
+        adminUpdated: true,
+        updatedAt: nowIso,
+      }
+    : undefined;
+
+  const synced = await syncUserAndCredentialToFirestore(serverUser || undefined, credRecord);
+  if (!synced && credRecord) {
+    enqueuePendingUserSync({
+      kind: 'UPSERT_USER',
+      userId,
+      ...(serverUser ? { user: serverUser } : {}),
+      credential: credRecord,
+      queuedAt: nowIso,
+    });
+  } else if (synced) {
+    removePendingUserSync(userId);
+  }
+
   return { success: true };
 }
 

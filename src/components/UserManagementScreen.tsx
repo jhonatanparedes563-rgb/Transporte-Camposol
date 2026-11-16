@@ -101,6 +101,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   const [showResetPass, setShowResetPass] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const loadUsers = () => {
@@ -182,24 +183,29 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       return;
     }
 
-    const res = await createNewUser({
-      nombre,
-      usuario,
-      email,
-      contrasena,
-      rol: createForm.rol,
-      area: createForm.area,
-      fundo: createForm.fundo,
-      cultivo: createForm.cultivo,
-      estado: createForm.estado,
-    });
+    setIsSubmitting(true);
+    try {
+      const res = await createNewUser({
+        nombre,
+        usuario,
+        email,
+        contrasena,
+        rol: createForm.rol,
+        area: createForm.area,
+        fundo: createForm.fundo,
+        cultivo: createForm.cultivo,
+        estado: createForm.estado,
+      });
 
-    if (res.success) {
-      setIsCreateModalOpen(false);
-      loadUsers();
-      showToast(`Usuario "${nombre}" creado exitosamente.`);
-    } else {
-      setErrorMessage(res.error || 'Error al registrar usuario.');
+      if (res.success) {
+        setIsCreateModalOpen(false);
+        loadUsers();
+        showToast(`Usuario "${nombre}" creado exitosamente.`);
+      } else {
+        setErrorMessage(res.error || 'Error al registrar usuario.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -239,23 +245,28 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       return;
     }
 
-    const res = await updateExistingUser(selectedUser.id, {
-      nombre,
-      usuario,
-      email,
-      rol: editForm.rol,
-      area: editForm.area,
-      fundo: editForm.fundo,
-      cultivo: editForm.cultivo,
-      estado: editForm.estado,
-    });
+    setIsSubmitting(true);
+    try {
+      const res = await updateExistingUser(selectedUser.id, {
+        nombre,
+        usuario,
+        email,
+        rol: editForm.rol,
+        area: editForm.area,
+        fundo: editForm.fundo,
+        cultivo: editForm.cultivo,
+        estado: editForm.estado,
+      });
 
-    if (res.success) {
-      setIsEditModalOpen(false);
-      loadUsers();
-      showToast(`Usuario "${nombre}" actualizado correctamente.`);
-    } else {
-      setErrorMessage(res.error || 'Error al actualizar usuario.');
+      if (res.success) {
+        setIsEditModalOpen(false);
+        loadUsers();
+        showToast(`Usuario "${nombre}" actualizado correctamente.`);
+      } else {
+        setErrorMessage(res.error || 'Error al actualizar usuario.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -289,13 +300,18 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       return;
     }
 
-    const res = await resetUserPassword(selectedUser.id, nueva);
-    if (res.success) {
-      setIsResetModalOpen(false);
-      loadUsers();
-      showToast(`Contraseña restablecida exitosamente para ${selectedUser.nombre}.`);
-    } else {
-      setErrorMessage(res.error || 'Error al restablecer contraseña.');
+    setIsSubmitting(true);
+    try {
+      const res = await resetUserPassword(selectedUser.id, nueva);
+      if (res.success) {
+        setIsResetModalOpen(false);
+        loadUsers();
+        showToast(`Contraseña restablecida exitosamente para ${selectedUser.nombre}.`);
+      } else {
+        setErrorMessage(res.error || 'Error al restablecer contraseña.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -333,14 +349,19 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     if (!selectedUser) return;
     setErrorMessage('');
 
-    const res = await deleteStoredUser(selectedUser.id, currentAdminUser.id);
-    if (res.success) {
-      setIsDeleteModalOpen(false);
-      setIsEditModalOpen(false);
-      loadUsers();
-      showToast(`Usuario "${selectedUser.nombre}" (@${selectedUser.usuario}) eliminado correctamente.`);
-    } else {
-      setErrorMessage(res.error || 'No fue posible eliminar el usuario.');
+    setIsSubmitting(true);
+    try {
+      const res = await deleteStoredUser(selectedUser.id, currentAdminUser.id);
+      if (res.success) {
+        setIsDeleteModalOpen(false);
+        setIsEditModalOpen(false);
+        loadUsers();
+        showToast(`Usuario "${selectedUser.nombre}" (@${selectedUser.usuario}) eliminado correctamente.`);
+      } else {
+        setErrorMessage(res.error || 'No fue posible eliminar el usuario.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1054,10 +1075,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 <button
                   id="btn-save-new-user"
                   type="submit"
-                  className="px-5 py-2.5 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 bg-[#22A846] hover:bg-[#1C8E3A] disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-full text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Guardar</span>
+                  <span>{isSubmitting ? 'Guardando...' : 'Guardar'}</span>
                 </button>
               </div>
             </form>
@@ -1337,10 +1359,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   <button
                     id="btn-save-edit-user"
                     type="submit"
-                    className="px-5 py-2.5 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    disabled={isSubmitting}
+                    className="px-5 py-2.5 bg-[#22A846] hover:bg-[#1C8E3A] disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-full text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Guardar</span>
+                    <span>{isSubmitting ? 'Guardando...' : 'Guardar'}</span>
                   </button>
                 </div>
               </div>
@@ -1457,10 +1480,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 <button
                   id="btn-save-reset-password"
                   type="submit"
-                  className="px-5 py-2 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 bg-[#22A846] hover:bg-[#1C8E3A] disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-full text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Guardar</span>
+                  <span>{isSubmitting ? 'Guardando...' : 'Guardar'}</span>
                 </button>
               </div>
             </form>
@@ -1561,11 +1585,12 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 <button
                   id="btn-confirm-delete-user"
                   type="button"
+                  disabled={isSubmitting}
                   onClick={handleDeleteConfirm}
-                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>SÍ, ELIMINAR</span>
+                  <span>{isSubmitting ? 'ELIMINANDO...' : 'SÍ, ELIMINAR'}</span>
                 </button>
               </div>
             </div>

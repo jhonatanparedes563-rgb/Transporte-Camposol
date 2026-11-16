@@ -18,6 +18,7 @@ export interface AppUser {
   estado: UserStatus;
   fechaCreacion?: string;
   ultimoAcceso?: string;
+  passwordUpdatedAt?: string;
   terminosAceptados?: boolean;
   fechaAceptacionTerminos?: string;
   versionTerminosAceptada?: string;

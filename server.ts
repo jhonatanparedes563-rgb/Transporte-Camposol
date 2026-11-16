@@ -66,14 +66,23 @@ function loadOrCreateSessionSecret(): string {
 
 const SESSION_SECRET = loadOrCreateSessionSecret();
 
+function normalizeCredentialInput(val: unknown): string {
+  if (typeof val !== 'string') return '';
+  return val
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\u00A0/g, ' ')
+    .trim();
+}
+
 function hashPasswordScrypt(password: string): string {
+  const clean = normalizeCredentialInput(password);
   const salt = crypto.randomBytes(16).toString('hex');
-  const derived = crypto.scryptSync(password.trim(), salt, 64).toString('hex');
+  const derived = crypto.scryptSync(clean, salt, 64).toString('hex');
   return `scrypt$${salt}$${derived}`;
 }
 
 function verifyPasswordHash(plainPassword: string, storedHash: string, legacySalt?: string): boolean {
-  const clean = plainPassword.trim();
+  const clean = normalizeCredentialInput(plainPassword);
   if (!clean || !storedHash) return false;
 
   if (storedHash.startsWith('scrypt$')) {
@@ -449,8 +458,8 @@ async function startServer() {
       return res.status(400).json({ error: 'Solicitud rechazada por validación de seguridad.' });
     }
 
-    const cleanUsername = sanitizeText(req.body?.usuario, 64).toLowerCase();
-    const cleanPass = typeof req.body?.contrasena === 'string' ? req.body.contrasena.trim() : '';
+    const cleanUsername = sanitizeText(normalizeCredentialInput(req.body?.usuario), 64).toLowerCase();
+    const cleanPass = normalizeCredentialInput(req.body?.contrasena);
 
     if (!cleanUsername || !cleanPass) {
       return res.status(400).json({ error: 'Ingrese su usuario y contraseña.' });
@@ -585,8 +594,8 @@ async function startServer() {
   });
 
   app.post('/api/auth/change-password', requireAuth, rateLimitMiddleware('write', 30, 60_000), (req: AuthenticatedRequest, res) => {
-    const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword.trim() : '';
-    const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword.trim() : '';
+    const currentPassword = normalizeCredentialInput(req.body?.currentPassword);
+    const newPassword = normalizeCredentialInput(req.body?.newPassword);
 
     if (!currentPassword || newPassword.length < 8 || newPassword.length > 128) {
       return res.status(400).json({ error: 'La nueva contraseña debe tener entre 8 y 128 caracteres.' });
@@ -604,10 +613,16 @@ async function startServer() {
 
     user.passwordHash = hashPasswordScrypt(newPassword);
     user.salt = 'scrypt';
+    user.passwordUpdatedAt = new Date().toISOString();
     meta.users[idx] = user;
-    dbStore.saveUsers(meta.users, false);
+    const revision = dbStore.saveUsers(meta.users, true);
+    broadcastRealtimeEvent({
+      revision,
+      kind: 'USERS_UPDATE',
+      entityId: user.id,
+    });
 
-    res.json({ success: true, message: 'Contraseña actualizada correctamente.' });
+    res.json({ success: true, user: sanitizeUser(user), message: 'Contraseña actualizada correctamente.' });
   });
 
   // -------------------------------------------------------------
@@ -1316,9 +1331,9 @@ async function startServer() {
       const dbStore = getStore();
       const meta = dbStore.getMeta();
       const body = req.body || {};
-      const cleanUsername = sanitizeText(body.usuario, 32).toLowerCase();
-      const nombre = sanitizeText(body.nombre, 120);
-      const rawPassword = typeof body.contrasena === 'string' ? body.contrasena.trim() : '';
+      const cleanUsername = sanitizeText(normalizeCredentialInput(body.usuario), 32).toLowerCase();
+      const nombre = sanitizeText(normalizeCredentialInput(body.nombre), 120);
+      const rawPassword = normalizeCredentialInput(body.contrasena);
 
       if (!nombre || nombre.length < 2) {
         return res.status(400).json({ error: 'El nombre completo es obligatorio (mín. 2 caracteres).' });
@@ -1335,6 +1350,7 @@ async function startServer() {
         return res.status(409).json({ error: `El usuario "${cleanUsername}" ya existe en el sistema.` });
       }
 
+      const nowIso = new Date().toISOString();
       const rol: UserRole = body.rol === 'admin' || body.rol === 'receptor' ? body.rol : 'usuario';
       const newUser: AppUser = {
         id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -1343,16 +1359,18 @@ async function startServer() {
         email: sanitizeText(body.email || `${cleanUsername}@camposol.com.pe`, 120).toLowerCase(),
         passwordHash: hashPasswordScrypt(rawPassword),
         salt: 'scrypt',
+        passwordUpdatedAt: nowIso,
         rol,
         area: sanitizeText(body.area || 'PRODUCCIÓN', 80),
         fundo: sanitizeText(body.fundo || 'AGRICULTOR 2', 80),
         cultivo: sanitizeText(body.cultivo || (rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'), 60),
         estado: body.estado === 'INACTIVO' ? 'INACTIVO' : 'ACTIVO',
-        fechaCreacion: new Date().toISOString(),
+        fechaCreacion: nowIso,
       };
 
       const nextUsers = [...meta.users, newUser];
       const revision = dbStore.saveUsers(nextUsers, true);
+      broadcastRealtimeEvent({ revision, kind: 'USERS_UPDATE', entityId: newUser.id });
       res.status(201).json({ success: true, user: sanitizeUser(newUser), revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error creando usuario.' });
@@ -1365,14 +1383,15 @@ async function startServer() {
       const updates = req.body || {};
       const dbStore = getStore();
       const meta = dbStore.getMeta();
+      const nowIso = new Date().toISOString();
 
       const idx = meta.users.findIndex((u) => u.id === id);
       if (idx === -1) {
         if (!/^[a-zA-Z0-9_\-]{4,128}$/.test(id)) {
           return res.status(400).json({ error: 'Identificador de usuario inválido.' });
         }
-        const cleanUsername = sanitizeText(updates.usuario, 32).toLowerCase();
-        const nombre = sanitizeText(updates.nombre, 120);
+        const cleanUsername = sanitizeText(normalizeCredentialInput(updates.usuario), 32).toLowerCase();
+        const nombre = sanitizeText(normalizeCredentialInput(updates.nombre), 120);
         if (!nombre || nombre.length < 2 || !isValidUsername(cleanUsername)) {
           return res.status(404).json({ error: 'Usuario no encontrado.' });
         }
@@ -1381,9 +1400,10 @@ async function startServer() {
         }
         const rol: UserRole =
           updates.rol === 'admin' || updates.rol === 'receptor' ? updates.rol : 'usuario';
+        const cleanInitialPass = normalizeCredentialInput(updates.nuevaContrasena);
         const initialPass =
-          typeof updates.nuevaContrasena === 'string' && updates.nuevaContrasena.trim().length >= 8
-            ? updates.nuevaContrasena.trim()
+          cleanInitialPass.length >= 8
+            ? cleanInitialPass
             : crypto.randomBytes(16).toString('hex');
         const restoredUser: AppUser = {
           id,
@@ -1392,21 +1412,23 @@ async function startServer() {
           email: sanitizeText(updates.email || `${cleanUsername}@camposol.com.pe`, 120).toLowerCase(),
           passwordHash: hashPasswordScrypt(initialPass),
           salt: 'scrypt',
+          ...(cleanInitialPass.length >= 8 ? { passwordUpdatedAt: nowIso } : {}),
           rol,
           area: sanitizeText(updates.area || 'PRODUCCIÓN', 80),
           fundo: sanitizeText(updates.fundo || 'TODOS LOS FUNDOS', 80),
           cultivo: sanitizeText(updates.cultivo || (rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'), 60),
           estado: updates.estado === 'INACTIVO' ? 'INACTIVO' : 'ACTIVO',
-          fechaCreacion: updates.fechaCreacion || new Date().toISOString(),
+          fechaCreacion: updates.fechaCreacion || nowIso,
         };
         const revision = dbStore.saveUsers([...meta.users, restoredUser], true);
+        broadcastRealtimeEvent({ revision, kind: 'USERS_UPDATE', entityId: restoredUser.id });
         return res.json({ success: true, user: sanitizeUser(restoredUser), revision });
       }
 
       const target = { ...meta.users[idx] };
 
-      if (typeof updates.usuario === 'string' && updates.usuario.trim()) {
-        const cleanUsername = sanitizeText(updates.usuario, 32).toLowerCase();
+      if (typeof updates.usuario === 'string' && normalizeCredentialInput(updates.usuario)) {
+        const cleanUsername = sanitizeText(normalizeCredentialInput(updates.usuario), 32).toLowerCase();
         if (!isValidUsername(cleanUsername)) {
           return res.status(400).json({ error: 'Nombre de usuario con formato inválido.' });
         }
@@ -1417,7 +1439,9 @@ async function startServer() {
         target.usuario = cleanUsername;
       }
 
-      if (typeof updates.nombre === 'string' && updates.nombre.trim()) target.nombre = sanitizeText(updates.nombre, 120);
+      if (typeof updates.nombre === 'string' && normalizeCredentialInput(updates.nombre)) {
+        target.nombre = sanitizeText(normalizeCredentialInput(updates.nombre), 120);
+      }
       if (typeof updates.email === 'string') target.email = sanitizeText(updates.email, 120).toLowerCase();
       if (updates.rol === 'usuario' || updates.rol === 'admin' || updates.rol === 'receptor') {
         target.rol = updates.rol;
@@ -1431,17 +1455,19 @@ async function startServer() {
         }
         target.estado = updates.estado;
       }
-      if (typeof updates.nuevaContrasena === 'string' && updates.nuevaContrasena.trim()) {
-        const np = updates.nuevaContrasena.trim();
-        if (np.length < 8 || np.length > 128) {
+      const cleanUpdatePass = normalizeCredentialInput(updates.nuevaContrasena);
+      if (cleanUpdatePass) {
+        if (cleanUpdatePass.length < 8 || cleanUpdatePass.length > 128) {
           return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
         }
-        target.passwordHash = hashPasswordScrypt(np);
+        target.passwordHash = hashPasswordScrypt(cleanUpdatePass);
         target.salt = 'scrypt';
+        target.passwordUpdatedAt = nowIso;
       }
 
       meta.users[idx] = target;
       const revision = dbStore.saveUsers(meta.users, true);
+      broadcastRealtimeEvent({ revision, kind: 'USERS_UPDATE', entityId: id });
       res.json({ success: true, user: sanitizeUser(target), revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error actualizando usuario.' });
@@ -1451,23 +1477,72 @@ async function startServer() {
   app.post('/api/users/:id/reset-password', requireAuth, requireRole('admin'), rateLimitMiddleware('write', 20, 60_000), (req, res) => {
     try {
       const { id } = req.params;
-      const nuevaContrasena = typeof req.body?.nuevaContrasena === 'string' ? req.body.nuevaContrasena.trim() : '';
+      const nuevaContrasena = normalizeCredentialInput(req.body?.nuevaContrasena);
       if (nuevaContrasena.length < 8 || nuevaContrasena.length > 128) {
         return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres.' });
       }
 
       const dbStore = getStore();
       const meta = dbStore.getMeta();
-      const idx = meta.users.findIndex((u) => u.id === id);
+      const nowIso = new Date().toISOString();
+      let idx = meta.users.findIndex((u) => u.id === id);
+
       if (idx === -1) {
-        return res.status(404).json({ error: 'Usuario no encontrado.' });
+        const snap = req.body?.userSnapshot;
+        const cleanUsername = sanitizeText(normalizeCredentialInput(snap?.usuario), 32).toLowerCase();
+        const nombre = sanitizeText(normalizeCredentialInput(snap?.nombre), 120);
+        if (
+          !/^[a-zA-Z0-9_\-]{4,128}$/.test(id) ||
+          !nombre ||
+          nombre.length < 2 ||
+          !isValidUsername(cleanUsername)
+        ) {
+          return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+        const collision = meta.users.find((u) => u.usuario.toLowerCase() === cleanUsername);
+        if (collision) {
+          meta.users = meta.users.map((u) =>
+            u.id === collision.id
+              ? {
+                  ...u,
+                  passwordHash: hashPasswordScrypt(nuevaContrasena),
+                  salt: 'scrypt',
+                  passwordUpdatedAt: nowIso,
+                }
+              : u
+          );
+          idx = meta.users.findIndex((u) => u.id === collision.id);
+        } else {
+          const rol: UserRole = snap?.rol === 'admin' || snap?.rol === 'receptor' ? snap.rol : 'usuario';
+          const upserted: AppUser = {
+            id,
+            nombre,
+            usuario: cleanUsername,
+            email: sanitizeText(snap?.email || `${cleanUsername}@camposol.com.pe`, 120).toLowerCase(),
+            passwordHash: hashPasswordScrypt(nuevaContrasena),
+            salt: 'scrypt',
+            passwordUpdatedAt: nowIso,
+            rol,
+            area: sanitizeText(snap?.area || 'PRODUCCIÓN', 80),
+            fundo: sanitizeText(snap?.fundo || 'TODOS LOS FUNDOS', 80),
+            cultivo: sanitizeText(snap?.cultivo || (rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'), 60),
+            estado: snap?.estado === 'INACTIVO' ? 'INACTIVO' : 'ACTIVO',
+            fechaCreacion: snap?.fechaCreacion || nowIso,
+          };
+          meta.users.push(upserted);
+          idx = meta.users.length - 1;
+        }
+      } else {
+        meta.users[idx].passwordHash = hashPasswordScrypt(nuevaContrasena);
+        meta.users[idx].salt = 'scrypt';
+        meta.users[idx].passwordUpdatedAt = nowIso;
       }
 
-      meta.users[idx].passwordHash = hashPasswordScrypt(nuevaContrasena);
-      meta.users[idx].salt = 'scrypt';
-      const revision = dbStore.saveUsers(meta.users, false);
+      const targetUser = meta.users[idx];
+      const revision = dbStore.saveUsers(meta.users, true);
+      broadcastRealtimeEvent({ revision, kind: 'USERS_UPDATE', entityId: targetUser.id });
 
-      res.json({ success: true, revision });
+      res.json({ success: true, user: sanitizeUser(targetUser), revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error restableciendo contraseña.' });
     }
@@ -1495,9 +1570,92 @@ async function startServer() {
 
       const remaining = meta.users.filter((u) => u.id !== id);
       const revision = dbStore.saveUsers(remaining, true);
+      broadcastRealtimeEvent({ revision, kind: 'USERS_UPDATE', entityId: id });
       res.json({ success: true, deletedId: id, revision });
     } catch (err: any) {
       res.status(500).json({ error: 'Error eliminando usuario.' });
+    }
+  });
+
+  app.post('/api/users/sync-cloud', requireAuth, requireRole('admin'), rateLimitMiddleware('write', 40, 60_000), (req, res) => {
+    try {
+      const dbStore = getStore();
+      const meta = dbStore.getMeta();
+      const nextUsers = [...meta.users];
+      const incomingUsers = Array.isArray(req.body?.users) ? req.body.users.slice(0, 500) : [];
+      const incomingCreds = Array.isArray(req.body?.credentials) ? req.body.credentials.slice(0, 500) : [];
+      let changed = false;
+      const newlyInsertedIds = new Set<string>();
+
+      for (const raw of incomingUsers) {
+        if (!raw || typeof raw !== 'object') continue;
+        const id = typeof raw.id === 'string' && /^[a-zA-Z0-9_\-]{4,128}$/.test(raw.id) ? raw.id : '';
+        const cleanUsername = sanitizeText(normalizeCredentialInput(raw.usuario), 32).toLowerCase();
+        const nombre = sanitizeText(normalizeCredentialInput(raw.nombre), 120);
+        if (!id || !isValidUsername(cleanUsername) || nombre.length < 2) continue;
+
+        const existingById = nextUsers.find((u) => u.id === id);
+        const existingByName = nextUsers.find((u) => u.usuario.toLowerCase() === cleanUsername);
+        if (!existingById && !existingByName) {
+          const rol: UserRole = raw.rol === 'admin' || raw.rol === 'receptor' ? raw.rol : 'usuario';
+          nextUsers.push({
+            id,
+            nombre,
+            usuario: cleanUsername,
+            email: sanitizeText(raw.email || `${cleanUsername}@camposol.com.pe`, 120).toLowerCase(),
+            passwordHash: hashPasswordScrypt(crypto.randomBytes(24).toString('hex')),
+            salt: 'scrypt',
+            rol,
+            area: sanitizeText(raw.area || 'PRODUCCIÓN', 80),
+            fundo: sanitizeText(raw.fundo || 'TODOS LOS FUNDOS', 80),
+            cultivo: sanitizeText(raw.cultivo || (rol === 'usuario' ? 'ARÁNDANO' : 'TODOS LOS CULTIVOS'), 60),
+            estado: raw.estado === 'INACTIVO' ? 'INACTIVO' : 'ACTIVO',
+            fechaCreacion:
+              typeof raw.fechaCreacion === 'string' && raw.fechaCreacion
+                ? raw.fechaCreacion.slice(0, 40)
+                : new Date().toISOString(),
+          });
+          newlyInsertedIds.add(id);
+          changed = true;
+        }
+      }
+
+      for (const rawCred of incomingCreds) {
+        if (!rawCred || typeof rawCred !== 'object') continue;
+        const cid = typeof rawCred.id === 'string' ? rawCred.id.trim() : '';
+        const cuser = sanitizeText(normalizeCredentialInput(rawCred.usuario), 32).toLowerCase();
+        const chash = typeof rawCred.passwordHash === 'string' ? rawCred.passwordHash.trim().toLowerCase() : '';
+        const csalt = sanitizeText(rawCred.salt || 'camposol_salt_2026', 64) || 'camposol_salt_2026';
+        const cupdatedAt = typeof rawCred.updatedAt === 'string' ? rawCred.updatedAt.trim().slice(0, 40) : '';
+        if (!/^[a-f0-9]{64}$/.test(chash)) continue;
+
+        const targetIdx = nextUsers.findIndex(
+          (u) => (cid && u.id === cid) || (cuser && u.usuario.toLowerCase() === cuser)
+        );
+        if (targetIdx === -1) continue;
+
+        const target = nextUsers[targetIdx];
+        const existingTs = target.passwordUpdatedAt || target.fechaCreacion || '';
+        const isPlaceholder = newlyInsertedIds.has(target.id) || !target.passwordHash;
+        if (isPlaceholder || (cupdatedAt && (!existingTs || cupdatedAt > existingTs))) {
+          nextUsers[targetIdx] = {
+            ...target,
+            passwordHash: chash,
+            salt: csalt,
+            passwordUpdatedAt: cupdatedAt || new Date().toISOString(),
+          };
+          changed = true;
+        }
+      }
+
+      let revision = dbStore.getRevision();
+      if (changed) {
+        revision = dbStore.saveUsers(nextUsers, true);
+        broadcastRealtimeEvent({ revision, kind: 'USERS_UPDATE' });
+      }
+      res.json({ success: true, changed, revision, users: nextUsers.map(sanitizeUser) });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Error sincronizando usuarios desde la nube.' });
     }
   });
 

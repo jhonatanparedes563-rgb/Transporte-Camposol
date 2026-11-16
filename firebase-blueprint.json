@@ -77,6 +77,20 @@
       },
       "required": ["id", "nombre", "usuario", "rol", "area", "fundo", "estado"]
     },
+    "UserCredential": {
+      "title": "UserCredential",
+      "description": "Verificador criptográfico SHA-256 con salt para sincronización segura de cuentas y contraseñas",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 4, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "usuario": { "type": "string", "minLength": 3, "maxLength": 32, "pattern": "^[a-zA-Z0-9._\\-]+$" },
+        "passwordHash": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[a-f0-9]{64}$" },
+        "salt": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "adminUpdated": { "type": "boolean" },
+        "updatedAt": { "type": "string", "minLength": 10, "maxLength": 40 }
+      },
+      "required": ["id", "usuario", "passwordHash", "salt", "updatedAt"]
+    },
     "SystemMetadata": {
       "title": "SystemMetadata",
       "description": "Configuraciones globales y catálogos maestros operativos",
@@ -107,6 +121,10 @@
     "/users/{userId}": {
       "schema": "#/entities/AppUser",
       "description": "Colección de cuentas y roles operativos (PII aislado por propietario o admin)"
+    },
+    "/user_credentials/{userId}": {
+      "schema": "#/entities/UserCredential",
+      "description": "Verificadores criptográficos de acceso sincronizados exclusivamente por Administrador"
     },
     "/system_metadata/{metaId}": {
       "schema": "#/entities/SystemMetadata",

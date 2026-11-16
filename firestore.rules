@@ -43,6 +43,19 @@ service cloud.firestore {
       );
     }
 
+    function isSuperAdmin() {
+      return isBootstrappedAdmin() || (
+        isSignedIn() && (
+          exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+          (
+            exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 'admin' &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.estado == 'ACTIVO'
+          )
+        )
+      );
+    }
+
     function isOptionalBoundedList(data, key, maxLen) {
       return !(key in data) || (data[key] is list && data[key].size() <= maxLen);
     }
@@ -157,6 +170,21 @@ service cloud.firestore {
         (!('terminosAceptados' in data) || data.terminosAceptados is bool) &&
         isOptionalBoundedString(data, 'fechaAceptacionTerminos', 40) &&
         isOptionalBoundedString(data, 'versionTerminosAceptada', 40);
+    }
+
+    function isValidUserCredential(data) {
+      return data.keys().hasAll([
+          'id', 'usuario', 'passwordHash', 'salt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'usuario', 'passwordHash', 'salt', 'adminUpdated', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        data.usuario is string && data.usuario.size() >= 3 && data.usuario.size() <= 32 && data.usuario.matches('^[a-zA-Z0-9._\\-]+$') &&
+        data.passwordHash is string && data.passwordHash.size() == 64 && data.passwordHash.matches('^[a-f0-9]{64}$') &&
+        data.salt is string && data.salt.size() >= 1 && data.salt.size() <= 64 &&
+        (!('adminUpdated' in data) || data.adminUpdated is bool) &&
+        data.updatedAt is string && data.updatedAt.size() >= 10 && data.updatedAt.size() <= 40;
     }
 
     function isValidSystemMetadata(data) {
@@ -299,6 +327,23 @@ service cloud.firestore {
         );
 
       allow delete: if isAdmin() && isValidId(userId) && userId != request.auth.uid;
+    }
+
+    // ---------------------------------------------------------
+    // User Credentials Collection (Salted SHA-256 Verifiers, Super-Admin Only)
+    // ---------------------------------------------------------
+    match /user_credentials/{userId} {
+      allow get: if isSuperAdmin() && isValidId(userId);
+      allow list: if isBootstrappedAdmin();
+      allow create: if isSuperAdmin() &&
+        isValidId(userId) &&
+        isValidUserCredential(incoming()) &&
+        incoming().id == userId;
+      allow update: if isSuperAdmin() &&
+        isValidId(userId) &&
+        isValidUserCredential(incoming()) &&
+        incoming().id == existing().id;
+      allow delete: if isSuperAdmin() && isValidId(userId);
     }
 
     // ---------------------------------------------------------

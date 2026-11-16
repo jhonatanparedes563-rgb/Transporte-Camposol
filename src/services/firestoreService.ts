@@ -419,9 +419,28 @@ let unsubscribers: Unsubscribe[] = [];
 const legacyDetallesCache = new Map<string, DetalleRequerimiento[]>();
 const legacyDetallesPending = new Set<string>();
 const knownFirestoreReqIds = new Set<string>();
+const knownFirestoreUserIds = new Set<string>();
+const knownFirestoreCredUpdatedAt = new Map<string, string>();
 
 export function hasKnownFirestoreReqId(id: string): boolean {
   return knownFirestoreReqIds.has(id);
+}
+
+export function hasKnownFirestoreUserId(id: string): boolean {
+  return knownFirestoreUserIds.has(id);
+}
+
+export function getKnownFirestoreCredUpdatedAt(id: string): string | null {
+  return knownFirestoreCredUpdatedAt.get(id) ?? null;
+}
+
+export interface UserCredentialRecord {
+  id: string;
+  usuario: string;
+  passwordHash: string;
+  salt: string;
+  adminUpdated?: boolean;
+  updatedAt: string;
 }
 
 type OnDataUpdate = (data: {
@@ -430,6 +449,7 @@ type OnDataUpdate = (data: {
   isWindowed?: boolean;
   windowDesde?: string;
   users?: AppUser[];
+  userCredentials?: UserCredentialRecord[];
   areas?: MaestroArea[];
   fundos?: MaestroFundo[];
   zonas?: MaestroZona[];
@@ -713,7 +733,7 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
   );
   unsubscribers.push(unsubMeta);
 
-  // 3. Usuarios (solo Admin en la nube)
+  // 3. Usuarios y credenciales cifradas (solo Admin en la nube)
   if (isBootstrappedAdmin) {
     const unsubUsers = onSnapshot(
       collection(db, 'users'),
@@ -722,6 +742,7 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
           const cloudUsers: AppUser[] = [];
           snapshot.forEach((d) => {
             const u = d.data() as AppUser;
+            if (u?.id) knownFirestoreUserIds.add(u.id);
             cloudUsers.push({
               ...u,
               passwordHash: '',
@@ -738,6 +759,36 @@ function attachVerifiedListeners(firebaseUser: FirebaseUser) {
       }
     );
     unsubscribers.push(unsubUsers);
+
+    const unsubCreds = onSnapshot(
+      collection(db, 'user_credentials'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const cloudCreds: UserCredentialRecord[] = [];
+          snapshot.forEach((d) => {
+            const c = d.data() as UserCredentialRecord;
+            if (c?.id && c?.passwordHash && /^[a-f0-9]{64}$/i.test(c.passwordHash)) {
+              knownFirestoreCredUpdatedAt.set(c.id, c.updatedAt || '');
+              cloudCreds.push({
+                id: c.id,
+                usuario: String(c.usuario || '').toLowerCase(),
+                passwordHash: c.passwordHash,
+                salt: c.salt || 'camposol_salt_2026',
+                ...(typeof c.adminUpdated === 'boolean' ? { adminUpdated: c.adminUpdated } : {}),
+                updatedAt: c.updatedAt || '',
+              });
+            }
+          });
+          if (cloudCreds.length > 0) {
+            scheduleDebouncedUpdate({ userCredentials: cloudCreds });
+          }
+        }
+      },
+      (err) => {
+        console.warn('[Firestore] Aviso leyendo credenciales:', err);
+      }
+    );
+    unsubscribers.push(unsubCreds);
   }
 
   if (onConnectedCallback) {
@@ -863,11 +914,14 @@ export async function firestorePullAllNow(): Promise<boolean> {
       ? query(collection(db, 'requerimientos'), where('fecha', '>=', cutoff30))
       : query(collection(db, 'requerimientos'), where('firebaseUid', '==', fbUser.uid));
 
-    const [reqSnap, metaSnap, usersSnap] = await Promise.all([
+    const [reqSnap, metaSnap, usersSnap, credsSnap] = await Promise.all([
       getDocsFromServer(reqQuery),
       getDocFromServer(doc(db, 'system_metadata', 'master_data')),
       isBootstrappedAdmin
         ? getDocsFromServer(collection(db, 'users')).catch(() => null)
+        : Promise.resolve(null),
+      isBootstrappedAdmin
+        ? getDocsFromServer(collection(db, 'user_credentials')).catch(() => null)
         : Promise.resolve(null),
     ]);
 
@@ -908,9 +962,29 @@ export async function firestorePullAllNow(): Promise<boolean> {
       const cloudUsers: AppUser[] = [];
       usersSnap.forEach((d) => {
         const u = d.data() as AppUser;
+        if (u?.id) knownFirestoreUserIds.add(u.id);
         cloudUsers.push({ ...u, passwordHash: '', salt: '' });
       });
       if (cloudUsers.length > 0) payload.users = cloudUsers;
+    }
+
+    if (credsSnap && !credsSnap.empty) {
+      const cloudCreds: UserCredentialRecord[] = [];
+      credsSnap.forEach((d) => {
+        const c = d.data() as UserCredentialRecord;
+        if (c?.id && c?.passwordHash && /^[a-f0-9]{64}$/i.test(c.passwordHash)) {
+          knownFirestoreCredUpdatedAt.set(c.id, c.updatedAt || '');
+          cloudCreds.push({
+            id: c.id,
+            usuario: String(c.usuario || '').toLowerCase(),
+            passwordHash: c.passwordHash,
+            salt: c.salt || 'camposol_salt_2026',
+            ...(typeof c.adminUpdated === 'boolean' ? { adminUpdated: c.adminUpdated } : {}),
+            updatedAt: c.updatedAt || '',
+          });
+        }
+      });
+      if (cloudCreds.length > 0) payload.userCredentials = cloudCreds;
     }
 
     updateCallback(payload);
@@ -1132,11 +1206,112 @@ export async function firestoreDeleteRequerimiento(
   }
 }
 
+export async function waitForFirebaseAuthReady(timeoutMs: number = 1500): Promise<boolean> {
+  try {
+    if (typeof auth.authStateReady === 'function') {
+      await Promise.race([
+        auth.authStateReady(),
+        new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+      ]);
+    }
+  } catch {
+    // ignore
+  }
+  return Boolean(hasVerifiedFirebaseAuth());
+}
+
+export async function firestorePullUsersAndCredentialsForLogin(
+  timeoutMs: number = 3500
+): Promise<{ users: AppUser[]; userCredentials: UserCredentialRecord[] } | null> {
+  await waitForFirebaseAuthReady(1500);
+  const fbUser = hasVerifiedFirebaseAuth();
+  if (!fbUser) return null;
+
+  const isBootstrappedAdmin =
+    (fbUser.email || '').toLowerCase() === 'jhonatanparedes563@gmail.com';
+  if (!isBootstrappedAdmin) return null;
+
+  try {
+    const fetchPromise = Promise.all([
+      getDocsFromServer(collection(db, 'users')).catch(() => getDocs(collection(db, 'users'))),
+      getDocsFromServer(collection(db, 'user_credentials')).catch(() =>
+        getDocs(collection(db, 'user_credentials'))
+      ),
+    ]);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+    const snaps = await Promise.race([fetchPromise, timeoutPromise]);
+    if (!snaps) return null;
+
+    const [usersSnap, credsSnap] = snaps;
+    const users: AppUser[] = [];
+    usersSnap.forEach((d) => {
+      const u = d.data() as AppUser;
+      users.push({ ...u, passwordHash: '', salt: '' });
+    });
+
+    const userCredentials: UserCredentialRecord[] = [];
+    credsSnap.forEach((d) => {
+      const c = d.data() as UserCredentialRecord;
+      if (c?.id && c?.passwordHash && /^[a-f0-9]{64}$/i.test(c.passwordHash)) {
+        userCredentials.push({
+          id: c.id,
+          usuario: String(c.usuario || '').toLowerCase(),
+          passwordHash: c.passwordHash,
+          salt: c.salt || 'camposol_salt_2026',
+          ...(typeof c.adminUpdated === 'boolean' ? { adminUpdated: c.adminUpdated } : {}),
+          updatedAt: c.updatedAt || '',
+        });
+      }
+    });
+
+    return { users, userCredentials };
+  } catch (err) {
+    console.warn('[Firestore] Aviso consultando usuarios para login:', err);
+    return null;
+  }
+}
+
 export async function firestoreSaveUser(user: AppUser): Promise<boolean> {
   if (!hasVerifiedFirebaseAuth()) return false;
   const path = `users/${user.id}`;
   try {
     await setDoc(doc(db, 'users', user.id), sanitizeUserForFirestore(user));
+    knownFirestoreUserIds.add(user.id);
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, path);
+  }
+}
+
+export async function firestoreSaveUserCredential(cred: UserCredentialRecord): Promise<boolean> {
+  if (!hasVerifiedFirebaseAuth()) return false;
+  const safeId = toValidFirestoreId(cred.id, '');
+  const cleanUser = String(cred.usuario || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9._\-]/g, '')
+    .slice(0, 32);
+  const cleanHash = String(cred.passwordHash || '').trim().toLowerCase();
+  const cleanSalt = String(cred.salt || 'camposol_salt_2026').trim().slice(0, 64) || 'camposol_salt_2026';
+  const cleanUpdated =
+    String(cred.updatedAt || new Date().toISOString()).trim().slice(0, 40) ||
+    new Date().toISOString().slice(0, 40);
+
+  if (!safeId || cleanUser.length < 3 || !/^[a-f0-9]{64}$/.test(cleanHash)) {
+    return false;
+  }
+
+  const path = `user_credentials/${safeId}`;
+  try {
+    await setDoc(doc(db, 'user_credentials', safeId), {
+      id: safeId,
+      usuario: cleanUser,
+      passwordHash: cleanHash,
+      salt: cleanSalt,
+      adminUpdated: cred.adminUpdated !== false,
+      updatedAt: cleanUpdated,
+    });
+    knownFirestoreCredUpdatedAt.set(safeId, cleanUpdated);
     return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
@@ -1148,6 +1323,19 @@ export async function firestoreDeleteUser(userId: string): Promise<boolean> {
   const path = `users/${userId}`;
   try {
     await deleteDoc(doc(db, 'users', userId));
+    knownFirestoreUserIds.delete(userId);
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, path);
+  }
+}
+
+export async function firestoreDeleteUserCredential(userId: string): Promise<boolean> {
+  if (!hasVerifiedFirebaseAuth()) return false;
+  const path = `user_credentials/${userId}`;
+  try {
+    await deleteDoc(doc(db, 'user_credentials', userId));
+    knownFirestoreCredUpdatedAt.delete(userId);
     return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
