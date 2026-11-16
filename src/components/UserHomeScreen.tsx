@@ -13,8 +13,6 @@ import {
   User,
   MapPin,
   Sprout,
-  RefreshCw,
-  Cloud,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, AppUser } from '../types';
 import { getHorarioDisplay } from '../data/masterData';
@@ -26,7 +24,6 @@ import {
   subscribeToDataChanges,
   connectCloudSyncWithGoogle,
 } from '../services/storageService';
-import { clearActiveSession } from '../services/authService';
 import busBannerImg from '../assets/images/camposol_bus_banner_light_1794665350151.jpg';
 
 interface UserHomeScreenProps {
@@ -49,12 +46,11 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
   const [syncStatus, setSyncStatus] = useState(() => getCloudSyncStatus());
   const [isSendingOutbox, setIsSendingOutbox] = useState(false);
   const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
-  const [outboxHint, setOutboxHint] = useState('');
 
   useEffect(() => {
     const refresh = () => setSyncStatus(getCloudSyncStatus());
     refresh();
-    void processPendingSyncQueue().then(refresh);
+    void processPendingSyncQueue(true).then(refresh);
     const unsubData = subscribeToDataChanges(refresh);
     return () => {
       unsubData();
@@ -63,30 +59,10 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
 
   const handleFlushPendingOutbox = async () => {
     setIsSendingOutbox(true);
-    setOutboxHint('');
     try {
       await processPendingSyncQueue(true);
-      const res = await syncWithServerDetailed(true);
-      const updated = getCloudSyncStatus();
-      setSyncStatus(updated);
-      if (updated.state === 'Error' && updated.lastError) {
-        setOutboxHint(updated.lastError);
-      } else if (updated.pendingOutboxCount > 0 && !res.ok) {
-        if (res.reason === 'cookie_check') {
-          setOutboxHint('Recargue la página para autorizar el envío en línea.');
-        } else if (res.reason === 'session_expired' || res.reason === 'no_session') {
-          if (!updated.firebaseConnected) {
-            setOutboxHint('Conecte su cuenta Google o inicie sesión para enviar a la nube.');
-          } else {
-            clearActiveSession(
-              `Tiene ${updated.pendingOutboxCount} requerimiento(s) guardado(s) en su teléfono. Inicie sesión nuevamente para enviarlos automáticamente a la web.`
-            );
-          }
-          return;
-        } else {
-          setOutboxHint(updated.lastError || 'Sin conexión con el servidor web en este momento.');
-        }
-      }
+      await syncWithServerDetailed(true);
+      setSyncStatus(getCloudSyncStatus());
     } finally {
       setIsSendingOutbox(false);
     }
@@ -94,14 +70,11 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
 
   const handleConnectGoogleFromOutbox = async () => {
     setIsConnectingGoogle(true);
-    setOutboxHint('');
     try {
       const res = await connectCloudSyncWithGoogle();
       if (res.success) {
         await processPendingSyncQueue(true);
         setSyncStatus(getCloudSyncStatus());
-      } else if (res.error) {
-        setOutboxHint(res.error);
       }
     } finally {
       setIsConnectingGoogle(false);
@@ -252,75 +225,6 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
           </button>
         </div>
       </div>
-
-      {(syncStatus.pendingOutboxCount > 0 ||
-        syncStatus.errorOutboxCount > 0 ||
-        syncStatus.state === 'Error') && (
-        <div
-          className={`rounded-2xl px-3.5 py-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)] shrink-0 flex items-center justify-between gap-2 border ${
-            syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
-              ? 'bg-rose-50 border-rose-200'
-              : 'bg-amber-50 border-amber-200'
-          }`}
-        >
-          <div className="min-w-0">
-            <div
-              className={`text-[11.5px]! font-bold leading-tight ${
-                syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
-                  ? 'text-rose-900'
-                  : 'text-amber-900'
-              }`}
-            >
-              {syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
-                ? syncStatus.pendingOutboxCount > 0
-                  ? `Error al enviar ${syncStatus.pendingOutboxCount} requerimiento(s)`
-                  : 'Error de sincronización con Firebase'
-                : syncStatus.pendingOutboxCount === 1
-                ? '1 requerimiento por enviar a la web'
-                : `${syncStatus.pendingOutboxCount} requerimientos por enviar a la web`}
-            </div>
-            <div
-              className={`text-[10px]! leading-tight break-words ${
-                syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
-                  ? 'text-rose-700'
-                  : 'text-amber-800'
-              }`}
-            >
-              {outboxHint ||
-                syncStatus.lastError ||
-                'Se enviará automáticamente al recuperar conexión.'}
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {!syncStatus.firebaseConnected && (
-              <button
-                type="button"
-                id="btn-home-connect-google"
-                onClick={handleConnectGoogleFromOutbox}
-                disabled={isConnectingGoogle}
-                className="shrink-0 px-2.5 py-1 rounded-full bg-[#1B3A57] hover:bg-[#142c42] text-white text-[10.5px]! font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer"
-              >
-                <Cloud className="w-3 h-3" />
-                <span>{isConnectingGoogle ? '...' : 'Google'}</span>
-              </button>
-            )}
-            <button
-              type="button"
-              id="btn-home-flush-outbox"
-              onClick={handleFlushPendingOutbox}
-              disabled={isSendingOutbox}
-              className={`shrink-0 px-2.5 py-1 rounded-full bg-white border text-[10.5px]! font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer ${
-                syncStatus.errorOutboxCount > 0 || syncStatus.state === 'Error'
-                  ? 'hover:bg-rose-100 border-rose-300 text-rose-900'
-                  : 'hover:bg-amber-100 border-amber-300 text-amber-900'
-              }`}
-            >
-              <RefreshCw className={`w-3 h-3 ${isSendingOutbox ? 'animate-spin' : ''}`} />
-              <span>Reintentar</span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* 2. Banner Principal: Nuevo Requerimiento */}
       <button

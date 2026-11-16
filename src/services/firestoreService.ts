@@ -760,6 +760,13 @@ export async function initializeFirestoreSync(): Promise<void> {
         firestoreServerVerified = health.ok;
         lastFirestoreError = health.ok ? null : (health.error || null);
         notifyAuthSubscribers();
+        if (health.ok && onConnectedCallback) {
+          try {
+            onConnectedCallback(getFirebaseUserInfo());
+          } catch {
+            // ignore
+          }
+        }
       });
     } else {
       firestoreServerVerified = false;

@@ -16,13 +16,11 @@ import {
   History,
   RotateCcw,
   ShieldCheck,
-  RefreshCw,
 } from 'lucide-react';
 import { Requerimiento, EstadoRequerimiento, UserRole } from '../types';
 import {
   updateRequerimientoEstado,
   getRequirementSyncState,
-  processPendingSyncQueue,
   subscribeToDataChanges,
 } from '../services/storageService';
 import { getHorarioDisplay } from '../data/masterData';
@@ -401,12 +399,6 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                       </span>
                     </div>
 
-                    {reqSync.status === 'Error' && reqSync.error && !isAnulado && (
-                      <div className="mt-1.5 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-[10.5px] text-rose-700 leading-tight">
-                        {reqSync.error}
-                      </div>
-                    )}
-
                     {/* Si está anulado, mostrar información de trazabilidad */}
                     {isAnulado && (
                       <div className="mt-2 p-2 rounded-xl bg-[#FDECEC] border border-[#FECACA] text-[11px] text-[#DC2626] space-y-1">
@@ -437,19 +429,6 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                     >
                       <RotateCcw className="w-3 h-3" />
                       <span>Restaurar</span>
-                    </button>
-                  ) : reqSync.status !== 'Sincronizado' ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void processPendingSyncQueue(true);
-                        showToast(`Reintentando envío de ${req.numeroRequerimiento}...`);
-                      }}
-                      className="px-2.5 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-[10.5px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      <span>Reintentar</span>
                     </button>
                   ) : (
                     <span className="text-[11px] text-slate-400 font-medium truncate">

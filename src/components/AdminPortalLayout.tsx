@@ -66,7 +66,6 @@ import {
   processPendingSyncQueue,
   subscribeToDataChanges,
 } from '../services/storageService';
-import { clearActiveSession } from '../services/authService';
 import { consolidarParaderos, exportarRequerimientoIndividualExcel } from '../services/excelExportService';
 import { getHorarioDisplay } from '../data/masterData';
 import { MasterDataManagementScreen } from './MasterDataManagementScreen';
@@ -319,31 +318,12 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
     setIsManualSyncing(true);
     try {
       await processPendingSyncQueue(true);
-      const result = await syncWithServerDetailed(true);
+      await syncWithServerDetailed(true);
       onRefreshData();
       const after = getCloudSyncStatus();
       setCloudStatus(after);
-
-      if (result.ok && after.state === 'Sincronizado') {
-        showToast(`¡Datos sincronizados en línea con ${after.projectId}!`);
-      } else if (after.state === 'Error' && after.lastError) {
-        showToast(after.lastError);
-      } else if (result.ok && after.state === 'Pendiente') {
-        showToast(
-          after.pendingOutboxCount > 0 || after.masterPendingCount > 0
-            ? 'Hay cambios locales pendientes de envío a la nube.'
-            : 'Sincronizado parcialmente; conecte Google para sincronizar en tiempo real.'
-        );
-      } else if (result.reason === 'cookie_check') {
-        showToast('Autorización del navegador vencida. Recargue la pestaña (F5) y reintente.');
-      } else if (result.reason === 'session_expired') {
-        clearActiveSession(
-          'Su sesión en el servidor web expiró o estaba en modo local. Inicie sesión nuevamente para sincronizar en tiempo real.'
-        );
-      } else if (result.reason === 'no_session') {
-        showToast('Conecte su cuenta Google en el botón de estado para sincronizar con tdp-camposol.');
-      } else {
-        showToast(after.lastError || 'No se pudo contactar al servidor en este momento.');
+      if (after.state === 'Sincronizado') {
+        showToast('Datos actualizados');
       }
     } finally {
       setIsManualSyncing(false);
