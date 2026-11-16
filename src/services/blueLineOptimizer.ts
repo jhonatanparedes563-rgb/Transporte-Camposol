@@ -436,11 +436,14 @@ function packStopsIntoUnits(
       seatsLeft -= take;
       totalLoaded += take;
 
-      const prevStop = assignedStopsMap.get(q.paradero);
+      const stopKey = q.isBlueLine
+        ? getCanonicalOrderKey(q.paradero)
+        : q.paradero.trim().toUpperCase();
+      const prevStop = assignedStopsMap.get(stopKey);
       if (prevStop) {
         prevStop.cantidad += take;
       } else {
-        assignedStopsMap.set(q.paradero, {
+        assignedStopsMap.set(stopKey, {
           paradero: q.paradero,
           cantidad: take,
           zona: q.zona,
@@ -465,7 +468,9 @@ function packStopsIntoUnits(
       ? 'LÍNEA AZUL'
       : Array.from(zonesSeen)[0] || zoneLabel;
 
-    const fundosList = Array.from(fundosSet);
+    const fundosList = Array.from(fundosSet).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+    );
     const baseKey = `${fecha}__${effectiveZone}__${fundosList.join('+')}__${time}__${movimiento}`;
     const seq = (groupCounter[baseKey] || 0) + 1;
     groupCounter[baseKey] = seq;
@@ -489,7 +494,9 @@ function packStopsIntoUnits(
       unidad: unit,
       people: totalLoaded,
       cap: unit.capacidad,
-      reqCodes: Array.from(reqCodesSet),
+      reqCodes: Array.from(reqCodesSet).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      ),
       reqIds: Array.from(reqIdsSet),
       reqEstados: Array.from(reqEstadosSet),
       owners: Array.from(ownersSet),
@@ -819,7 +826,10 @@ export function generateCorridorSchedule(params: {
           const candUnitsN = solveOptimalFleetDP(paxN, activeFleet);
           const candUnitsS = solveOptimalFleetDP(paxS, activeFleet);
           const candStats = getAllocationStats(totalN + totalS, [...candUnitsN, ...candUnitsS]);
-          if (candStats.count < bestStats.count) {
+          if (
+            candStats.count < bestStats.count ||
+            (candStats.count === bestStats.count && candStats.totalCap < bestStats.totalCap)
+          ) {
             bestStats = candStats;
             bestNItems = candN;
             bestSItems = candS;
@@ -833,7 +843,7 @@ export function generateCorridorSchedule(params: {
           }
         }
 
-        // 2) Simétrico: NORTE absorbe paraderos contiguos del norte de Chao (Segundo Paradero, La Botica) solo si reduce vehículos
+        // 2) Simétrico: NORTE absorbe paraderos contiguos del norte de Chao (Segundo Paradero, La Botica) solo si reduce vehículos o mejora ocupabilidad
         const chaoNorthGroups = new Map<number, StopDemandItem[]>();
         for (const it of surItems) {
           if (!it.isBlueLine) continue;
@@ -858,7 +868,10 @@ export function generateCorridorSchedule(params: {
           const candUnitsN = solveOptimalFleetDP(paxN, activeFleet);
           const candUnitsS = solveOptimalFleetDP(paxS, activeFleet);
           const candStats = getAllocationStats(totalN + totalS, [...candUnitsN, ...candUnitsS]);
-          if (candStats.count < bestStats.count) {
+          if (
+            candStats.count < bestStats.count ||
+            (candStats.count === bestStats.count && candStats.totalCap < bestStats.totalCap)
+          ) {
             bestStats = candStats;
             bestNItems = candN;
             bestSItems = candS;
@@ -1117,7 +1130,10 @@ export function generateCorridorSchedule(params: {
     const useMergedBlue = isAgricultorCorridor
       ? canMergeBlue &&
         mergedBlueUnits.length >= 1 &&
-        mergedStats.count < sepStats.count
+        (mergedStats.count < sepStats.count ||
+          (mergedStats.count === sepStats.count &&
+            mergedStats.totalCap < sepStats.totalCap &&
+            mergedStats.occ - sepStats.occ >= 10))
       : canMergeBlue &&
         mergedBlueUnits.length === 1 &&
         (mergedStats.count < sepStats.count ||
