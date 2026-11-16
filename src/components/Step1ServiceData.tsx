@@ -9,9 +9,14 @@ import {
   AlertCircle,
   Lock,
   UserCheck,
+  Layers,
 } from 'lucide-react';
 import { RequerimientoDraft, MovimientoType, AppUser } from '../types';
-import { getStoredFundos } from '../services/storageService';
+import {
+  getStoredFundos,
+  getStoredAreas,
+  subscribeToDataChanges,
+} from '../services/storageService';
 import {
   MAESTRO_CULTIVOS,
   MAESTRO_MOVIMIENTOS,
@@ -40,9 +45,18 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
   currentUser,
 }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [fundos] = useState(() => getStoredFundos());
+  const [fundos, setFundos] = useState(() => getStoredFundos());
+  const [areas, setAreas] = useState(() => getStoredAreas());
 
   const isOrdinaryUser = currentUser?.rol === 'usuario';
+  const defaultArea = areas[0]?.area || 'PRODUCCIÓN';
+
+  useEffect(() => {
+    return subscribeToDataChanges(() => {
+      setFundos(getStoredFundos());
+      setAreas(getStoredAreas());
+    });
+  }, []);
 
   // Ensure default values matching the mockup
   useEffect(() => {
@@ -61,21 +75,25 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
       if (!draft.horaRecojo) updates.horaRecojo = '13:00';
     }
     if (isOrdinaryUser && currentUser) {
-      updates.area = currentUser.area || draft.area || 'PRODUCCIÓN';
-      if (currentUser.fundo && currentUser.fundo !== 'TODOS LOS FUNDOS') {
+      if (currentUser.area && currentUser.area !== 'TODAS LAS ÁREAS') {
+        if (draft.area !== currentUser.area) updates.area = currentUser.area;
+      } else if (!draft.area || draft.area === 'TODAS LAS ÁREAS') {
+        updates.area = defaultArea;
+      }
+      if (currentUser.fundo && currentUser.fundo !== 'TODOS LOS FUNDOS' && draft.fundo !== currentUser.fundo) {
         updates.fundo = currentUser.fundo;
       }
-      if (currentUser.cultivo && currentUser.cultivo !== 'TODOS LOS CULTIVOS') {
+      if (currentUser.cultivo && currentUser.cultivo !== 'TODOS LOS CULTIVOS' && draft.cultivo !== currentUser.cultivo) {
         updates.cultivo = currentUser.cultivo;
       }
-    } else if (!draft.area) {
-      updates.area = 'PRODUCCIÓN';
+    } else if (!draft.area || draft.area === 'TODAS LAS ÁREAS') {
+      updates.area = defaultArea;
     }
 
     if (Object.keys(updates).length > 0) {
       onUpdateDraft(updates);
     }
-  }, [currentUser, isOrdinaryUser, draft.movimiento]);
+  }, [currentUser, isOrdinaryUser, draft.movimiento, defaultArea]);
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -87,6 +105,7 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
     } else {
       if (!draft.horaRecojo) errs.horaRecojo = 'Ingresa la hora de recojo.';
     }
+    if (!draft.area || draft.area === 'TODAS LAS ÁREAS') errs.area = 'Selecciona el área.';
     if (!draft.fundo) errs.fundo = 'Selecciona el fundo.';
     if (!draft.cultivo) errs.cultivo = 'Selecciona el cultivo o servicio.';
 
@@ -328,6 +347,50 @@ export const Step1ServiceData: React.FC<Step1ServiceDataProps> = ({
               </option>
             ))}
           </select>
+        </div>
+
+        {/* ÁREA */}
+        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-bold text-[#1B3A57] uppercase tracking-wide flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#55A529]" />
+              <span>ÁREA</span>
+            </label>
+            {isOrdinaryUser && currentUser?.area && currentUser.area !== 'TODAS LAS ÁREAS' && (
+              <span className="text-[10px] text-[#2F7D18] font-semibold flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Área asignada
+              </span>
+            )}
+          </div>
+          <select
+            id="select-area"
+            value={draft.area && draft.area !== 'TODAS LAS ÁREAS' ? draft.area : defaultArea}
+            disabled={isOrdinaryUser && !!currentUser?.area && currentUser.area !== 'TODAS LAS ÁREAS'}
+            onChange={(e) => {
+              onUpdateDraft({ area: e.target.value });
+              if (errors.area) setErrors((prev) => ({ ...prev, area: '' }));
+            }}
+            className={`w-full px-3.5 py-2.5 bg-white border rounded-full text-sm font-semibold text-[#1B3A57] focus:outline-none focus:border-[#55A529] disabled:opacity-80 disabled:bg-slate-100 ${
+              errors.area ? 'border-red-500 bg-red-50/40' : 'border-[#D8E2EA]'
+            }`}
+          >
+            {draft.area &&
+              draft.area !== 'TODAS LAS ÁREAS' &&
+              !areas.some((a) => a.area === draft.area) && (
+                <option value={draft.area}>{draft.area}</option>
+              )}
+            {areas.map((a) => (
+              <option key={a.id} value={a.area}>
+                {a.area}
+              </option>
+            ))}
+          </select>
+          {errors.area && (
+            <p className="text-[11px] text-[#DC2626] font-medium mt-1 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              {errors.area}
+            </p>
+          )}
         </div>
 
         {/* NOMBRE DE FUNDO */}

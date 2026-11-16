@@ -65,15 +65,23 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
         !savedDraft.fecha || savedDraft.fecha < todayDate || comedoresConDatos.length === 0
           ? todayDate
           : savedDraft.fecha;
+      const normalizedArea =
+        savedDraft.area && savedDraft.area !== 'TODAS LAS ÁREAS'
+          ? savedDraft.area
+          : currentUser?.area && currentUser.area !== 'TODAS LAS ÁREAS'
+          ? currentUser.area
+          : 'PRODUCCIÓN';
       if (comedoresConDatos.length === 0 && (savedDraft.comedores?.length || 0) > 1) {
         return {
           ...savedDraft,
+          area: normalizedArea,
           fecha: fechaVigente,
           comedores: [{ comedor: savedDraft.comedores![0].comedor || defaultComedorName, paraderosCantidades: {} }],
         };
       }
       return {
         ...savedDraft,
+        area: normalizedArea,
         fecha: fechaVigente,
       };
     }
@@ -84,7 +92,10 @@ export const NewRequirementWizard: React.FC<NewRequirementWizardProps> = ({
 
     return {
       fecha: todayDate,
-      area: currentUser?.area || 'PRODUCCIÓN',
+      area:
+        currentUser?.area && currentUser.area !== 'TODAS LAS ÁREAS'
+          ? currentUser.area
+          : 'PRODUCCIÓN',
       fundo:
         currentUser?.fundo && currentUser.fundo !== 'TODOS LOS FUNDOS'
           ? currentUser.fundo
