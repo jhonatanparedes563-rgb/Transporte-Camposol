@@ -13,7 +13,6 @@ import {
   Calendar,
   Route,
   Users,
-  AlertCircle,
 } from 'lucide-react';
 import {
   authenticateUser,
@@ -41,7 +40,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [sessionNotice, setSessionNotice] = useState('');
   const [heroImgFailed, setHeroImgFailed] = useState(false);
 
   // Estados para Recuperación de Contraseña
@@ -59,10 +57,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         setUsername(saved);
         setRememberMe(true);
       }
-      const notice = consumeSessionNotice();
-      if (notice) {
-        setSessionNotice(notice);
-      }
+      consumeSessionNotice();
     } catch {
       // Ignorar errores de almacenamiento local
     }
@@ -370,16 +365,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     Inicie sesión en Transporte de Personal
                   </div>
                 </div>
-
-                {sessionNotice && !errorMessage && (
-                  <div
-                    id="login-session-notice-box"
-                    className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900"
-                  >
-                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="font-semibold leading-relaxed">{sessionNotice}</div>
-                  </div>
-                )}
 
                 {errorMessage && (
                   <div

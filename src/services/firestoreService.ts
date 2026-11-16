@@ -777,6 +777,8 @@ export async function connectWithGoogleFirebase(): Promise<{
   serverVerified?: boolean;
 }> {
   try {
+    lastFirestoreError = null;
+    notifyAuthSubscribers();
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     const cred = await signInWithPopup(auth, provider);

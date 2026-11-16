@@ -233,34 +233,22 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
             disabled={isConnectingGoogle || isSendingOutbox}
             title={
               syncStatus.lastError ||
-              (syncStatus.firebaseConnected
-                ? `Conectado a ${syncStatus.projectId}`
-                : 'Tocar para conectar con Google Cloud Firestore')
+              (syncStatus.state === 'Sincronizado'
+                ? 'En línea'
+                : 'Tocar para conectar o reintentar envío')
             }
-            className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px]! font-bold border transition-colors cursor-pointer disabled:opacity-60 ${
-              syncStatus.state === 'Sincronizado'
-                ? 'bg-[#EAF7E4] border-[#BFE6B3] text-[#15803D]'
-                : syncStatus.state === 'Error'
-                ? 'bg-rose-50 border-rose-200 text-rose-700'
-                : 'bg-amber-50 border-amber-200 text-amber-800'
-            }`}
+            aria-label={syncStatus.state === 'Sincronizado' ? 'En línea' : 'Sin sincronizar'}
+            className="shrink-0 p-1.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center"
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                syncStatus.state === 'Sincronizado'
-                  ? 'bg-[#16A34A]'
-                  : syncStatus.state === 'Error'
-                  ? 'bg-rose-600'
-                  : 'bg-amber-500'
+              className={`w-2.5 h-2.5 rounded-full block ${
+                isConnectingGoogle || isSendingOutbox
+                  ? 'animate-pulse bg-amber-500'
+                  : syncStatus.state === 'Sincronizado'
+                  ? 'bg-[#22A846]'
+                  : 'bg-[#DC2626]'
               }`}
             />
-            <span>
-              {isConnectingGoogle || isSendingOutbox
-                ? 'Sincronizando...'
-                : !syncStatus.firebaseConnected && syncStatus.state !== 'Sincronizado'
-                ? `${syncStatus.state} · Google`
-                : syncStatus.state}
-            </span>
           </button>
         </div>
       </div>
@@ -480,16 +468,11 @@ export const UserHomeScreen: React.FC<UserHomeScreenProps> = React.memo(({
                 const latestSync = getRequirementSyncState(latestReq.id);
                 return (
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[9.5px]! font-bold border ${
-                      latestSync.status === 'Sincronizado'
-                        ? 'bg-[#EAF7E4] border-[#C6E9B4] text-[#15803D]'
-                        : latestSync.status === 'Error'
-                        ? 'bg-rose-50 border-rose-200 text-rose-700'
-                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                    title={latestSync.error || (latestSync.status === 'Sincronizado' ? 'En línea' : 'Pendiente')}
+                    className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${
+                      latestSync.status === 'Sincronizado' ? 'bg-[#22A846]' : 'bg-[#DC2626]'
                     }`}
-                  >
-                    {latestSync.status}
-                  </span>
+                  />
                 );
               })()}
               <span className="px-2.5 py-0.5 rounded-full bg-[#E5F7DC] border border-[#C6E9B4] text-[#166534] font-mono text-[11px]! font-bold shrink-0">

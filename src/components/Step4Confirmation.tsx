@@ -183,31 +183,17 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
 
       {/* Main Title & Real Sync State */}
       <div className="space-y-1.5">
-        <h2 className="text-xl sm:text-2xl font-bold text-[#1B3A57] tracking-tight">
-          ¡Requerimiento registrado!
-        </h2>
-        <div className="flex justify-center">
+        <div className="flex items-center justify-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#1B3A57] tracking-tight">
+            ¡Requerimiento registrado!
+          </h2>
           <span
             id="badge-step4-sync-status"
-            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-              effectiveSyncStatus === 'Sincronizado'
-                ? 'bg-[#EAF7E4] border-[#C6E9B4] text-[#2F7D18]'
-                : effectiveSyncStatus === 'Error'
-                ? 'bg-rose-50 border-rose-200 text-rose-700'
-                : 'bg-amber-50 border-amber-200 text-amber-800'
+            title={effectiveSyncStatus === 'Sincronizado' ? 'Enviado' : 'Pendiente de envío'}
+            className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${
+              effectiveSyncStatus === 'Sincronizado' ? 'bg-[#22A846]' : 'bg-[#DC2626]'
             }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                effectiveSyncStatus === 'Sincronizado'
-                  ? 'bg-[#22A846]'
-                  : effectiveSyncStatus === 'Error'
-                  ? 'bg-rose-600'
-                  : 'bg-amber-500'
-              }`}
-            />
-            <span>Estado: {effectiveSyncStatus}</span>
-          </span>
+          />
         </div>
         <p
           className={`text-xs sm:text-sm font-medium ${
@@ -219,9 +205,9 @@ export const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({
           }`}
         >
           {effectiveSyncStatus === 'Sincronizado'
-            ? 'Sincronizado en tiempo real con Firebase (tdp-camposol) y Procesos.'
+            ? 'Guardado en línea y enviado a Procesos.'
             : effectiveSyncStatus === 'Error'
-            ? reqSyncState.error || localNotice || cloudStatus.lastError || 'Error al sincronizar con la nube.'
+            ? reqSyncState.error || localNotice || cloudStatus.lastError || 'No se pudo enviar en línea.'
             : localNotice || 'Guardado en el teléfono; se enviará automáticamente en cuanto haya conexión.'}
         </p>
         {effectiveSyncStatus !== 'Sincronizado' && (

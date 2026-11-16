@@ -393,16 +393,11 @@ export const DatabaseManagementModal: React.FC<DatabaseManagementModalProps> = (
                 </span>
               </span>
               <span
-                className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold text-white uppercase shrink-0 ${
-                  cloudStatus.state === 'Sincronizado'
-                    ? 'bg-[#55A529]'
-                    : cloudStatus.state === 'Error'
-                    ? 'bg-[#DC2626]'
-                    : 'bg-amber-600'
+                title={cloudStatus.state === 'Sincronizado' ? 'En línea' : 'Sin sincronizar'}
+                className={`w-3 h-3 rounded-full inline-block shrink-0 ${
+                  cloudStatus.state === 'Sincronizado' ? 'bg-[#22A846]' : 'bg-[#DC2626]'
                 }`}
-              >
-                {cloudStatus.state}
-              </span>
+              />
             </div>
 
             <p className="text-slate-600 leading-relaxed">

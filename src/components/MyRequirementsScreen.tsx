@@ -340,17 +340,11 @@ export const MyRequirementsScreen: React.FC<MyRequirementsScreenProps> = ({
                         {req.numeroRequerimiento}
                       </span>
                       <span
-                        title={reqSync.error || `Sincronización: ${reqSync.status}`}
-                        className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-bold border shrink-0 ${
-                          reqSync.status === 'Sincronizado'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : reqSync.status === 'Error'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        title={reqSync.error || (reqSync.status === 'Sincronizado' ? 'En línea' : 'Sin sincronizar')}
+                        className={`w-2 h-2 rounded-full inline-block shrink-0 ${
+                          reqSync.status === 'Sincronizado' ? 'bg-[#22A846]' : 'bg-[#DC2626]'
                         }`}
-                      >
-                        {reqSync.status}
-                      </span>
+                      />
                     </div>
 
                     <span

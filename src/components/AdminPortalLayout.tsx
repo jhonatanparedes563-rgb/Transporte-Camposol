@@ -1013,30 +1013,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                   ? `${cloudStatus.projectId} · ${cloudStatus.firebaseEmail || ''}`
                   : `Conectar con Google Cloud Firestore (${cloudStatus.projectId})`)
               }
-              className={`h-9 px-3 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
-                cloudStatus.state === 'Sincronizado'
-                  ? 'bg-[#EAF7E4] border-[#C6E9B4] text-[#2F7D18] hover:bg-[#dcf2d2]'
-                  : cloudStatus.state === 'Error'
-                  ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
-                  : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
-              }`}
+              aria-label={cloudStatus.state === 'Sincronizado' ? 'En línea' : 'Sin sincronizar'}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-[#E2E8F0] hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-60"
             >
-              {cloudStatus.state === 'Sincronizado' ? (
-                <CloudCheck className="w-3.5 h-3.5 shrink-0" />
-              ) : cloudStatus.state === 'Error' ? (
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              ) : (
-                <Cloud className="w-3.5 h-3.5 shrink-0" />
-              )}
-              <span className="hidden md:inline">
-                {isConnectingGoogle
-                  ? 'Conectando...'
-                  : !cloudStatus.firebaseConnected && cloudStatus.state !== 'Sincronizado'
-                  ? `${cloudStatus.state} · Conectar Google`
-                  : cloudStatus.pendingOutboxCount > 0
-                  ? `${cloudStatus.state} (${cloudStatus.pendingOutboxCount})`
-                  : cloudStatus.state}
-              </span>
+              <span
+                className={`w-2.5 h-2.5 rounded-full block ${
+                  isConnectingGoogle || isManualSyncing
+                    ? 'animate-pulse bg-amber-500'
+                    : cloudStatus.state === 'Sincronizado'
+                    ? 'bg-[#22A846]'
+                    : 'bg-[#DC2626]'
+                }`}
+              />
             </button>
 
             <button
@@ -1978,17 +1966,11 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                                   </span>
                                 )}
                                 <span
-                                  title={reqSync.error || `Estado de nube: ${reqSync.status}`}
-                                  className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-semibold border ${
-                                    reqSync.status === 'Sincronizado'
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : reqSync.status === 'Error'
-                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                                  title={reqSync.error || (reqSync.status === 'Sincronizado' ? 'En línea' : 'Sin sincronizar')}
+                                  className={`w-2 h-2 rounded-full inline-block shrink-0 ${
+                                    reqSync.status === 'Sincronizado' ? 'bg-[#22A846]' : 'bg-[#DC2626]'
                                   }`}
-                                >
-                                  {reqSync.status}
-                                </span>
+                                />
                               </div>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap tabular-nums">

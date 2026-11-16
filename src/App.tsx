@@ -107,22 +107,16 @@ export default function App() {
         }
         const st = getCloudSyncStatus();
         if (
-          (syncRes.reason === 'session_expired' || syncRes.reason === 'no_session') &&
-          (!st.firebaseConnected || isHostedExpressOrigin()) &&
+          syncRes.reason === 'session_expired' &&
+          isHostedExpressOrigin() &&
+          !st.firebaseConnected &&
           typeof navigator !== 'undefined' &&
           navigator.onLine
         ) {
-          clearActiveSession(
-            'Su sesión en el servidor web expiró o estaba en modo local. Inicie sesión nuevamente para sincronizar en tiempo real.'
-          );
+          clearActiveSession();
           setCurrentUser(null);
         } else if (syncRes.reason === 'cookie_check') {
           handleCookieCheckRequired();
-        } else if (syncRes.reason === 'network' && isHostedExpressOrigin()) {
-          setSyncAlert({
-            kind: 'network',
-            message: 'Sin conexión en este momento con el servidor web para sincronizar datos.',
-          });
         }
       });
     }
@@ -163,9 +157,7 @@ export default function App() {
       } else if (res.reason === 'cookie_check') {
         handleCookieCheckRequired();
       } else if (res.reason === 'session_expired' || res.reason === 'no_session') {
-        clearActiveSession(
-          'Su sesión en el servidor web expiró. Inicie sesión nuevamente para sincronizar.'
-        );
+        clearActiveSession();
         setCurrentUser(null);
       }
     } finally {
@@ -174,7 +166,7 @@ export default function App() {
   };
 
   const handleForceReloginFromBanner = () => {
-    clearActiveSession('Inicie sesión nuevamente para restablecer la conexión en línea.');
+    clearActiveSession();
     setCurrentUser(null);
     setSyncAlert(null);
   };
@@ -259,12 +251,7 @@ export default function App() {
 
   // If no user is authenticated, enforce login screen (cannot enter without login)
   if (!currentUser) {
-    return (
-      <>
-        {syncBannerElement}
-        <LoginScreen onLoginSuccess={handleLoginSuccess} />
-      </>
-    );
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
   // Check if role is desktop-oriented (admin or receptor)
