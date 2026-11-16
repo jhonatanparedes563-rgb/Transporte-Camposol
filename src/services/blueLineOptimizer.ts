@@ -79,7 +79,7 @@ export function isBlueLineParadero(paraderoName: string): boolean {
   return BLUE_LINE_PARADEROS.has(canonical);
 }
 
-// Fundos que comparten la línea recta del corredor Agricultor 1 / 2 / 3 / Sincromax (en el Sur)
+// Fundos que comparten la línea recta del corredor Sur (Agricultor 1/2/3, Sincromax, Chao 1/2)
 export function isAgricultorCorridorFundo(fundo: string): boolean {
   const norm = (fundo || '')
     .normalize('NFD')
@@ -95,7 +95,11 @@ export function isAgricultorCorridorFundo(fundo: string): boolean {
     norm.includes('AGRICULTOR1') ||
     norm.includes('AGRICULTOR2') ||
     norm.includes('AGRICULTOR3') ||
-    norm.includes('SINCROMAX')
+    norm.includes('SINCROMAX') ||
+    norm.includes('CHAO 1') ||
+    norm.includes('CHAO 2') ||
+    norm.includes('CHAO1') ||
+    norm.includes('CHAO2')
   );
 }
 
@@ -144,9 +148,24 @@ function extractZoneHour(rawTime: string, zone: ZonaParadero, req: Requerimiento
   return '13:00';
 }
 
+export const MAX_COMBI_OPERATIONAL_PAX = 17;
+
+export function isCombiUnit(unit: Pick<MaestroUnidadBus, 'nombre' | 'capacidad'>): boolean {
+  const upper = (unit.nombre || '').toUpperCase();
+  return upper.includes('COMBI') || unit.capacidad === 15;
+}
+
+export function getUnitEffectiveMaxCapacity(
+  unit: Pick<MaestroUnidadBus, 'nombre' | 'capacidad'>
+): number {
+  if (!unit || unit.capacidad <= 0) return 0;
+  return isCombiUnit(unit) ? Math.max(unit.capacidad, MAX_COMBI_OPERATIONAL_PAX) : unit.capacidad;
+}
+
 /**
  * Programación dinámica para elegir la combinación de unidades activas de Datos Maestros
  * que minimiza: 1) cantidad de vehículos, 2) asientos vacíos (buscando 100% de ocupación).
+ * La COMBI (15 nominal) soporta operacionalmente hasta 17 pasajeros.
  */
 export function solveOptimalFleetDP(
   totalPax: number,
@@ -156,13 +175,13 @@ export function solveOptimalFleetDP(
 
   const sorted = [...activeFleet]
     .filter((u) => u.activo && u.capacidad > 0)
-    .sort((a, b) => b.capacidad - a.capacidad);
+    .sort((a, b) => getUnitEffectiveMaxCapacity(b) - getUnitEffectiveMaxCapacity(a));
   if (sorted.length === 0) return [];
 
-  const maxCap = sorted[0].capacidad;
+  const maxCap = getUnitEffectiveMaxCapacity(sorted[0]);
 
-  // Caso 1 unidad alcanza exactamente o con menor desperdicio
-  const singleFitting = sorted.filter((u) => u.capacidad >= totalPax);
+  // Caso 1 unidad alcanza exactamente o con menor desperdicio (incluyendo Combi hasta 17 pax)
+  const singleFitting = sorted.filter((u) => getUnitEffectiveMaxCapacity(u) >= totalPax);
   if (singleFitting.length > 0) {
     return [singleFitting[singleFitting.length - 1]];
   }
@@ -183,7 +202,7 @@ export function solveOptimalFleetDP(
 
   for (let c = 1; c <= targetLimit; c++) {
     for (let uIdx = 0; uIdx < sorted.length; uIdx++) {
-      const cap = sorted[uIdx].capacidad;
+      const cap = getUnitEffectiveMaxCapacity(sorted[uIdx]);
       if (c >= cap && bestVehicleCount[c - cap] + 1 < bestVehicleCount[c]) {
         bestVehicleCount[c] = bestVehicleCount[c - cap] + 1;
         parentChoice[c] = uIdx;
@@ -213,17 +232,19 @@ export function solveOptimalFleetDP(
   while (curr > 0 && parentChoice[curr] !== -1) {
     const unit = sorted[parentChoice[curr]];
     chosen.push(unit);
-    curr -= unit.capacidad;
+    curr -= getUnitEffectiveMaxCapacity(unit);
   }
 
-  return [...prefixUnits, ...chosen].sort((a, b) => b.capacidad - a.capacidad);
+  return [...prefixUnits, ...chosen].sort(
+    (a, b) => getUnitEffectiveMaxCapacity(b) - getUnitEffectiveMaxCapacity(a)
+  );
 }
 
 function getAllocationStats(pax: number, units: MaestroUnidadBus[]) {
-  const totalCap = units.reduce((s, u) => s + u.capacidad, 0);
-  const wasted = Math.max(0, totalCap - pax);
-  const occ = totalCap > 0 ? (pax / totalCap) * 100 : 0;
-  return { count: units.length, totalCap, wasted, occ };
+  const nominalCap = units.reduce((s, u) => s + u.capacidad, 0);
+  const wasted = Math.max(0, nominalCap - pax);
+  const occ = nominalCap > 0 ? (pax / nominalCap) * 100 : 0;
+  return { count: units.length, totalCap: nominalCap, wasted, occ };
 }
 
 // Orden geográfico real de Norte a Sur sobre la línea azul Panamericana
@@ -306,29 +327,6 @@ function compareStopsByCorridorDirection(
 ): number {
   const isSalida = movimiento === 'SALIDA';
 
-  if (forceSurFirstToSantaElena) {
-    // Casos puntuales de ocupabilidad (<= Combi 15p mezclando Sur + Norte):
-    // 1) Todos los paraderos de ZONA SUR van primero, luego ZONA NORTE
-    if (a.zona !== b.zona) {
-      return a.zona === 'SUR' ? -1 : 1;
-    }
-    const geoA = getGeoNorthToSouthIndex(a.paradero, masterParaderos);
-    const geoB = getGeoNorthToSouthIndex(b.paradero, masterParaderos);
-    const isCanonA = geoA < 100;
-    const isCanonB = geoB < 100;
-    if (isCanonA !== isCanonB) return isCanonA ? -1 : 1;
-    if (!isCanonA && !isCanonB) {
-      return geoA !== geoB ? geoA - geoB : a.paradero.localeCompare(b.paradero);
-    }
-    if (a.zona === 'SUR') {
-      const diff = isSalida ? geoA - geoB : geoB - geoA;
-      return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
-    }
-    // En Norte después de Sur rumbo a Santa Elena: sentido Sur -> Norte (Santa Cecilia -> ... -> La Brasil)
-    const diff = geoB - geoA;
-    return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
-  }
-
   const geoA = getGeoNorthToSouthIndex(a.paradero, masterParaderos);
   const geoB = getGeoNorthToSouthIndex(b.paradero, masterParaderos);
 
@@ -339,11 +337,23 @@ function compareStopsByCorridorDirection(
     return geoA !== geoB ? geoA - geoB : a.paradero.localeCompare(b.paradero);
   }
 
+  // Recorrido continuo "lado a lado" (Sur -> Norte sin saltos) para consolidación de Combi <= 17 en Centro/Santa Elena
+  if (forceSurFirstToSantaElena) {
+    const diff = !isSalida ? geoB - geoA : geoA - geoB;
+    return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
+  }
+
   const isSouthFundo = isAgricultorCorridorFundo(a.fundo) || isAgricultorCorridorFundo(b.fundo);
   const isYakuy = isYakuyMinkaFundo(a.fundo) || isYakuyMinkaFundo(b.fundo);
 
   if (isSouthFundo || (isYakuy && hasNorteOnTrip)) {
     const diff = !isSalida ? geoA - geoB : geoB - geoA;
+    return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
+  }
+
+  // Cuando el viaje consolida Línea Azul ("lado a lado"), siempre mantiene sentido vial continuo Norte->Sur o Sur->Norte
+  if (tripZone === 'LÍNEA AZUL') {
+    const diff = !isSalida ? geoB - geoA : geoA - geoB;
     return diff !== 0 ? diff : a.paradero.localeCompare(b.paradero);
   }
 
@@ -402,7 +412,7 @@ function packStopsIntoUnits(
   const trips: OptimizedCorridorTrip[] = [];
 
   for (const unit of units) {
-    let seatsLeft = unit.capacidad;
+    let seatsLeft = getUnitEffectiveMaxCapacity(unit);
     const assignedStopsMap = new Map<
       string,
       { paradero: string; cantidad: number; zona: ZonaParadero }
@@ -647,6 +657,14 @@ export function generateCorridorSchedule(params: {
     const surItems = bucket.items.filter((i) => i.zona === 'SUR');
     const totalN = norteItems.reduce((s, i) => s + i.cantidad, 0);
     const totalS = surItems.reduce((s, i) => s + i.cantidad, 0);
+    const norteTime =
+      [...norteItems].sort(
+        (a, b) => parseMinutesFromTime(a.horaDisplay) - parseMinutesFromTime(b.horaDisplay)
+      )[0]?.horaDisplay || bucket.anchorTime;
+    const surTime =
+      [...surItems].sort(
+        (a, b) => parseMinutesFromTime(a.horaDisplay) - parseMinutesFromTime(b.horaDisplay)
+      )[0]?.horaDisplay || bucket.anchorTime;
 
     // Si solo hay una zona o no se consolida línea azul
     if (!consolidarLineaAzul || totalN === 0 || totalS === 0) {
@@ -659,7 +677,7 @@ export function generateCorridorSchedule(params: {
             'NORTE',
             paraderosMaestros,
             bucket.fecha,
-            bucket.anchorTime,
+            norteTime,
             bucket.movimiento,
             groupCounter
           )
@@ -674,7 +692,7 @@ export function generateCorridorSchedule(params: {
             'SUR',
             paraderosMaestros,
             bucket.fecha,
-            bucket.anchorTime,
+            surTime,
             bucket.movimiento,
             groupCounter
           )
@@ -683,18 +701,25 @@ export function generateCorridorSchedule(params: {
       continue;
     }
 
-    // Regla puntual de ocupabilidad (<= Combi 15p: ej. 5, 7, 9 o hasta 15 pax):
-    // Cuando un requerimiento mezcla Zona Sur + Zona Norte (varios comedores/fundos o Sanidad),
-    // no se divide en 2 minivanes: se consolida en 1 sola unidad (Mini Van o Combi),
-    // recorriendo primero Zona Sur y luego Zona Norte, con ruta SANTA ELENA.
-    const totalPax = totalN + totalS;
-    const smallCapUnits = activeFleet.filter((u) => u.capacidad > 0 && u.capacidad <= 15);
-    const maxSmallCap = smallCapUnits.length > 0 ? smallCapUnits[0].capacidad : 0;
-    const combinedSmallUnits =
-      maxSmallCap > 0 && totalPax <= maxSmallCap
-        ? solveOptimalFleetDP(totalPax, activeFleet)
-        : [];
+    // Regla operativa de consolidación entre Zona Norte y Zona Sur:
+    // - Solo se pueden juntar Norte + Sur en una sola unidad pequeña hasta 17 pasajeros (tope operacional de Combi).
+    // - Nunca se juntan Norte + Sur en Minibús (30) ni Bus (49/55/60).
+    // - En Yakuy Minka, Viviendas Mar Verde nunca se mezcla con Norte.
+    const smallCapUnits = activeFleet.filter(
+      (u) => getUnitEffectiveMaxCapacity(u) > 0 && getUnitEffectiveMaxCapacity(u) <= MAX_COMBI_OPERATIONAL_PAX
+    );
+    const maxSmallCap =
+      smallCapUnits.length > 0
+        ? Math.max(...smallCapUnits.map((u) => getUnitEffectiveMaxCapacity(u)))
+        : 0;
     const isCentralBucket = bucket.corridorKey.startsWith('CENTRAL__');
+    const isYakuyBucket = isYakuyMinkaFundo(bucket.items[0]?.fundo || '');
+
+    const totalPax = totalN + totalS;
+    const combinedSmallUnits =
+      maxSmallCap > 0 && totalPax <= maxSmallCap && !isYakuyBucket
+        ? solveOptimalFleetDP(totalPax, smallCapUnits)
+        : [];
     const distinctComedores = new Set(
       bucket.items.map((i) => (i.origenComedor || '').trim().toUpperCase()).filter(Boolean)
     );
@@ -715,16 +740,15 @@ export function generateCorridorSchedule(params: {
           comUp.includes('SANTA ELENA')
         );
       });
+    const allItemsBlueLine = bucket.items.every((i) => i.isBlueLine);
 
     if (
       combinedSmallUnits.length === 1 &&
-      combinedSmallUnits[0].capacidad <= maxSmallCap &&
-      (isCentralBucket || hasSanidadOrCrossComedor)
+      getUnitEffectiveMaxCapacity(combinedSmallUnits[0]) <= maxSmallCap &&
+      (allItemsBlueLine || hasSanidadOrCrossComedor) &&
+      (isCentralBucket || hasSanidadOrCrossComedor || isAgricultorCorridorFundo(bucket.items[0]?.fundo || ''))
     ) {
-      const surStartTime =
-        [...surItems].sort(
-          (a, b) => parseMinutesFromTime(a.horaDisplay) - parseMinutesFromTime(b.horaDisplay)
-        )[0]?.horaDisplay || bucket.anchorTime;
+      const startTime = isCentralBucket ? surTime : bucket.anchorTime;
       finalTrips.push(
         ...packStopsIntoUnits(
           bucket.items,
@@ -732,21 +756,25 @@ export function generateCorridorSchedule(params: {
           'LÍNEA AZUL',
           paraderosMaestros,
           bucket.fecha,
-          surStartTime,
+          startTime,
           bucket.movimiento,
           groupCounter,
-          'Consolidado Sur → Norte (Ruta Santa Elena) en 1 unidad por ocupabilidad',
+          isCentralBucket
+            ? 'Consolidado Sur ↔ Norte (lado a lado) en 1 unidad hasta 17 pax'
+            : 'Consolidado Corredor Línea Azul (lado a lado) en 1 unidad hasta 17 pax',
           true,
-          'SANTA ELENA',
-          true
+          hasSanidadOrCrossComedor && isCentralBucket ? 'SANTA ELENA' : undefined,
+          isCentralBucket || hasSanidadOrCrossComedor
         )
       );
       continue;
     }
 
-    // Para fundos centrales (Gloria, Agromas, Frusol, Mar Verde, Oro Azul, San José, Napo):
-    // Evaluar reequilibrio fronterizo en sector San José (La 21, La Plazuela San José, Santa Cecilia, Mendocilla -> Sur)
-    // o Segundo Paradero/La Botica -> Norte cuando reduce flota o mejora la ocupabilidad global.
+    // Para fundos centrales (Gloria, Agromas, Frusol, Mar Verde, Oro Azul, San José, Napo, Arenal, San Vicente):
+    // - Regla estricta: NO juntar zonas si ya hay demanda para dos combis (ambas zonas >= 11 pax, o ambos lados con unidad propia).
+    // - Si NO hay para dos combis, solo permite reequilibrio en paraderos fronterizos contiguos ("lado a lado"):
+    //   Mendocilla / La 21 / La Plazuela San José / Santa Cecilia -> SUR, o Segundo Paradero / La Botica -> NORTE,
+    //   únicamente cuando reduce estrictamente el número de vehículos sin vaciar ninguna zona ni superar 17 pax en Combi.
     if (isCentralBucket) {
       const sepUnitsN = solveOptimalFleetDP(totalN, activeFleet);
       const sepUnitsS = solveOptimalFleetDP(totalS, activeFleet);
@@ -758,84 +786,85 @@ export function generateCorridorSchedule(params: {
       let bestNoteN: string | undefined;
       let bestNoteS: string | undefined;
 
-      const isBetterAllocation = (
-        candidate: ReturnType<typeof getAllocationStats>,
-        current: ReturnType<typeof getAllocationStats>
-      ) =>
-        candidate.count < current.count ||
-        (candidate.count === current.count && candidate.wasted < current.wasted);
+      const hasParaDosCombis = totalN >= 11 && totalS >= 11;
 
-      // 1) SUR absorbe paraderos fronterizos contiguos de San José (Sur -> Norte: Santa Cecilia -> Plazuela San José -> La 21)
-      const sanJoseStopGroups = new Map<number, StopDemandItem[]>();
-      for (const it of norteItems) {
-        if (!it.isBlueLine) continue;
-        const gIdx = getGeoNorthToSouthIndex(it.paradero, paraderosMaestros);
-        if (gIdx >= 16 && gIdx <= 18) {
-          const arr = sanJoseStopGroups.get(gIdx) || [];
-          arr.push(it);
-          sanJoseStopGroups.set(gIdx, arr);
+      if (!hasParaDosCombis) {
+        // 1) SUR absorbe paraderos fronterizos contiguos de San José (Santa Cecilia -> Plazuela San José -> La 21 -> Mendocilla)
+        const sanJoseStopGroups = new Map<number, StopDemandItem[]>();
+        for (const it of norteItems) {
+          if (!it.isBlueLine) continue;
+          const gIdx = getGeoNorthToSouthIndex(it.paradero, paraderosMaestros);
+          if (gIdx >= 15 && gIdx <= 18) {
+            const arr = sanJoseStopGroups.get(gIdx) || [];
+            arr.push(it);
+            sanJoseStopGroups.set(gIdx, arr);
+          }
         }
-      }
-      const orderedSanJoseIdxs = Array.from(sanJoseStopGroups.keys()).sort((a, b) => b - a);
-      const movedToSurSet = new Set<StopDemandItem>();
-      for (const gIdx of orderedSanJoseIdxs) {
-        const group = sanJoseStopGroups.get(gIdx) || [];
-        group.forEach((it) => movedToSurSet.add(it));
-        const candN = norteItems.filter((it) => !movedToSurSet.has(it));
-        const candS = [...surItems, ...Array.from(movedToSurSet)];
-        const paxN = candN.reduce((s, i) => s + i.cantidad, 0);
-        const paxS = candS.reduce((s, i) => s + i.cantidad, 0);
-        const candUnitsN = paxN > 0 ? solveOptimalFleetDP(paxN, activeFleet) : [];
-        const candUnitsS = paxS > 0 ? solveOptimalFleetDP(paxS, activeFleet) : [];
-        const candStats = getAllocationStats(totalN + totalS, [...candUnitsN, ...candUnitsS]);
-        if (isBetterAllocation(candStats, bestStats)) {
-          bestStats = candStats;
-          bestNItems = candN;
-          bestSItems = candS;
-          bestUnitsN = candUnitsN;
-          bestUnitsS = candUnitsS;
-          const movedStopsNames = Array.from(
-            new Set(Array.from(movedToSurSet).map((x) => x.paradero))
-          ).join(', ');
-          bestNoteN = `Parada límite (${movedStopsNames}) asignada a ruta Sur para optimizar ocupabilidad`;
-          bestNoteS = `Incluye sector San José (${movedStopsNames}) para optimizar ocupabilidad`;
+        const orderedSanJoseIdxs = Array.from(sanJoseStopGroups.keys()).sort((a, b) => b - a);
+        const movedToSurSet = new Set<StopDemandItem>();
+        for (const gIdx of orderedSanJoseIdxs) {
+          const group = sanJoseStopGroups.get(gIdx) || [];
+          group.forEach((it) => movedToSurSet.add(it));
+          const candN = norteItems.filter((it) => !movedToSurSet.has(it));
+          const candS = [...surItems, ...Array.from(movedToSurSet)];
+          const paxN = candN.reduce((s, i) => s + i.cantidad, 0);
+          const paxS = candS.reduce((s, i) => s + i.cantidad, 0);
+          if (paxN === 0 || paxS === 0) continue; // > 17 pax no puede vaciar toda una zona hacia la otra
+          if (paxS > MAX_COMBI_OPERATIONAL_PAX && totalS <= MAX_COMBI_OPERATIONAL_PAX) continue;
+          const candUnitsN = solveOptimalFleetDP(paxN, activeFleet);
+          const candUnitsS = solveOptimalFleetDP(paxS, activeFleet);
+          const candStats = getAllocationStats(totalN + totalS, [...candUnitsN, ...candUnitsS]);
+          if (candStats.count < bestStats.count) {
+            bestStats = candStats;
+            bestNItems = candN;
+            bestSItems = candS;
+            bestUnitsN = candUnitsN;
+            bestUnitsS = candUnitsS;
+            const movedStopsNames = Array.from(
+              new Set(Array.from(movedToSurSet).map((x) => x.paradero))
+            ).join(', ');
+            bestNoteN = `Parada límite (${movedStopsNames}) asignada a ruta Sur para optimizar ocupabilidad`;
+            bestNoteS = `Incluye sector San José (${movedStopsNames}) para optimizar ocupabilidad`;
+          }
         }
-      }
 
-      // 2) Simétrico: NORTE absorbe Segundo Paradero (límite norte de Chao) solo si mejora estrictamente frente al resultado anterior
-      const chaoNorthGroups = new Map<number, StopDemandItem[]>();
-      for (const it of surItems) {
-        if (!it.isBlueLine) continue;
-        const gIdx = getGeoNorthToSouthIndex(it.paradero, paraderosMaestros);
-        if (gIdx === 19) {
-          const arr = chaoNorthGroups.get(gIdx) || [];
-          arr.push(it);
-          chaoNorthGroups.set(gIdx, arr);
+        // 2) Simétrico: NORTE absorbe paraderos contiguos del norte de Chao (Segundo Paradero, La Botica) solo si reduce vehículos
+        const chaoNorthGroups = new Map<number, StopDemandItem[]>();
+        for (const it of surItems) {
+          if (!it.isBlueLine) continue;
+          const gIdx = getGeoNorthToSouthIndex(it.paradero, paraderosMaestros);
+          if (gIdx === 19 || gIdx === 20) {
+            const arr = chaoNorthGroups.get(gIdx) || [];
+            arr.push(it);
+            chaoNorthGroups.set(gIdx, arr);
+          }
         }
-      }
-      const orderedChaoNorthIdxs = Array.from(chaoNorthGroups.keys()).sort((a, b) => a - b);
-      const movedToNorteSet = new Set<StopDemandItem>();
-      for (const gIdx of orderedChaoNorthIdxs) {
-        const group = chaoNorthGroups.get(gIdx) || [];
-        group.forEach((it) => movedToNorteSet.add(it));
-        const candS = surItems.filter((it) => !movedToNorteSet.has(it));
-        const candN = [...norteItems, ...Array.from(movedToNorteSet)];
-        const paxN = candN.reduce((s, i) => s + i.cantidad, 0);
-        const paxS = candS.reduce((s, i) => s + i.cantidad, 0);
-        const candUnitsN = paxN > 0 ? solveOptimalFleetDP(paxN, activeFleet) : [];
-        const candUnitsS = paxS > 0 ? solveOptimalFleetDP(paxS, activeFleet) : [];
-        const candStats = getAllocationStats(totalN + totalS, [...candUnitsN, ...candUnitsS]);
-        if (isBetterAllocation(candStats, bestStats)) {
-          bestStats = candStats;
-          bestNItems = candN;
-          bestSItems = candS;
-          bestUnitsN = candUnitsN;
-          bestUnitsS = candUnitsS;
-          const movedStopsNames = Array.from(
-            new Set(Array.from(movedToNorteSet).map((x) => x.paradero))
-          ).join(', ');
-          bestNoteN = `Incluye paradero límite (${movedStopsNames}) para optimizar ocupabilidad`;
-          bestNoteS = `Parada límite (${movedStopsNames}) asignada a ruta Norte para optimizar ocupabilidad`;
+        const orderedChaoNorthIdxs = Array.from(chaoNorthGroups.keys()).sort((a, b) => a - b);
+        const movedToNorteSet = new Set<StopDemandItem>();
+        for (const gIdx of orderedChaoNorthIdxs) {
+          const group = chaoNorthGroups.get(gIdx) || [];
+          group.forEach((it) => movedToNorteSet.add(it));
+          const candS = surItems.filter((it) => !movedToNorteSet.has(it));
+          const candN = [...norteItems, ...Array.from(movedToNorteSet)];
+          const paxN = candN.reduce((s, i) => s + i.cantidad, 0);
+          const paxS = candS.reduce((s, i) => s + i.cantidad, 0);
+          if (paxN === 0 || paxS === 0) continue;
+          if (paxN > MAX_COMBI_OPERATIONAL_PAX && totalN <= MAX_COMBI_OPERATIONAL_PAX) continue;
+          const candUnitsN = solveOptimalFleetDP(paxN, activeFleet);
+          const candUnitsS = solveOptimalFleetDP(paxS, activeFleet);
+          const candStats = getAllocationStats(totalN + totalS, [...candUnitsN, ...candUnitsS]);
+          if (candStats.count < bestStats.count) {
+            bestStats = candStats;
+            bestNItems = candN;
+            bestSItems = candS;
+            bestUnitsN = candUnitsN;
+            bestUnitsS = candUnitsS;
+            const movedStopsNames = Array.from(
+              new Set(Array.from(movedToNorteSet).map((x) => x.paradero))
+            ).join(', ');
+            bestNoteN = `Incluye paradero límite (${movedStopsNames}) para optimizar ocupabilidad`;
+            bestNoteS = `Parada límite (${movedStopsNames}) asignada a ruta Norte para optimizar ocupabilidad`;
+          }
         }
       }
 
@@ -846,7 +875,7 @@ export function generateCorridorSchedule(params: {
           'NORTE',
           paraderosMaestros,
           bucket.fecha,
-          bucket.anchorTime,
+          norteTime,
           bucket.movimiento,
           groupCounter,
           bestNoteN,
@@ -858,7 +887,7 @@ export function generateCorridorSchedule(params: {
           'SUR',
           paraderosMaestros,
           bucket.fecha,
-          bucket.anchorTime,
+          surTime,
           bucket.movimiento,
           groupCounter,
           bestNoteS,
@@ -868,12 +897,12 @@ export function generateCorridorSchedule(params: {
       continue;
     }
 
+    // Corredores Sur (Agricultor 1/2/3, Sincromax, Chao 1/2, Yakuy Minka):
     // Separar paraderos en línea azul vs fuera de eje
-    const isYakuyBucket = isYakuyMinkaFundo(bucket.items[0]?.fundo || '');
     const norteBlue = norteItems.filter((i) => i.isBlueLine);
     const norteOff = norteItems.filter((i) => !i.isBlueLine);
 
-    // En Yakuy Minka, si vienen de La Brasil/Norte NO toman Viviendas Mar Verde (Viviendas queda en Sur)
+    // En Yakuy Minka, Viviendas Mar Verde SIEMPRE queda en SUR (nunca se mezcla con Norte)
     const surBlueAll = surItems.filter((i) => i.isBlueLine);
     const surBlue = isYakuyBucket
       ? surBlueAll.filter((i) => getCanonicalOrderKey(i.paradero) !== 'VIVIENDAS MAR VERDE')
@@ -890,27 +919,36 @@ export function generateCorridorSchedule(params: {
     const paxNOff = norteOff.reduce((s, i) => s + i.cantidad, 0);
     const paxSOff = surOff.reduce((s, i) => s + i.cantidad, 0);
 
-    // Evaluar Plan A: Zonas separadas
+    // Evaluar Plan A: Zonas separadas (NORTE y SUR independientes)
     const sepUnitsN = solveOptimalFleetDP(totalN, activeFleet);
     const sepUnitsS = solveOptimalFleetDP(totalS, activeFleet);
     const sepStats = getAllocationStats(totalN + totalS, [...sepUnitsN, ...sepUnitsS]);
 
-    // Evaluar Plan B: Unificar demanda sobre Línea Azul
+    // Evaluar Plan B: Unificar demanda sobre Línea Azul SOLO si el total combinado cabe en 1 Combi/MiniVan (<= 17 pax)
     const bluePoolItems = [...norteBlue, ...surBlue];
     const bluePoolPax = paxNBlue + paxSBlue;
+    const canMergeBlueCombi =
+      maxSmallCap > 0 &&
+      paxNBlue > 0 &&
+      paxSBlue > 0 &&
+      bluePoolPax <= maxSmallCap;
 
-    const mergedBlueUnits = solveOptimalFleetDP(bluePoolPax, activeFleet);
+    const mergedBlueUnits = canMergeBlueCombi
+      ? solveOptimalFleetDP(bluePoolPax, smallCapUnits)
+      : [];
     const mergedOffNUnits = solveOptimalFleetDP(paxNOff, activeFleet);
     const mergedOffSUnits = solveOptimalFleetDP(paxSOff, activeFleet);
     const mergedAllUnits = [...mergedBlueUnits, ...mergedOffNUnits, ...mergedOffSUnits];
-    const mergedStats = getAllocationStats(totalN + totalS, mergedAllUnits);
+    const mergedStats = canMergeBlueCombi
+      ? getAllocationStats(totalN + totalS, mergedAllUnits)
+      : { count: 9999, totalCap: 9999, wasted: 9999, occ: 0 };
 
-    // Evaluar Plan C: Mantener buses llenos por zona y juntar remanentes sobre Línea Azul
+    // Evaluar Plan C: Mantener buses llenos por zona y juntar remanentes sobre Línea Azul SOLO si remN + remS <= 17 (1 Combi)
     let hybridTrips: OptimizedCorridorTrip[] | null = null;
     let hybridStats = { count: 9999, totalCap: 9999, wasted: 9999, occ: 0 };
 
-    if (paxNOff === 0 && (sepUnitsN.length > 1 || sepUnitsS.length > 1)) {
-      const largestCap = activeFleet[0].capacidad;
+    if (maxSmallCap > 0 && paxNOff === 0 && (sepUnitsN.length > 1 || sepUnitsS.length > 1)) {
+      const largestCap = getUnitEffectiveMaxCapacity(activeFleet[0]);
       if ((paxNBlue > largestCap || paxSBlue > largestCap) && paxSBlue > 0) {
         const fullUnitsN: MaestroUnidadBus[] = [];
         let remN = paxNBlue;
@@ -925,8 +963,8 @@ export function generateCorridorSchedule(params: {
           remS -= largestCap;
         }
 
-        if (remN > 0 && remS > 0) {
-          const pooledRemUnits = solveOptimalFleetDP(remN + remS, activeFleet);
+        if (remN > 0 && remS > 0 && remN + remS <= maxSmallCap) {
+          const pooledRemUnits = solveOptimalFleetDP(remN + remS, smallCapUnits);
           const offSUnitsForHybrid = solveOptimalFleetDP(paxSOff, activeFleet);
           const allHybridUnits = [
             ...fullUnitsN,
@@ -937,8 +975,9 @@ export function generateCorridorSchedule(params: {
           hybridStats = getAllocationStats(totalN + totalS, allHybridUnits);
 
           if (
-            hybridStats.count < sepStats.count ||
-            (hybridStats.count === sepStats.count && hybridStats.wasted < sepStats.wasted)
+            pooledRemUnits.length === 1 &&
+            (hybridStats.count < sepStats.count ||
+              (hybridStats.count === sepStats.count && hybridStats.wasted < sepStats.wasted))
           ) {
             const sortedNorteBlue = [...norteBlue].sort((a, b) =>
               compareStopsByCorridorDirection(a, b, bucket.movimiento, paraderosMaestros, true)
@@ -949,7 +988,7 @@ export function generateCorridorSchedule(params: {
 
             const remItemsN: StopDemandItem[] = [];
             const fullItemsN: StopDemandItem[] = [];
-            let needN = fullUnitsN.reduce((s, u) => s + u.capacidad, 0);
+            let needN = fullUnitsN.reduce((s, u) => s + getUnitEffectiveMaxCapacity(u), 0);
             for (const it of sortedNorteBlue) {
               if (needN <= 0) {
                 remItemsN.push({ ...it });
@@ -965,7 +1004,7 @@ export function generateCorridorSchedule(params: {
 
             const remItemsS: StopDemandItem[] = [];
             const fullItemsS: StopDemandItem[] = [];
-            let needS = fullUnitsS.reduce((s, u) => s + u.capacidad, 0);
+            let needS = fullUnitsS.reduce((s, u) => s + getUnitEffectiveMaxCapacity(u), 0);
             for (const it of sortedSurBlue) {
               if (needS <= 0) {
                 remItemsS.push({ ...it });
@@ -986,7 +1025,7 @@ export function generateCorridorSchedule(params: {
                 'NORTE',
                 paraderosMaestros,
                 bucket.fecha,
-                bucket.anchorTime,
+                norteTime,
                 bucket.movimiento,
                 groupCounter
               ),
@@ -996,7 +1035,7 @@ export function generateCorridorSchedule(params: {
                 'SUR',
                 paraderosMaestros,
                 bucket.fecha,
-                bucket.anchorTime,
+                surTime,
                 bucket.movimiento,
                 groupCounter
               ),
@@ -1010,8 +1049,8 @@ export function generateCorridorSchedule(params: {
                 bucket.movimiento,
                 groupCounter,
                 isYakuyBucket
-                  ? 'Yakuy Minka: consolidado desde Norte sin Viviendas Mar Verde'
-                  : 'Consolidación de remanentes en Línea Azul al máximo de ocupación'
+                  ? 'Yakuy Minka: consolidado lado a lado desde Norte sin Viviendas Mar Verde (hasta 17 pax)'
+                  : 'Consolidación de remanentes lado a lado en Línea Azul (hasta 17 pax)'
               ),
               ...(paxSOff > 0
                 ? packStopsIntoUnits(
@@ -1020,7 +1059,7 @@ export function generateCorridorSchedule(params: {
                     'SUR',
                     paraderosMaestros,
                     bucket.fecha,
-                    bucket.anchorTime,
+                    surTime,
                     bucket.movimiento,
                     groupCounter
                   )
@@ -1031,7 +1070,7 @@ export function generateCorridorSchedule(params: {
       }
     }
 
-    // Decidir el mejor plan entre Separado, Unificado Línea Azul (B) o Híbrido (C)
+    // Decidir el mejor plan entre Separado, Unificado Línea Azul <= 17 (B) o Híbrido (C)
     const useHybrid =
       hybridTrips !== null &&
       (hybridStats.count < mergedStats.count ||
@@ -1045,8 +1084,8 @@ export function generateCorridorSchedule(params: {
     }
 
     const useMergedBlue =
-      bluePoolPax > 0 &&
-      paxSBlue > 0 &&
+      canMergeBlueCombi &&
+      mergedBlueUnits.length === 1 &&
       (mergedStats.count < sepStats.count ||
         (mergedStats.count === sepStats.count && mergedStats.wasted < sepStats.wasted));
 
@@ -1062,8 +1101,8 @@ export function generateCorridorSchedule(params: {
           bucket.movimiento,
           groupCounter,
           isYakuyBucket
-            ? 'Yakuy Minka: recorrido Norte + Sur (sin Viviendas Mar Verde)'
-            : 'Consolidado en corredor Línea Azul (La Brasil ↔ Viviendas Mar Verde)'
+            ? 'Yakuy Minka: recorrido lado a lado Norte + Sur sin Viviendas Mar Verde (hasta 17 pax)'
+            : 'Consolidado lado a lado en Línea Azul (hasta 17 pax en Combi)'
         )
       );
       if (paxNOff > 0) {
@@ -1074,7 +1113,7 @@ export function generateCorridorSchedule(params: {
             'NORTE',
             paraderosMaestros,
             bucket.fecha,
-            bucket.anchorTime,
+            norteTime,
             bucket.movimiento,
             groupCounter
           )
@@ -1088,7 +1127,7 @@ export function generateCorridorSchedule(params: {
             'SUR',
             paraderosMaestros,
             bucket.fecha,
-            bucket.anchorTime,
+            surTime,
             bucket.movimiento,
             groupCounter
           )
@@ -1102,7 +1141,7 @@ export function generateCorridorSchedule(params: {
           'NORTE',
           paraderosMaestros,
           bucket.fecha,
-          bucket.anchorTime,
+          norteTime,
           bucket.movimiento,
           groupCounter
         ),
@@ -1112,7 +1151,7 @@ export function generateCorridorSchedule(params: {
           'SUR',
           paraderosMaestros,
           bucket.fecha,
-          bucket.anchorTime,
+          surTime,
           bucket.movimiento,
           groupCounter
         )

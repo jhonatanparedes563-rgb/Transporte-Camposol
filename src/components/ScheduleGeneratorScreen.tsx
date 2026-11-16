@@ -221,6 +221,12 @@ const inferTurnoFromTime = (timeStr: string): TurnoLabel => {
   return 'NOCHE';
 };
 
+const isOverOperationalCapacity = (type: string, people: number, cap: number): boolean => {
+  const isCombi = (type || '').toUpperCase().includes('COMBI') || cap === 15;
+  const maxAllowed = isCombi ? Math.max(cap, 17) : cap;
+  return people > maxAllowed;
+};
+
 const isPendingAssignment = (row: ScheduleRow): boolean => {
   const prov = (row.provider || '').trim().toLowerCase();
   const plate = (row.plate || '').trim().toLowerCase();
@@ -481,7 +487,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
       if (turnoFilter !== 'TODOS' && row.turno !== turnoFilter) return false;
 
-      const overCap = row.people > row.cap;
+      const overCap = isOverOperationalCapacity(row.type, row.people, row.cap);
       const missingAssign = isPendingAssignment(row);
       const statusKey = overCap ? 'exceso' : missingAssign ? 'pendiente' : 'ok';
       if (statusFilter !== 'TODOS' && statusFilter !== statusKey) return false;
@@ -622,7 +628,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         requerimientosIds: row.reqIds,
         estado: 'PROGRAMADO',
         chofer: row.driver || 'Por asignar',
-        observaciones: row.observaciones || (row.people > row.cap ? 'Revisar capacidad' : ''),
+        observaciones:
+          row.observaciones ||
+          (isOverOperationalCapacity(row.type, row.people, row.cap) ? 'Revisar capacidad' : ''),
       };
     });
 
@@ -687,7 +695,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       observaciones: row.observaciones || '',
     });
     setFormWarning(
-      row.people > row.cap ? 'El personal asignado supera la capacidad de la unidad.' : null
+      isOverOperationalCapacity(row.type, row.people, row.cap)
+        ? 'El personal asignado supera la capacidad de la unidad.'
+        : null
     );
   };
 
@@ -763,7 +773,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
     const peopleNum = Math.max(0, Number(formState.people) || 0);
     const capNum = Math.max(1, Number(formState.cap) || 1);
 
-    if (peopleNum > capNum && !formWarning) {
+    if (isOverOperationalCapacity(formState.type, peopleNum, capNum) && !formWarning) {
       setFormWarning(
         'El personal supera la capacidad de la unidad. Cambia el tipo de bus o vuelve a guardar para confirmarlo.'
       );
@@ -1202,7 +1212,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               ) : (
                 filteredRows.map((row, idx) => {
                   const pct = row.cap > 0 ? Math.round((row.people / row.cap) * 100) : 0;
-                  const overCap = row.people > row.cap;
+                  const overCap = isOverOperationalCapacity(row.type, row.people, row.cap);
                   const missingAssign = isPendingAssignment(row);
                   const stopsFullTitle =
                     row.stopDetails.length > 0
@@ -1547,7 +1557,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                           cap: chosen.capacidad,
                         }));
                         setFormWarning(
-                          formState.people > chosen.capacidad
+                          isOverOperationalCapacity(chosen.nombre, formState.people, chosen.capacidad)
                             ? 'El personal asignado supera la capacidad de la unidad.'
                             : null
                         );
@@ -1581,7 +1591,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       const val = Number(e.target.value) || 0;
                       setFormState((s) => ({ ...s, people: val }));
                       setFormWarning(
-                        val > formState.cap
+                        isOverOperationalCapacity(formState.type, val, formState.cap)
                           ? 'El personal asignado supera la capacidad de la unidad.'
                           : null
                       );
@@ -1603,7 +1613,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       const val = Number(e.target.value) || 1;
                       setFormState((s) => ({ ...s, cap: val }));
                       setFormWarning(
-                        formState.people > val
+                        isOverOperationalCapacity(formState.type, formState.people, val)
                           ? 'El personal asignado supera la capacidad de la unidad.'
                           : null
                       );
