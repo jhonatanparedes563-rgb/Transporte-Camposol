@@ -471,6 +471,11 @@ function packStopsIntoUnits(
     groupCounter[baseKey] = seq;
     const matchKey = `${baseKey}__${seq}`;
 
+    const effectiveRuleNote =
+      !preserveZoneLabel && zoneLabel === 'LÍNEA AZUL' && effectiveZone !== 'LÍNEA AZUL'
+        ? undefined
+        : ruleNote;
+
     trips.push({
       id: `${matchKey}__trip`,
       matchKey,
@@ -489,7 +494,7 @@ function packStopsIntoUnits(
       reqEstados: Array.from(reqEstadosSet),
       owners: Array.from(ownersSet),
       origenes: Array.from(origenesSet),
-      consolidatedRuleNote: ruleNote,
+      consolidatedRuleNote: effectiveRuleNote,
       ...(rutaNombre ? { rutaNombre } : {}),
     });
   }
@@ -919,36 +924,47 @@ export function generateCorridorSchedule(params: {
     const paxNOff = norteOff.reduce((s, i) => s + i.cantidad, 0);
     const paxSOff = surOff.reduce((s, i) => s + i.cantidad, 0);
 
+    const isAgricultorCorridor =
+      isAgricultorCorridorFundo(bucket.items[0]?.fundo || '') && !isYakuyBucket;
+
     // Evaluar Plan A: Zonas separadas (NORTE y SUR independientes)
     const sepUnitsN = solveOptimalFleetDP(totalN, activeFleet);
     const sepUnitsS = solveOptimalFleetDP(totalS, activeFleet);
     const sepStats = getAllocationStats(totalN + totalS, [...sepUnitsN, ...sepUnitsS]);
 
-    // Evaluar Plan B: Unificar demanda sobre Línea Azul SOLO si el total combinado cabe en 1 Combi/MiniVan (<= 17 pax)
+    // Evaluar Plan B:
+    // - En corredores de misma línea Sur (Agricultor 1/2/3, Sincromax, Chao 1/2): permite consolidar Norte + Sur
+    //   escalando según flota activa (COMBI -> MINIBUS -> BUS -> BUS LARGE si hay / 2 PISOS) si reduce vehículos.
+    // - En Yakuy Minka: solo hasta 17 pax en Combi/MiniVan y sin mezclar Viviendas Mar Verde.
     const bluePoolItems = [...norteBlue, ...surBlue];
     const bluePoolPax = paxNBlue + paxSBlue;
-    const canMergeBlueCombi =
-      maxSmallCap > 0 &&
-      paxNBlue > 0 &&
-      paxSBlue > 0 &&
-      bluePoolPax <= maxSmallCap;
+    const canMergeBlue = isAgricultorCorridor
+      ? paxNBlue > 0 && paxSBlue > 0
+      : maxSmallCap > 0 &&
+        paxNBlue > 0 &&
+        paxSBlue > 0 &&
+        bluePoolPax <= maxSmallCap;
 
-    const mergedBlueUnits = canMergeBlueCombi
-      ? solveOptimalFleetDP(bluePoolPax, smallCapUnits)
+    const mergedBlueUnits = canMergeBlue
+      ? solveOptimalFleetDP(bluePoolPax, isAgricultorCorridor ? activeFleet : smallCapUnits)
       : [];
     const mergedOffNUnits = solveOptimalFleetDP(paxNOff, activeFleet);
     const mergedOffSUnits = solveOptimalFleetDP(paxSOff, activeFleet);
     const mergedAllUnits = [...mergedBlueUnits, ...mergedOffNUnits, ...mergedOffSUnits];
-    const mergedStats = canMergeBlueCombi
+    const mergedStats = canMergeBlue
       ? getAllocationStats(totalN + totalS, mergedAllUnits)
       : { count: 9999, totalCap: 9999, wasted: 9999, occ: 0 };
 
-    // Evaluar Plan C: Mantener buses llenos por zona y juntar remanentes sobre Línea Azul SOLO si remN + remS <= 17 (1 Combi)
+    // Evaluar Plan C: Mantener buses llenos por zona y juntar remanentes sobre Línea Azul
+    // (hasta max unidad activa en corredores Agricultor/Chao/Sincromax; hasta 17 pax en Yakuy Minka)
     let hybridTrips: OptimizedCorridorTrip[] | null = null;
     let hybridStats = { count: 9999, totalCap: 9999, wasted: 9999, occ: 0 };
 
-    if (maxSmallCap > 0 && paxNOff === 0 && (sepUnitsN.length > 1 || sepUnitsS.length > 1)) {
-      const largestCap = getUnitEffectiveMaxCapacity(activeFleet[0]);
+    const largestCap = getUnitEffectiveMaxCapacity(activeFleet[0]);
+    const hybridPoolCap = isAgricultorCorridor ? largestCap : maxSmallCap;
+    const hybridFleet = isAgricultorCorridor ? activeFleet : smallCapUnits;
+
+    if (hybridPoolCap > 0 && paxNOff === 0 && (sepUnitsN.length > 1 || sepUnitsS.length > 1)) {
       if ((paxNBlue > largestCap || paxSBlue > largestCap) && paxSBlue > 0) {
         const fullUnitsN: MaestroUnidadBus[] = [];
         let remN = paxNBlue;
@@ -963,8 +979,8 @@ export function generateCorridorSchedule(params: {
           remS -= largestCap;
         }
 
-        if (remN > 0 && remS > 0 && remN + remS <= maxSmallCap) {
-          const pooledRemUnits = solveOptimalFleetDP(remN + remS, smallCapUnits);
+        if (remN > 0 && remS > 0 && remN + remS <= hybridPoolCap) {
+          const pooledRemUnits = solveOptimalFleetDP(remN + remS, hybridFleet);
           const offSUnitsForHybrid = solveOptimalFleetDP(paxSOff, activeFleet);
           const allHybridUnits = [
             ...fullUnitsN,
@@ -974,11 +990,12 @@ export function generateCorridorSchedule(params: {
           ];
           hybridStats = getAllocationStats(totalN + totalS, allHybridUnits);
 
-          if (
-            pooledRemUnits.length === 1 &&
-            (hybridStats.count < sepStats.count ||
-              (hybridStats.count === sepStats.count && hybridStats.wasted < sepStats.wasted))
-          ) {
+          const hybridImprovesSep = isAgricultorCorridor
+            ? hybridStats.count < sepStats.count
+            : hybridStats.count < sepStats.count ||
+              (hybridStats.count === sepStats.count && hybridStats.wasted < sepStats.wasted);
+
+          if (pooledRemUnits.length === 1 && hybridImprovesSep) {
             const sortedNorteBlue = [...norteBlue].sort((a, b) =>
               compareStopsByCorridorDirection(a, b, bucket.movimiento, paraderosMaestros, true)
             );
@@ -1018,6 +1035,17 @@ export function generateCorridorSchedule(params: {
               }
             }
 
+            const hybridStartTime = isAgricultorCorridor
+              ? bucket.movimiento === 'SALIDA'
+                ? surTime
+                : norteTime
+              : bucket.anchorTime;
+            const hybridNote = isYakuyBucket
+              ? 'Yakuy Minka: consolidado lado a lado desde Norte sin Viviendas Mar Verde (hasta 17 pax)'
+              : isAgricultorCorridor
+              ? `Consolidación de remanentes Línea Azul (${pooledRemUnits[0].nombre}) Norte ↔ Sur`
+              : 'Consolidación de remanentes lado a lado en Línea Azul (hasta 17 pax)';
+
             hybridTrips = [
               ...packStopsIntoUnits(
                 fullItemsN,
@@ -1045,12 +1073,10 @@ export function generateCorridorSchedule(params: {
                 'LÍNEA AZUL',
                 paraderosMaestros,
                 bucket.fecha,
-                bucket.anchorTime,
+                hybridStartTime,
                 bucket.movimiento,
                 groupCounter,
-                isYakuyBucket
-                  ? 'Yakuy Minka: consolidado lado a lado desde Norte sin Viviendas Mar Verde (hasta 17 pax)'
-                  : 'Consolidación de remanentes lado a lado en Línea Azul (hasta 17 pax)'
+                hybridNote
               ),
               ...(paxSOff > 0
                 ? packStopsIntoUnits(
@@ -1070,26 +1096,47 @@ export function generateCorridorSchedule(params: {
       }
     }
 
-    // Decidir el mejor plan entre Separado, Unificado Línea Azul <= 17 (B) o Híbrido (C)
-    const useHybrid =
-      hybridTrips !== null &&
-      (hybridStats.count < mergedStats.count ||
-        (hybridStats.count === mergedStats.count && hybridStats.wasted < mergedStats.wasted)) &&
-      (hybridStats.count < sepStats.count ||
-        (hybridStats.count === sepStats.count && hybridStats.wasted < sepStats.wasted));
+    // Decidir el mejor plan entre Separado (A), Unificado Línea Azul (B) o Híbrido (C)
+    const hybridBeatsMerged = isAgricultorCorridor
+      ? hybridStats.count < mergedStats.count ||
+        (hybridStats.count === mergedStats.count && hybridStats.wasted <= mergedStats.wasted)
+      : hybridStats.count < mergedStats.count ||
+        (hybridStats.count === mergedStats.count && hybridStats.wasted < mergedStats.wasted);
+    const hybridBeatsSep = isAgricultorCorridor
+      ? hybridStats.count < sepStats.count
+      : hybridStats.count < sepStats.count ||
+        (hybridStats.count === sepStats.count && hybridStats.wasted < sepStats.wasted);
+
+    const useHybrid = hybridTrips !== null && hybridBeatsMerged && hybridBeatsSep;
 
     if (useHybrid && hybridTrips) {
       finalTrips.push(...hybridTrips);
       continue;
     }
 
-    const useMergedBlue =
-      canMergeBlueCombi &&
-      mergedBlueUnits.length === 1 &&
-      (mergedStats.count < sepStats.count ||
-        (mergedStats.count === sepStats.count && mergedStats.wasted < sepStats.wasted));
+    const useMergedBlue = isAgricultorCorridor
+      ? canMergeBlue &&
+        mergedBlueUnits.length >= 1 &&
+        mergedStats.count < sepStats.count
+      : canMergeBlue &&
+        mergedBlueUnits.length === 1 &&
+        (mergedStats.count < sepStats.count ||
+          (mergedStats.count === sepStats.count && mergedStats.wasted < sepStats.wasted));
 
     if (useMergedBlue) {
+      const mergedStartTime = isAgricultorCorridor
+        ? bucket.movimiento === 'SALIDA'
+          ? surTime
+          : norteTime
+        : bucket.anchorTime;
+      const mergedRuleNote = isYakuyBucket
+        ? 'Yakuy Minka: recorrido lado a lado Norte + Sur sin Viviendas Mar Verde (hasta 17 pax)'
+        : isAgricultorCorridor
+        ? mergedBlueUnits.length === 1
+          ? `Consolidado Corredor Línea Azul (${mergedBlueUnits[0].nombre}) Norte ↔ Sur`
+          : 'Consolidado Corredor Línea Azul Norte ↔ Sur'
+        : 'Consolidado lado a lado en Línea Azul (hasta 17 pax en Combi)';
+
       finalTrips.push(
         ...packStopsIntoUnits(
           bluePoolItems,
@@ -1097,12 +1144,10 @@ export function generateCorridorSchedule(params: {
           'LÍNEA AZUL',
           paraderosMaestros,
           bucket.fecha,
-          bucket.anchorTime,
+          mergedStartTime,
           bucket.movimiento,
           groupCounter,
-          isYakuyBucket
-            ? 'Yakuy Minka: recorrido lado a lado Norte + Sur sin Viviendas Mar Verde (hasta 17 pax)'
-            : 'Consolidado lado a lado en Línea Azul (hasta 17 pax en Combi)'
+          mergedRuleNote
         )
       );
       if (paxNOff > 0) {
