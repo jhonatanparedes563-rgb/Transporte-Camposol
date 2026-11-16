@@ -222,8 +222,10 @@ const inferTurnoFromTime = (timeStr: string): TurnoLabel => {
 };
 
 const isOverOperationalCapacity = (type: string, people: number, cap: number): boolean => {
-  const isCombi = (type || '').toUpperCase().includes('COMBI') || cap === 15;
-  const maxAllowed = isCombi ? Math.max(cap, 17) : cap;
+  const upper = (type || '').toUpperCase();
+  const isCombi = upper.includes('COMBI') || cap === 15;
+  const isMinibus = upper.includes('MINIBUS') || upper.includes('MINI BUS') || cap === 30;
+  const maxAllowed = isCombi ? Math.max(cap, 17) : isMinibus ? Math.max(cap, 33) : cap;
   return people > maxAllowed;
 };
 

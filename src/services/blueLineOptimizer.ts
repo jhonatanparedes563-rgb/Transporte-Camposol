@@ -149,23 +149,31 @@ function extractZoneHour(rawTime: string, zone: ZonaParadero, req: Requerimiento
 }
 
 export const MAX_COMBI_OPERATIONAL_PAX = 17;
+export const MAX_MINIBUS_OPERATIONAL_PAX = 33;
 
 export function isCombiUnit(unit: Pick<MaestroUnidadBus, 'nombre' | 'capacidad'>): boolean {
   const upper = (unit.nombre || '').toUpperCase();
   return upper.includes('COMBI') || unit.capacidad === 15;
 }
 
+export function isMinibusUnit(unit: Pick<MaestroUnidadBus, 'nombre' | 'capacidad'>): boolean {
+  const upper = (unit.nombre || '').toUpperCase();
+  return upper.includes('MINIBUS') || upper.includes('MINI BUS') || unit.capacidad === 30;
+}
+
 export function getUnitEffectiveMaxCapacity(
   unit: Pick<MaestroUnidadBus, 'nombre' | 'capacidad'>
 ): number {
   if (!unit || unit.capacidad <= 0) return 0;
-  return isCombiUnit(unit) ? Math.max(unit.capacidad, MAX_COMBI_OPERATIONAL_PAX) : unit.capacidad;
+  if (isCombiUnit(unit)) return Math.max(unit.capacidad, MAX_COMBI_OPERATIONAL_PAX);
+  if (isMinibusUnit(unit)) return Math.max(unit.capacidad, MAX_MINIBUS_OPERATIONAL_PAX);
+  return unit.capacidad;
 }
 
 /**
  * Programación dinámica para elegir la combinación de unidades activas de Datos Maestros
  * que minimiza: 1) cantidad de vehículos, 2) asientos vacíos (buscando 100% de ocupación).
- * La COMBI (15 nominal) soporta operacionalmente hasta 17 pasajeros.
+ * La COMBI (15 nominal) soporta operacionalmente hasta 17 pasajeros y el MINIBUS (30 nominal) hasta 33.
  */
 export function solveOptimalFleetDP(
   totalPax: number,
