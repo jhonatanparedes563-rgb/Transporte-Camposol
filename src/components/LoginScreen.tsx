@@ -189,19 +189,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         {/* Lockup oficial CAMPOSOL | Transporte de Personal en el espacio superior */}
         <div className="relative z-10 px-5 pt-[max(1.25rem,env(safe-area-inset-top))] flex items-center gap-3.5">
-          <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-2xl overflow-hidden bg-[#04443A] ring-1 ring-white/35 shadow-lg shrink-0 flex items-center justify-center">
+          <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-2xl overflow-hidden bg-white ring-1 ring-white/60 shadow-lg shrink-0 flex items-center justify-center">
             <img
-              src={getPublicAssetUrl('app-icon-192-v4.png')}
+              src={getPublicAssetUrl('app-icon-192-v5.png')}
               onError={(e) => {
                 const target = e.currentTarget;
                 if (!target.src.includes('512')) {
-                  target.src = getPublicAssetUrl('app-icon-512-v4.png');
+                  target.src = getPublicAssetUrl('app-icon-512-v5.png');
                 }
               }}
               alt="CAMPOSOL TDP Transporte de Personal"
               referrerPolicy="no-referrer"
               decoding="sync"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
           </div>
           <div className="min-w-0 border-l-2 border-white/85 pl-3.5 py-0.5">
@@ -221,18 +221,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         <div className="hidden lg:flex lg:col-span-7 flex-col items-center justify-center text-white pr-4 select-none">
           {/* Lockup superior: Logo grande + CAMPOSOL | Transporte de Personal */}
           <div className="flex items-center gap-5">
-            <div className="w-22 h-22 xl:w-26 xl:h-26 rounded-[22px] overflow-hidden bg-[#04443A] ring-2 ring-[#A3E635]/75 shadow-[0_14px_34px_rgba(0,0,0,0.48)] shrink-0 flex items-center justify-center">
+            <div className="w-22 h-22 xl:w-26 xl:h-26 rounded-[22px] overflow-hidden bg-white ring-2 ring-[#A3E635]/75 shadow-[0_14px_34px_rgba(0,0,0,0.48)] shrink-0 flex items-center justify-center">
               <img
-                src={getPublicAssetUrl('app-icon-512-v4.png')}
+                src={getPublicAssetUrl('app-icon-512-v5.png')}
                 onError={(e) => {
                   const target = e.currentTarget;
                   if (!target.src.includes('192')) {
-                    target.src = getPublicAssetUrl('app-icon-192-v4.png');
+                    target.src = getPublicAssetUrl('app-icon-192-v5.png');
                   }
                 }}
                 alt="CAMPOSOL TDP Transporte de Personal"
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
             </div>
             <div className="border-l-2 border-white/85 pl-5 py-1">

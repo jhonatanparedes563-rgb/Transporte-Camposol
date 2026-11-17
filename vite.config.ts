@@ -16,9 +16,9 @@ export default defineConfig(() => {
         includeAssets: [
           'favicon.ico',
           'apple-touch-icon.png',
-          'app-icon-192-v4.png',
-          'app-icon-512-v4.png',
-          'app-icon-maskable-512-v4.png',
+          'app-icon-192-v5.png',
+          'app-icon-512-v5.png',
+          'app-icon-maskable-512-v5.png',
         ],
         manifest: {
           id: '/Transporte-Camposol/',
@@ -34,19 +34,19 @@ export default defineConfig(() => {
           scope: '/Transporte-Camposol/',
           icons: [
             {
-              src: 'app-icon-192-v4.png',
+              src: 'app-icon-192-v5.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: 'app-icon-512-v4.png',
+              src: 'app-icon-512-v5.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: 'app-icon-maskable-512-v4.png',
+              src: 'app-icon-maskable-512-v5.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
