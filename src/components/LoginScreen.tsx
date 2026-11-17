@@ -206,7 +206,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
           <div className="min-w-0 border-l-2 border-white/85 pl-3.5 py-0.5">
             <div className="text-[21px] sm:text-[22px] font-extrabold tracking-wide text-white leading-none drop-shadow-sm">
-              CAMPOSOL
+              TDP
             </div>
             <div className="text-[12.5px] sm:text-[13px] font-semibold text-[#ECFDF5] leading-tight mt-1 truncate drop-shadow-xs">
               Transporte de Personal
@@ -237,7 +237,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </div>
             <div className="border-l-2 border-white/85 pl-5 py-1">
               <div className="text-3xl xl:text-[38px] font-black tracking-tight text-white leading-none drop-shadow-md">
-                CAMPOSOL
+                TDP
               </div>
               <div className="text-base xl:text-[19px] font-semibold text-white/95 mt-1.5 tracking-wide drop-shadow-sm">
                 Transporte de Personal

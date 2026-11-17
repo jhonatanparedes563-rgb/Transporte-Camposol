@@ -103,7 +103,7 @@ export const UserMobileLayout: React.FC<UserMobileLayoutProps> = ({
 
             <div className="min-w-0 border-l-[1.5px] border-white/75 pl-3 py-0.5">
               <div className="font-extrabold tracking-wide text-[21px] text-white leading-none drop-shadow-2xs">
-                CAMPOSOL
+                TDP
               </div>
               <div className="text-[13px] text-white/95 font-semibold leading-tight mt-1 truncate">
                 {currentScreen === 'new-request'
