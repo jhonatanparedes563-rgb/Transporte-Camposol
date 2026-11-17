@@ -54,6 +54,7 @@ const BLUE_LINE_PARADEROS = new Set<string>(CANONICAL_PARADEROS_ORDER);
 // Paraderos fuera del eje troncal azul
 const OFF_BLUE_LINE_KEYWORDS = [
   'HUACAPONGO',
+  'HUACAPANGO',
   'CERRITO',
   'REPRESA',
   'SANTA ELENA',
@@ -117,6 +118,53 @@ export function isYakuyMinkaFundo(fundo: string): boolean {
     norm === 'YAKU' ||
     norm.startsWith('YAKU ') ||
     norm === 'YK'
+  );
+}
+
+function normalizeTextUpper(val: string): string {
+  return (val || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function isLaboresArandanoArea(area: string): boolean {
+  const norm = normalizeTextUpper(area);
+  if (!norm) return false;
+  return (norm.includes('LAB') || norm.includes('LABOR')) && norm.includes('ARANDANO');
+}
+
+export function isHuacapongoParadero(paradero: string): boolean {
+  const norm = normalizeTextUpper(paradero);
+  return norm.includes('HUACAPONGO') || norm.includes('HUACAPANGO');
+}
+
+export function isExclusiveYkHuacapongoItem(
+  item: Pick<StopDemandItem, 'fundo' | 'area' | 'paradero'>
+): boolean {
+  return (
+    isYakuyMinkaFundo(item.fundo) &&
+    isLaboresArandanoArea(item.area) &&
+    isHuacapongoParadero(item.paradero)
+  );
+}
+
+const EXCLUSIVE_YK_HUACAPONGO_KEY = 'EXCLUSIVE_BUS__YK_LAB_ARANDANO__HUACAPONGO';
+
+function selectExclusiveBusUnit(activeFleet: MaestroUnidadBus[]): MaestroUnidadBus {
+  return (
+    activeFleet.find((u) => {
+      const n = normalizeTextUpper(u.nombre);
+      return (
+        n === 'BUS' ||
+        (n.includes('BUS') && !n.includes('MINI') && !n.includes('LARGE') && !n.includes('2 PISOS'))
+      );
+    }) ||
+    activeFleet.find((u) => u.capacidad === 49) ||
+    activeFleet.find((u) => u.capacidad >= 45 && u.capacidad < 55) ||
+    activeFleet[0]
   );
 }
 
@@ -397,7 +445,8 @@ function packStopsIntoUnits(
   ruleNote?: string,
   preserveZoneLabel?: boolean,
   rutaNombre?: string,
-  forceSurFirstToSantaElena?: boolean
+  forceSurFirstToSantaElena?: boolean,
+  forceSingleUnitAllPax?: boolean
 ): OptimizedCorridorTrip[] {
   if (items.length === 0 || units.length === 0) return [];
 
@@ -417,10 +466,14 @@ function packStopsIntoUnits(
 
   // Cola mutable de cantidades por ítem
   const queue = sortedItems.map((it) => ({ ...it }));
+  const totalQueuePax = queue.reduce((s, q) => s + q.cantidad, 0);
   const trips: OptimizedCorridorTrip[] = [];
 
   for (const unit of units) {
-    let seatsLeft = getUnitEffectiveMaxCapacity(unit);
+    let seatsLeft =
+      forceSingleUnitAllPax && units.length === 1
+        ? Math.max(getUnitEffectiveMaxCapacity(unit), totalQueuePax)
+        : getUnitEffectiveMaxCapacity(unit);
     const assignedStopsMap = new Map<
       string,
       { paradero: string; cantidad: number; zona: ZonaParadero }
@@ -446,6 +499,8 @@ function packStopsIntoUnits(
 
       const stopKey = q.isBlueLine
         ? getCanonicalOrderKey(q.paradero)
+        : isHuacapongoParadero(q.paradero) && !normalizeTextUpper(q.paradero).includes('PLAZUELA')
+        ? 'HUACAPONGO'
         : q.paradero.trim().toUpperCase();
       const prevStop = assignedStopsMap.get(stopKey);
       if (prevStop) {
@@ -634,18 +689,22 @@ export function generateCorridorSchedule(params: {
 
   for (const item of sortedItems) {
     const mins = parseMinutesFromTime(item.horaDisplay);
+    const isExclusiveYkHuacapongo = isExclusiveYkHuacapongoItem(item);
     const isBlueLineCorridorFundo =
       isAgricultorCorridorFundo(item.fundo) || isYakuyMinkaFundo(item.fundo);
     const fundoKey = getCorridorGroupKey(item.fundo);
-    // Cada requerimiento (por usuario y fundo) opera de forma independiente; solo consolida sus propios paraderos
-    const corridorKey = !consolidarLineaAzul
+    // Excepción operativa solicitada: en Yakuy Minka (YK), el bus exclusivo de Huacapongo
+    // para Labores Arándano consolida todos los requerimientos de esa ruta en 1 solo BUS;
+    // todos los demás requerimientos operan estrictamente independientes por usuario y fundo.
+    const corridorKey = isExclusiveYkHuacapongo
+      ? EXCLUSIVE_YK_HUACAPONGO_KEY
+      : !consolidarLineaAzul
       ? `${item.reqId}__${fundoKey}__${item.zona}`
       : isBlueLineCorridorFundo
       ? `CORREDOR__${item.reqId}__${fundoKey}`
       : `CENTRAL__${item.reqId}__${fundoKey}`;
 
-    // Ventana horaria dentro del mismo requerimiento cuando consolida paraderos Norte + Sur
-    const maxGap = consolidarLineaAzul ? 60 : 0;
+    const maxGap = isExclusiveYkHuacapongo ? 90 : consolidarLineaAzul ? 60 : 0;
     const existing = buckets.find(
       (b) =>
         b.fecha === item.fecha &&
@@ -673,6 +732,28 @@ export function generateCorridorSchedule(params: {
   const groupCounter: Record<string, number> = {};
 
   for (const bucket of buckets) {
+    if (bucket.corridorKey === EXCLUSIVE_YK_HUACAPONGO_KEY) {
+      const exclusiveBus = selectExclusiveBusUnit(activeFleet);
+      finalTrips.push(
+        ...packStopsIntoUnits(
+          bucket.items,
+          [exclusiveBus],
+          bucket.items[0]?.zona || 'NORTE',
+          paraderosMaestros,
+          bucket.fecha,
+          bucket.anchorTime,
+          bucket.movimiento,
+          groupCounter,
+          'Bus exclusivo Huacapongo · Yakuy Minka (Lab. Arándano)',
+          true,
+          'HUACAPONGO',
+          false,
+          true
+        )
+      );
+      continue;
+    }
+
     const norteItems = bucket.items.filter((i) => i.zona === 'NORTE');
     const surItems = bucket.items.filter((i) => i.zona === 'SUR');
     const totalN = norteItems.reduce((s, i) => s + i.cantidad, 0);

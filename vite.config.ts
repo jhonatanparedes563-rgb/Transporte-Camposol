@@ -76,7 +76,7 @@ export default defineConfig(() => {
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'camposol-pages-v1',
-                networkTimeoutSeconds: 2,
+                networkTimeoutSeconds: 1,
                 cacheableResponse: {
                   statuses: [0, 200],
                 },

@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { LoginScreen } from './components/LoginScreen';
-import { UserMobileLayout } from './components/UserMobileLayout';
 import { Requerimiento, UserRole, AppUser } from './types';
 import {
   getStoredRequerimientos,
@@ -22,6 +21,9 @@ import {
 
 const AdminPortalLayout = lazy(() =>
   import('./components/AdminPortalLayout').then((m) => ({ default: m.AdminPortalLayout }))
+);
+const UserMobileLayout = lazy(() =>
+  import('./components/UserMobileLayout').then((m) => ({ default: m.UserMobileLayout }))
 );
 const RequirementDetailModal = lazy(() =>
   import('./components/RequirementDetailModal').then((m) => ({ default: m.RequirementDetailModal }))
@@ -158,16 +160,18 @@ export default function App() {
         /* ----------------------------------------------------------- */
         /* 2. VISTA USUARIO (SOLICITANTE): DISEÑO TIPO APP MÓVIL       */
         /* ----------------------------------------------------------- */
-        <UserMobileLayout
-          currentScreen={currentScreen}
-          onNavigate={(screen) => setCurrentScreen(screen)}
-          requerimientos={visibleRequerimientos}
-          onOpenRequirementDetail={handleOpenDetail}
-          onRequirementSaved={handleRequirementSaved}
-          userRole={userRole}
-          currentUser={currentUser}
-          onLogout={handleLogout}
-        />
+        <Suspense fallback={<div className="min-h-[100dvh] w-full bg-[#F5F8F7]" />}>
+          <UserMobileLayout
+            currentScreen={currentScreen}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+            requerimientos={visibleRequerimientos}
+            onOpenRequirementDetail={handleOpenDetail}
+            onRequirementSaved={handleRequirementSaved}
+            userRole={userRole}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
+        </Suspense>
       )}
 
       {/* ------------------------------------------------------------- */}
