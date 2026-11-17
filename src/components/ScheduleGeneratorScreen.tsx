@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   RefreshCw,
   Search,
@@ -17,6 +17,9 @@ import {
   Eye,
   Inbox,
   Filter,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Requerimiento,
@@ -40,6 +43,7 @@ import {
   getParaderoZonaInfo,
   saveStoredProgramacionViaje,
   subscribeToDataChanges,
+  ensureDateRangeLoaded,
 } from '../services/storageService';
 import {
   exportarPlanViajesExcel,
@@ -214,6 +218,32 @@ const getTodayStr = (): string => {
   return `${y}-${m}-${day}`;
 };
 
+const CALENDAR_MONTH_NAMES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
+
+const CALENDAR_WEEKDAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
+
+const parseYearMonthFromDateStr = (dateStr: string): { year: number; month: number } => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m] = dateStr.split('-').map(Number);
+    return { year: y, month: m - 1 };
+  }
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() };
+};
+
 const inferTurnoFromTime = (timeStr: string): TurnoLabel => {
   const hour = parseInt((timeStr || '13:00').split(':')[0] || '13', 10);
   if (hour >= 5 && hour < 12) return 'MAÑANA';
@@ -315,13 +345,13 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
   const [selectedFecha, setSelectedFecha] = useState<string>(() => getTodayStr());
   const [hasManualDateSelection, setHasManualDateSelection] = useState<boolean>(false);
+  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
+  const [calendarMonth, setCalendarMonth] = useState<{ year: number; month: number }>(() =>
+    parseYearMonthFromDateStr(getTodayStr())
+  );
+  const calendarContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const dateOptions = useMemo(() => {
-    const today = getTodayStr();
-    const set = new Set<string>([today, ...availableDates]);
-    if (selectedFecha && selectedFecha !== 'TODOS') set.add(selectedFecha);
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [availableDates, selectedFecha]);
+  const availableDatesSet = useMemo(() => new Set(availableDates), [availableDates]);
   const [rows, setRows] = useState<ScheduleRow[]>([]);
 
   const [zoneTab, setZoneTab] = useState<ZoneFilter>('TODOS');
@@ -377,6 +407,60 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       window.removeEventListener('focus', syncTodayIfNeeded);
     };
   }, [hasManualDateSelection]);
+
+  useEffect(() => {
+    if (selectedFecha && selectedFecha !== 'TODOS') {
+      void ensureDateRangeLoaded(selectedFecha, selectedFecha);
+    } else if (selectedFecha === 'TODOS') {
+      void ensureDateRangeLoaded(undefined, undefined);
+    }
+  }, [selectedFecha]);
+
+  useEffect(() => {
+    if (!calendarOpen) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        calendarContainerRef.current &&
+        !calendarContainerRef.current.contains(event.target as Node)
+      ) {
+        setCalendarOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setCalendarOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [calendarOpen]);
+
+  const calendarDays = useMemo(() => {
+    const { year, month } = calendarMonth;
+    const firstDay = new Date(year, month, 1);
+    const startOffset = (firstDay.getDay() + 6) % 7; // Lunes = 0
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: Array<{ dateStr: string; day: number } | null> = [];
+    for (let i = 0; i < startOffset; i++) {
+      cells.push(null);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      cells.push({ dateStr, day: d });
+    }
+    return cells;
+  }, [calendarMonth]);
+
+  const handleSelectCalendarDate = useCallback((dateStr: string) => {
+    setHasManualDateSelection(true);
+    setSelectedFecha(dateStr);
+    if (dateStr !== 'TODOS') {
+      setCalendarMonth(parseYearMonthFromDateStr(dateStr));
+    }
+    setCalendarOpen(false);
+  }, []);
 
   const buildScheduleFromRealData = useCallback(
     (fechaTarget: string, enableBlueLine: boolean) => {
@@ -961,7 +1045,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       )}
 
       {/* Panel Principal */}
-      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-[0_1px_3px_rgba(15,23,42,0.03)] overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
         {/* Cabecera del Panel */}
         <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1049,26 +1133,155 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         <div className="px-5 pt-1 pb-4">
           <div className="flex flex-col lg:flex-row lg:items-center gap-3">
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Fecha */}
-              <div className="relative">
+              {/* Fecha - Modo Calendario */}
+              <div className="relative" ref={calendarContainerRef}>
                 <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
                   Fecha
                 </label>
-                <select
-                  value={selectedFecha}
-                  onChange={(e) => {
-                    setHasManualDateSelection(true);
-                    setSelectedFecha(e.target.value);
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!calendarOpen) {
+                      setCalendarMonth(
+                        parseYearMonthFromDateStr(
+                          selectedFecha !== 'TODOS' ? selectedFecha : getTodayStr()
+                        )
+                      );
+                    }
+                    setCalendarOpen((prev) => !prev);
                   }}
-                  className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                  aria-expanded={calendarOpen}
+                  aria-label="Seleccionar fecha en calendario"
+                  className={`w-full h-10 px-4 bg-white border rounded-full text-xs text-slate-700 flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                    calendarOpen
+                      ? 'border-[#55A529] ring-2 ring-[#55A529]/15'
+                      : 'border-[#DCE4EC] hover:border-[#55A529]'
+                  }`}
                 >
-                  <option value="TODOS">Todas</option>
-                  {dateOptions.map((dateStr) => (
-                    <option key={dateStr} value={dateStr}>
-                      {formatDateDDMMYYYY(dateStr)}
-                    </option>
-                  ))}
-                </select>
+                  <span className="truncate font-medium">
+                    {selectedFecha === 'TODOS'
+                      ? 'Todas las fechas'
+                      : formatDateDDMMYYYY(selectedFecha)}
+                  </span>
+                  <Calendar className="w-4 h-4 text-[#55A529] shrink-0" />
+                </button>
+
+                {calendarOpen && (
+                  <div className="absolute left-0 top-11 z-40 w-72 bg-white border border-[#DCE4EC] rounded-2xl shadow-xl p-3.5">
+                    <div className="flex items-center justify-between mb-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCalendarMonth((prev) =>
+                            prev.month === 0
+                              ? { year: prev.year - 1, month: 11 }
+                              : { year: prev.year, month: prev.month - 1 }
+                          )
+                        }
+                        className="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                        aria-label="Mes anterior"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      <span className="text-xs font-bold text-[#1B3A57]">
+                        {CALENDAR_MONTH_NAMES[calendarMonth.month]} {calendarMonth.year}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCalendarMonth((prev) =>
+                            prev.month === 11
+                              ? { year: prev.year + 1, month: 0 }
+                              : { year: prev.year, month: prev.month + 1 }
+                          )
+                        }
+                        className="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                        aria-label="Mes siguiente"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1 mb-1">
+                      {CALENDAR_WEEKDAYS.map((dayName) => (
+                        <div
+                          key={dayName}
+                          className="text-center text-[10px] font-semibold text-slate-400 py-1"
+                        >
+                          {dayName}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1">
+                      {calendarDays.map((cell, idx) => {
+                        if (!cell) {
+                          return <div key={`empty-${idx}`} className="h-8" />;
+                        }
+                        const isSelected = selectedFecha === cell.dateStr;
+                        const isToday = getTodayStr() === cell.dateStr;
+                        const hasReqs = availableDatesSet.has(cell.dateStr);
+                        return (
+                          <button
+                            key={cell.dateStr}
+                            type="button"
+                            onClick={() => handleSelectCalendarDate(cell.dateStr)}
+                            className={`relative h-8 rounded-full text-[11px] font-medium flex flex-col items-center justify-center transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#22A846] text-white font-bold shadow-xs'
+                                : isToday
+                                ? 'bg-[#F3F8F0] text-[#2F7D18] font-bold ring-1 ring-[#55A529]/50 hover:bg-[#E7F3DF]'
+                                : hasReqs
+                                ? 'text-[#1B3A57] font-semibold hover:bg-slate-100'
+                                : 'text-slate-500 hover:bg-slate-100'
+                            }`}
+                            title={
+                              hasReqs
+                                ? `${formatDateDDMMYYYY(cell.dateStr)} (con requerimientos)`
+                                : formatDateDDMMYYYY(cell.dateStr)
+                            }
+                          >
+                            <span>{cell.day}</span>
+                            {hasReqs && (
+                              <span
+                                className={`w-1 h-1 rounded-full -mt-0.5 ${
+                                  isSelected ? 'bg-white' : 'bg-[#22A846]'
+                                }`}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCalendarDate(getTodayStr())}
+                        className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
+                          selectedFecha === getTodayStr()
+                            ? 'bg-[#22A846] text-white'
+                            : 'bg-[#F3F8F0] text-[#2F7D18] hover:bg-[#E5F2DC]'
+                        }`}
+                      >
+                        Hoy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCalendarDate('TODOS')}
+                        className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
+                          selectedFecha === 'TODOS'
+                            ? 'bg-[#1B3A57] text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        Todas
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Procesos */}
@@ -1365,7 +1578,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
 
         {/* Barra Inferior Limpia */}
-        <div className="bg-white px-5 py-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px]">
+        <div className="bg-white px-5 py-2.5 border-t border-slate-100 rounded-b-2xl flex flex-wrap items-center justify-between gap-3 text-[11px]">
           <div className="text-slate-500 font-medium tabular-nums">
             {filteredRows.length > 0 ? (
               <>
