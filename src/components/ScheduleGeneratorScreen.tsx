@@ -981,12 +981,12 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
       )}
 
-      {/* Franja KPI Superior (Barra única limpia sin bordes gruesos) */}
-      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-[0_1px_2px_rgba(15,23,42,0.03)] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-[#EEF2F6]">
+      {/* Franja KPI Superior */}
+      <div className="bg-white rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-[#EEF2F6]">
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-medium text-slate-400">Solicitudes</div>
-            <div className="text-lg font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">
+            <div className="text-[11px] font-medium text-slate-500">Solicitudes</div>
+            <div className="text-lg font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">
               {consideredReqsCount}
             </div>
           </div>
@@ -995,7 +995,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-medium text-slate-400">Sin Móvil</div>
+            <div className="text-[11px] font-medium text-slate-500">Sin Móvil</div>
             <div className="text-lg font-bold text-[#B45309] tabular-nums leading-tight mt-0.5">
               {pendingAssignmentCount}
             </div>
@@ -1005,28 +1005,28 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
 
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-medium text-slate-400">Ocupabilidad</div>
+            <div className="text-[11px] font-medium text-slate-500">Ocupabilidad</div>
             <div className="text-lg font-bold text-[#2F7D18] tabular-nums leading-tight mt-0.5">
               {zoneSummary.ocupacionGlobal}%
             </div>
           </div>
-          <CheckCircle2 className="w-4 h-4 text-[#55A529]/70 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-[#459712]/70 shrink-0" />
         </div>
 
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-medium text-slate-400">Unidades</div>
-            <div className="text-lg font-bold text-[#0082B3] tabular-nums leading-tight mt-0.5">
+            <div className="text-[11px] font-medium text-slate-500">Unidades</div>
+            <div className="text-lg font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">
               {rows.length}
             </div>
           </div>
-          <CheckCheck className="w-4 h-4 text-[#0082B3]/70 shrink-0" />
+          <CheckCheck className="w-4 h-4 text-[#459712]/70 shrink-0" />
         </div>
 
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-medium text-slate-400">Total Personal</div>
-            <div className="text-lg font-bold text-[#1B3A57] tabular-nums leading-tight mt-0.5">
+            <div className="text-[11px] font-medium text-slate-500">Total Personal</div>
+            <div className="text-lg font-bold text-[#1E293B] tabular-nums leading-tight mt-0.5">
               {totalDistributedPeople}
             </div>
           </div>
@@ -1045,61 +1045,58 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
       )}
 
       {/* Panel Principal */}
-      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
+      <div className="bg-white rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
         {/* Cabecera del Panel */}
-        <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-base sm:text-[17px] font-bold text-[#1B3A57] leading-tight">
-              Generación de programación
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h3 className="text-sm font-semibold text-[#1E293B] leading-tight">
               Visualizar, optimizar y asignar recorridos
-            </p>
+            </h3>
           </div>
 
-          {/* Botones de Acción con Ícono Arriba + Buscador Píldora + Toggle Filtros */}
-          <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Botones de Acción + Buscador + Toggle Filtros */}
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={handleDownloadExcel}
               disabled={rows.length === 0}
-              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              className="h-9 px-3 bg-white hover:bg-[#F7FBF3] border border-[#CBD5E1] text-[#2F7D18] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
               title="Descargar programación en Excel"
             >
               <FileSpreadsheet className="w-4 h-4" />
-              <span className="text-[10px] font-medium">Descarga</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={openAddModal}
-              disabled={activeFleetMasters.length === 0}
-              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-              title="Agregar unidad manual"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span className="text-[10px] font-medium">Nuevo</span>
+              <span>Descarga</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowExcelPreview(true)}
               disabled={rows.length === 0}
-              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              className="h-9 px-3 bg-white hover:bg-[#F7FBF3] border border-[#CBD5E1] text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
               title="Vista previa formato Excel (26 columnas)"
             >
               <Eye className="w-4 h-4" />
-              <span className="text-[10px] font-medium">Vista</span>
+              <span>Vista</span>
             </button>
 
             <button
               type="button"
               onClick={handleRefresh}
-              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
+              className="h-9 px-3 bg-white hover:bg-[#F7FBF3] border border-[#CBD5E1] text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Recalcular con Procesos y Flota Maestra"
             >
-              <RefreshCw className="w-4 h-4" />
-              <span className="text-[10px] font-medium">Actualizar</span>
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Actualizar</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={openAddModal}
+              disabled={activeFleetMasters.length === 0}
+              className="h-9 px-3.5 bg-[#459712] hover:bg-[#387D0E] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-40"
+              title="Agregar unidad manual"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Nueva Unidad</span>
             </button>
 
             <div className="relative">
@@ -1107,19 +1104,19 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Palabra clave"
-                className="w-52 sm:w-60 h-9 pl-4 pr-9 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
+                placeholder="Palabra clave..."
+                className="w-48 sm:w-56 h-9 pl-3 pr-8 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] placeholder-slate-400 focus:border-[#459712] focus:outline-none transition-colors"
               />
-              <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-[#459712] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             <button
               type="button"
               onClick={() => setShowFiltersBar((v) => !v)}
-              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${
+              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
                 showFiltersBar
-                  ? 'bg-[#F3F8F0] border-[#C6E9B4] text-[#2F7D18]'
-                  : 'bg-white border-[#DCE4EC] text-slate-500 hover:bg-slate-50'
+                  ? 'bg-[#EAF7E4] border-[#C6E5B1] text-[#2F7D18]'
+                  : 'bg-white border-[#CBD5E1] text-slate-500 hover:bg-slate-50'
               }`}
               title={showFiltersBar ? 'Ocultar filtros' : 'Mostrar filtros'}
             >
@@ -1128,14 +1125,14 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
           </div>
         </div>
 
-        {/* Filtros Limpios Encuadrados en Todo el Ancho */}
+        {/* Filtros Estilo Corporativo con Etiquetas Arriba */}
         {showFiltersBar && (
-        <div className="px-5 pt-1 pb-4">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+        <div className="px-5 py-4 border-b border-slate-100">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3">
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Fecha - Modo Calendario */}
               <div className="relative" ref={calendarContainerRef}>
-                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
+                <label className="block text-xs font-medium text-[#334155] mb-1.5">
                   Fecha
                 </label>
                 <button
@@ -1152,10 +1149,10 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                   }}
                   aria-expanded={calendarOpen}
                   aria-label="Seleccionar fecha en calendario"
-                  className={`w-full h-10 px-4 bg-white border rounded-full text-xs text-slate-700 flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                  className={`w-full h-10 px-3 bg-white border rounded-lg text-xs text-[#1E293B] flex items-center justify-between gap-2 transition-colors cursor-pointer ${
                     calendarOpen
-                      ? 'border-[#55A529] ring-2 ring-[#55A529]/15'
-                      : 'border-[#DCE4EC] hover:border-[#55A529]'
+                      ? 'border-[#459712] ring-2 ring-[#459712]/15'
+                      : 'border-[#CBD5E1] hover:border-[#459712]'
                   }`}
                 >
                   <span className="truncate font-medium">
@@ -1163,11 +1160,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       ? 'Todas las fechas'
                       : formatDateDDMMYYYY(selectedFecha)}
                   </span>
-                  <Calendar className="w-4 h-4 text-[#55A529] shrink-0" />
+                  <Calendar className="w-4 h-4 text-[#459712] shrink-0" />
                 </button>
 
                 {calendarOpen && (
-                  <div className="absolute left-0 top-11 z-40 w-72 bg-white border border-[#DCE4EC] rounded-2xl shadow-xl p-3.5">
+                  <div className="absolute left-0 top-[68px] z-40 w-72 bg-white border border-[#DCE2E8] rounded-xl shadow-xl p-3.5">
                     <div className="flex items-center justify-between mb-3">
                       <button
                         type="button"
@@ -1178,13 +1175,13 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                               : { year: prev.year, month: prev.month - 1 }
                           )
                         }
-                        className="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                        className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
                         aria-label="Mes anterior"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
 
-                      <span className="text-xs font-bold text-[#1B3A57]">
+                      <span className="text-xs font-bold text-[#1E293B]">
                         {CALENDAR_MONTH_NAMES[calendarMonth.month]} {calendarMonth.year}
                       </span>
 
@@ -1197,7 +1194,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                               : { year: prev.year, month: prev.month + 1 }
                           )
                         }
-                        className="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                        className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
                         aria-label="Mes siguiente"
                       >
                         <ChevronRight className="w-4 h-4" />
@@ -1228,13 +1225,13 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                             key={cell.dateStr}
                             type="button"
                             onClick={() => handleSelectCalendarDate(cell.dateStr)}
-                            className={`relative h-8 rounded-full text-[11px] font-medium flex flex-col items-center justify-center transition-colors cursor-pointer ${
+                            className={`relative h-8 rounded-lg text-[11px] font-medium flex flex-col items-center justify-center transition-colors cursor-pointer ${
                               isSelected
-                                ? 'bg-[#22A846] text-white font-bold shadow-xs'
+                                ? 'bg-[#459712] text-white font-bold shadow-xs'
                                 : isToday
-                                ? 'bg-[#F3F8F0] text-[#2F7D18] font-bold ring-1 ring-[#55A529]/50 hover:bg-[#E7F3DF]'
+                                ? 'bg-[#EAF7E4] text-[#2F7D18] font-bold ring-1 ring-[#459712]/50 hover:bg-[#DCF1D2]'
                                 : hasReqs
-                                ? 'text-[#1B3A57] font-semibold hover:bg-slate-100'
+                                ? 'text-[#1E293B] font-semibold hover:bg-slate-100'
                                 : 'text-slate-500 hover:bg-slate-100'
                             }`}
                             title={
@@ -1247,7 +1244,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                             {hasReqs && (
                               <span
                                 className={`w-1 h-1 rounded-full -mt-0.5 ${
-                                  isSelected ? 'bg-white' : 'bg-[#22A846]'
+                                  isSelected ? 'bg-white' : 'bg-[#459712]'
                                 }`}
                               />
                             )}
@@ -1260,10 +1257,10 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       <button
                         type="button"
                         onClick={() => handleSelectCalendarDate(getTodayStr())}
-                        className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
                           selectedFecha === getTodayStr()
-                            ? 'bg-[#22A846] text-white'
-                            : 'bg-[#F3F8F0] text-[#2F7D18] hover:bg-[#E5F2DC]'
+                            ? 'bg-[#459712] text-white'
+                            : 'bg-[#EAF7E4] text-[#2F7D18] hover:bg-[#DCF1D2]'
                         }`}
                       >
                         Hoy
@@ -1271,9 +1268,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       <button
                         type="button"
                         onClick={() => handleSelectCalendarDate('TODOS')}
-                        className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
                           selectedFecha === 'TODOS'
-                            ? 'bg-[#1B3A57] text-white'
+                            ? 'bg-[#1E293B] text-white'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                       >
@@ -1285,14 +1282,14 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               </div>
 
               {/* Procesos */}
-              <div className="relative">
-                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
+              <div>
+                <label className="block text-xs font-medium text-[#334155] mb-1.5">
                   Procesos
                 </label>
                 <select
                   value={procesoEstadoFilter}
                   onChange={(e) => setProcesoEstadoFilter(e.target.value as ProcesoEstadoFilter)}
-                  className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                  className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:border-[#459712] focus:outline-none transition-colors cursor-pointer"
                 >
                   <option value="ACTIVOS">Activos</option>
                   <option value="PENDIENTE_APROBADO">Pend. y Aprob.</option>
@@ -1303,14 +1300,14 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               </div>
 
               {/* Turno */}
-              <div className="relative">
-                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
+              <div>
+                <label className="block text-xs font-medium text-[#334155] mb-1.5">
                   Turno
                 </label>
                 <select
                   value={turnoFilter}
                   onChange={(e) => setTurnoFilter(e.target.value)}
-                  className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                  className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:border-[#459712] focus:outline-none transition-colors cursor-pointer"
                 >
                   <option value="TODOS">Todos</option>
                   <option value="MAÑANA">Mañana</option>
@@ -1320,14 +1317,14 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               </div>
 
               {/* Estado */}
-              <div className="relative">
-                <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-400 font-medium z-10 pointer-events-none">
+              <div>
+                <label className="block text-xs font-medium text-[#334155] mb-1.5">
                   Estado
                 </label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                  className="w-full h-10 px-4 bg-white border border-[#DCE4EC] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
+                  className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:border-[#459712] focus:outline-none transition-colors cursor-pointer"
                 >
                   <option value="TODOS">Todos</option>
                   <option value="pendiente">Sin asignar</option>
@@ -1337,9 +1334,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               </div>
             </div>
 
-            {/* Control segmentado único de Zona + Restablecer */}
+            {/* Control segmentado de Zona + Restablecer */}
             <div className="shrink-0 flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center p-1 bg-[#F4F7FA] border border-[#E2E8F0] rounded-full">
+              <div className="inline-flex items-center p-1 bg-[#F7F8FA] border border-[#E2E8F0] rounded-lg h-10">
                 {(
                   [
                     { id: 'TODOS', label: 'Todos' },
@@ -1354,9 +1351,9 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     key={tab.id}
                     type="button"
                     onClick={() => setZoneTab(tab.id)}
-                    className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                       zoneTab === tab.id
-                        ? 'bg-[#22A846] text-white shadow-2xs'
+                        ? 'bg-[#459712] text-white shadow-2xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -1374,7 +1371,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                     setStatusFilter('TODOS');
                     setSearchQuery('');
                   }}
-                  className="h-9 px-4 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
+                  className="h-10 px-3.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-600 transition-colors cursor-pointer"
                 >
                   Restablecer
                 </button>
@@ -1384,25 +1381,25 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
         </div>
         )}
 
-        {/* Tabla Limpia con Cabecera Celeste Corporativa y Filas de Una Línea */}
+        {/* Tabla Limpia con Cabecera Verde Salvia Corporativa */}
         <div className="overflow-x-auto max-h-[calc(100vh-340px)]">
           <table className="w-full text-left text-[12px]">
-            <thead className="sticky top-0 z-10 bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
+            <thead className="sticky top-0 z-10 bg-[#E3F1D8] text-[#1E293B] font-semibold text-xs border-b border-[#CFE3C0]">
               <tr>
-                <th className="py-2.5 px-3 w-10 whitespace-nowrap">#</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Cód. Req.</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Zona</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Ruta</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Área</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Fundo</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Paraderos</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Movimiento</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Hora</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Unidad</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Ocupación</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Proveedor / Móvil</th>
-                <th className="py-2.5 px-3 text-center whitespace-nowrap">Estado</th>
-                <th className="py-2.5 px-3 text-center whitespace-nowrap border-l border-[#D4E9F7]/70">
+                <th className="py-3 px-3 w-10 whitespace-nowrap">#</th>
+                <th className="py-3 px-3 whitespace-nowrap">Cód. Req.</th>
+                <th className="py-3 px-3 whitespace-nowrap">Zona</th>
+                <th className="py-3 px-3 whitespace-nowrap">Ruta</th>
+                <th className="py-3 px-3 whitespace-nowrap">Área</th>
+                <th className="py-3 px-3 whitespace-nowrap">Fundo</th>
+                <th className="py-3 px-3 whitespace-nowrap">Paraderos</th>
+                <th className="py-3 px-3 whitespace-nowrap">Movimiento</th>
+                <th className="py-3 px-3 whitespace-nowrap">Hora</th>
+                <th className="py-3 px-3 whitespace-nowrap">Unidad</th>
+                <th className="py-3 px-3 whitespace-nowrap">Ocupación</th>
+                <th className="py-3 px-3 whitespace-nowrap">Proveedor / Móvil</th>
+                <th className="py-3 px-3 text-center whitespace-nowrap">Estado</th>
+                <th className="py-3 px-3 text-center whitespace-nowrap border-l border-[#CFE3C0]">
                   Acciones
                 </th>
               </tr>
@@ -1435,7 +1432,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       : row.stopsText;
 
                   return (
-                    <tr key={row.id} className="hover:bg-[#F7FBFE] transition-colors">
+                    <tr key={row.id} className="hover:bg-[#F7FBF3] transition-colors">
                       <td className="py-3 px-3 text-[12px] font-normal text-slate-400 tabular-nums whitespace-nowrap">
                         {String(idx + 1).padStart(2, '0')}
                       </td>
@@ -1988,11 +1985,11 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 bg-[#EEF3F7]">
-              <div className="bg-white border border-[#E5ECF2] rounded-xl overflow-auto">
+            <div className="flex-1 overflow-auto p-4 bg-[#F7F8FA]">
+              <div className="bg-white border border-[#DCE2E8] rounded-xl overflow-auto">
                 <table className="w-full border-collapse text-[11px] min-w-[2000px] tabular-nums">
                   <thead>
-                    <tr className="bg-[#E6F3FB] text-[#0082B3] text-[11px] font-semibold border-y border-[#D4E9F7]">
+                    <tr className="bg-[#E3F1D8] text-[#1E293B] text-[11px] font-semibold border-b border-[#CFE3C0]">
                       {[
                         'SEMANA',
                         'FECHA',
@@ -2023,7 +2020,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                       ].map((col) => (
                         <th
                           key={col}
-                          className="py-2 px-2.5 text-left font-semibold border-r border-emerald-800/40 whitespace-nowrap"
+                          className="py-2.5 px-2.5 text-left font-semibold border-r border-[#CFE3C0] whitespace-nowrap"
                         >
                           {col}
                         </th>
@@ -2102,7 +2099,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
               <button
                 type="button"
                 onClick={() => setShowExcelPreview(false)}
-                className="px-4 py-2 rounded-full border border-[#D8E2EA] bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="h-9 px-4 rounded-lg border border-[#CBD5E1] bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
                 Cerrar
               </button>
@@ -2112,7 +2109,7 @@ export const ScheduleGeneratorScreen: React.FC<ScheduleGeneratorScreenProps> = (
                   handleDownloadExcel();
                   setShowExcelPreview(false);
                 }}
-                className="px-5 py-2 rounded-full bg-[#22A846] hover:bg-[#1C8E3A] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-4 rounded-lg bg-[#459712] hover:bg-[#387D0E] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Descargar Excel (.xlsx)</span>

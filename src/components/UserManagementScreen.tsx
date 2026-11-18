@@ -427,23 +427,36 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
         </div>
       )}
 
-      {/* Cabecera + Filtros + Tabla unificada estilo corporativo */}
-      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
-        {/* Cabecera del Panel */}
-        <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-[#1B3A57] leading-tight">
-              Maestro de usuarios
-            </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Gestión centralizada de cuentas, roles, áreas, fundos y permisos • Mostrando{' '}
-              <strong className="text-[#1B3A57] font-semibold">{filteredUsers.length}</strong> de{' '}
-              <strong className="text-[#1B3A57] font-semibold">{users.length}</strong> usuarios
-            </p>
-          </div>
+      {/* Cabecera de Página */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1A1F24] tracking-tight leading-tight">
+            Gestión de Usuarios
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Control de cuentas, roles, áreas, fundos y permisos · Mostrando{' '}
+            <strong className="text-[#1E293B] font-semibold">{filteredUsers.length}</strong> de{' '}
+            <strong className="text-[#1E293B] font-semibold">{users.length}</strong> usuarios
+          </p>
+        </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Buscador píldora */}
+        <button
+          id="btn-create-user"
+          onClick={handleOpenCreate}
+          className="h-10 px-4 bg-[#459712] hover:bg-[#387D0E] text-white rounded-lg text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>Nuevo usuario</span>
+        </button>
+      </div>
+
+      {/* Filtros con etiquetas arriba + Tabla unificada estilo corporativo */}
+      <div className="bg-white rounded-xl border border-[#DCE2E8] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+          <div className="lg:col-span-5">
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
+              Buscar usuario, área o fundo
+            </label>
             <div className="relative">
               <input
                 id="input-search-users"
@@ -451,90 +464,79 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 placeholder="Buscar usuario, área, fundo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-56 sm:w-64 h-9 pl-4 pr-9 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:border-[#55A529] focus:outline-none transition-colors"
+                className="w-full h-10 pl-3 pr-9 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] placeholder-slate-400 focus:border-[#459712] focus:outline-none transition-colors"
               />
-              <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {/* Botón: + Nuevo usuario */}
-            <button
-              id="btn-create-user"
-              onClick={handleOpenCreate}
-              className="h-9 px-4 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Nuevo usuario</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Barra de Filtros con etiquetas flotantes */}
-        <div className="px-5 pt-2 pb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 flex-1 max-w-2xl">
-            <div className="relative">
-              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
-                Rol del usuario
-              </label>
-              <select
-                id="select-filter-user-role"
-                value={selectedRoleFilter}
-                onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
-              >
-                <option value="TODOS">Todos los roles</option>
-                <option value="usuario">Usuario</option>
-                <option value="receptor">Receptor</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
-
-            <div className="relative">
-              <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
-                Estado de cuenta
-              </label>
-              <select
-                id="select-filter-user-status"
-                value={selectedStatusFilter}
-                onChange={(e) => setSelectedStatusFilter(e.target.value)}
-                className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:border-[#55A529] focus:outline-none transition-colors cursor-pointer"
-              >
-                <option value="TODOS">Todos los estados</option>
-                <option value="ACTIVO">Activo</option>
-                <option value="INACTIVO">Inactivo</option>
-              </select>
+              <Search className="w-4 h-4 text-[#459712] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
-          {(searchTerm || selectedRoleFilter !== 'TODOS' || selectedStatusFilter !== 'TODOS') && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedRoleFilter('TODOS');
-                setSelectedStatusFilter('TODOS');
-              }}
-              className="px-4 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors cursor-pointer"
+          <div className="lg:col-span-3">
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
+              Rol del usuario
+            </label>
+            <select
+              id="select-filter-user-role"
+              value={selectedRoleFilter}
+              onChange={(e) => setSelectedRoleFilter(e.target.value)}
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:border-[#459712] focus:outline-none transition-colors cursor-pointer"
             >
-              Restablecer
-            </button>
-          )}
-        </div>
+              <option value="TODOS">Todos los roles</option>
+              <option value="usuario">Usuario</option>
+              <option value="receptor">Receptor</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
 
-        {/* Tabla Corporativa con Cabecera Celeste */}
+          <div className="lg:col-span-2">
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
+              Estado de cuenta
+            </label>
+            <select
+              id="select-filter-user-status"
+              value={selectedStatusFilter}
+              onChange={(e) => setSelectedStatusFilter(e.target.value)}
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:border-[#459712] focus:outline-none transition-colors cursor-pointer"
+            >
+              <option value="TODOS">Todos</option>
+              <option value="ACTIVO">Activo</option>
+              <option value="INACTIVO">Inactivo</option>
+            </select>
+          </div>
+
+          <div className="lg:col-span-2 flex items-center gap-2">
+            {(searchTerm || selectedRoleFilter !== 'TODOS' || selectedStatusFilter !== 'TODOS') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedRoleFilter('TODOS');
+                  setSelectedStatusFilter('TODOS');
+                }}
+                className="w-full h-10 px-3.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-600 transition-colors cursor-pointer"
+              >
+                Restablecer
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabla Corporativa con Cabecera Verde Salvia */}
+      <div className="bg-white rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[11px] border-collapse">
-            <thead className="bg-[#E6F3FB] text-[#0082B3] font-semibold text-[11px] border-y border-[#D4E9F7]">
+            <thead className="bg-[#E3F1D8] text-[#1E293B] font-semibold text-xs border-b border-[#CFE3C0]">
               <tr>
-                <th className="py-2.5 px-3.5 whitespace-nowrap">ID</th>
-                <th className="py-2.5 px-3.5 whitespace-nowrap">Nombre completo</th>
-                <th className="py-2.5 px-3.5 whitespace-nowrap">Usuario</th>
-                <th className="py-2.5 px-3.5 whitespace-nowrap">Contraseña</th>
-                <th className="py-2.5 px-3.5 whitespace-nowrap">Rol</th>
-                <th className="py-2.5 px-3.5 whitespace-nowrap">Área</th>
-                <th className="py-2.5 px-3.5 whitespace-nowrap">Fundo</th>
-                <th className="py-2.5 px-3.5 whitespace-nowrap">Cultivo</th>
-                <th className="py-2.5 px-3.5 text-center whitespace-nowrap">Estado</th>
-                <th className="py-2.5 px-3.5 text-center whitespace-nowrap border-l border-[#D4E9F7]/70">Acciones</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">ID</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Nombre completo</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Usuario</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Contraseña</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Rol</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Área</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Fundo</th>
+                <th className="py-3 px-3.5 whitespace-nowrap">Cultivo</th>
+                <th className="py-3 px-3.5 text-center whitespace-nowrap">Estado</th>
+                <th className="py-3 px-3.5 text-center whitespace-nowrap border-l border-[#CFE3C0]">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100 text-slate-700">
@@ -551,7 +553,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 paginatedUsers.map((u) => {
                   const isCurrent = u.id === currentAdminUser.id;
                   return (
-                    <tr key={u.id} className="hover:bg-[#F7FBFE] transition-colors">
+                    <tr key={u.id} className="hover:bg-[#F7FBF3] transition-colors">
                       {/* ID */}
                       <td className="py-2.5 px-3.5 font-mono font-medium text-slate-500 text-[11px] whitespace-nowrap">
                         {u.id}
@@ -734,7 +736,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 <select
                   value={userPageSize}
                   onChange={(e) => setUserPageSize(Number(e.target.value))}
-                  className="px-2.5 py-1 bg-white border border-[#D8E2EA] rounded-full font-medium text-[#1B3A57] focus:outline-none focus:border-[#55A529] text-[11px] cursor-pointer"
+                  className="px-2.5 py-1 bg-white border border-[#CBD5E1] rounded-lg font-medium text-[#1E293B] focus:outline-none focus:border-[#459712] text-[11px] cursor-pointer"
                 >
                   <option value={20}>20</option>
                   <option value={25}>25</option>
@@ -751,7 +753,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     type="button"
                     onClick={() => setUserCurrentPage(1)}
                     disabled={userCurrentPage === 1}
-                    className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    className="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title="Primera página"
                   >
                     <ChevronsLeft className="w-3.5 h-3.5 text-slate-600" />
@@ -760,13 +762,13 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     type="button"
                     onClick={() => setUserCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={userCurrentPage === 1}
-                    className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    className="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title="Página anterior"
                   >
                     <ChevronLeft className="w-3.5 h-3.5 text-slate-600" />
                   </button>
 
-                  <span className="px-3 py-1 font-semibold text-[#1B3A57] bg-white rounded-full border border-[#D8E2EA] text-[11px]">
+                  <span className="px-3 py-1 font-semibold text-[#1E293B] bg-white rounded-lg border border-[#CBD5E1] text-[11px]">
                     Pág. {userCurrentPage} de {totalUserPages}
                   </span>
 
@@ -774,7 +776,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     type="button"
                     onClick={() => setUserCurrentPage((p) => Math.min(totalUserPages, p + 1))}
                     disabled={userCurrentPage === totalUserPages}
-                    className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    className="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title="Página siguiente"
                   >
                     <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
@@ -783,7 +785,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                     type="button"
                     onClick={() => setUserCurrentPage(totalUserPages)}
                     disabled={userCurrentPage === totalUserPages}
-                    className="p-1.5 rounded-full border border-[#D8E2EA] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    className="p-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title="Última página"
                   >
                     <ChevronsRight className="w-3.5 h-3.5 text-slate-600" />

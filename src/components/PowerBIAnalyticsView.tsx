@@ -567,58 +567,45 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
     <div className="space-y-4 pb-16 text-[#1B3A57]">
       {/* ------------------------------------------------------------- */}
       {/* 1. HEADER EJECUTIVO & ACCIONES GLOBALES                       */}
+      {/* 1. CABECERA EJECUTIVA ESTILO CORPORATIVO                        */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative overflow-hidden">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EAF7E4] text-[#2F7D18] font-semibold text-[11px] border border-[#C6E9B4]">
-              <span className="w-2 h-2 rounded-full bg-[#55A529]" />
-              Datos operativos reales
-            </span>
-            <span className="text-slate-300">·</span>
-            <span className="text-slate-500 font-medium text-[11px]">
-              {distinctReqs} requerimientos activos
-            </span>
-            <span className="text-slate-300">·</span>
-            <span className="text-slate-500 font-medium text-[11px]">
-              {totalPersonal.toLocaleString()} colaboradores en tránsito
-            </span>
-          </div>
-
-          <h2 className="text-lg font-bold text-[#1B3A57] tracking-tight">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1A1F24] tracking-tight leading-tight">
             Reportes & Analítica Operativa
-          </h2>
-          <p className="text-xs text-slate-500 font-normal">
-            Demanda de pasajeros, distribución territorial y trazabilidad de paraderos.
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Datos operativos reales · {distinctReqs} requerimientos activos ·{' '}
+            {totalPersonal.toLocaleString()} colaboradores en tránsito
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={handleExportExcelDetailed}
-            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
+            className="h-10 px-3.5 bg-white hover:bg-[#F7FBF3] border border-[#CBD5E1] text-[#2F7D18] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Exportar archivo Excel oficial para gerencia"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span className="text-[10px] font-medium">Excel</span>
+            <span>Exportar Excel</span>
           </button>
 
           <button
             onClick={handleExportPowerBIDataset}
-            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
+            className="h-10 px-3.5 bg-[#459712] hover:bg-[#387D0E] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             title="Descargar dataset estructurado para Power BI Desktop"
           >
             <Download className="w-4 h-4" />
-            <span className="text-[10px] font-medium">Power BI</span>
+            <span>Dataset Power BI</span>
           </button>
 
           <button
             onClick={refreshData}
-            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-[#3D8B1C] hover:text-[#2F7D18] hover:bg-[#F3F8F0] rounded-lg transition-colors cursor-pointer"
+            className="h-10 px-3 bg-white hover:bg-slate-50 border border-[#CBD5E1] text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Refrescar datos operativos"
           >
-            <RefreshCw className="w-4 h-4" />
-            <span className="text-[10px] font-medium">Actualizar</span>
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Actualizar</span>
           </button>
         </div>
       </div>
@@ -641,14 +628,14 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       {/* ------------------------------------------------------------- */}
       {/* 2. PANEL DE FILTROS MULTIDIMENSIONALES                        */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white rounded-2xl p-5 border border-[#E5ECF2] shadow-xs space-y-4">
+      <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-lg bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
               <SlidersHorizontal className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
+              <h3 className="text-sm font-bold text-[#1E293B] tracking-tight">
                 Filtros de análisis
               </h3>
             </div>
@@ -662,10 +649,10 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                 setFilterFechaDesde(today);
                 setFilterFechaHasta(today);
               }}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
                 filterFechaDesde === getTodayStr() && filterFechaHasta === getTodayStr()
-                  ? 'bg-[#22A846] text-white border-[#22A846]'
-                  : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+                  ? 'bg-[#459712] text-white border-[#459712]'
+                  : 'bg-white text-slate-600 border-[#CBD5E1] hover:bg-slate-50'
               }`}
             >
               Hoy
@@ -677,10 +664,10 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                 setFilterFechaDesde(y);
                 setFilterFechaHasta(y);
               }}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
                 filterFechaDesde === getYesterdayStr() && filterFechaHasta === getYesterdayStr()
-                  ? 'bg-[#22A846] text-white border-[#22A846]'
-                  : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+                  ? 'bg-[#459712] text-white border-[#459712]'
+                  : 'bg-white text-slate-600 border-[#CBD5E1] hover:bg-slate-50'
               }`}
             >
               Ayer
@@ -692,10 +679,10 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                 setFilterFechaDesde(t);
                 setFilterFechaHasta(t);
               }}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
                 filterFechaDesde === getTomorrowStr() && filterFechaHasta === getTomorrowStr()
-                  ? 'bg-[#22A846] text-white border-[#22A846]'
-                  : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+                  ? 'bg-[#459712] text-white border-[#459712]'
+                  : 'bg-white text-slate-600 border-[#CBD5E1] hover:bg-slate-50'
               }`}
             >
               Mañana
@@ -706,10 +693,10 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                 setFilterFechaDesde('');
                 setFilterFechaHasta('');
               }}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
                 !filterFechaDesde && !filterFechaHasta
-                  ? 'bg-[#1B3A57] text-white border-[#1B3A57]'
-                  : 'bg-white text-slate-600 border-[#D8E2EA] hover:bg-slate-50'
+                  ? 'bg-[#1E293B] text-white border-[#1E293B]'
+                  : 'bg-white text-slate-600 border-[#CBD5E1] hover:bg-slate-50'
               }`}
             >
               Historial completo
@@ -718,7 +705,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             {hasActiveFilters && (
               <button
                 onClick={clearAllFilters}
-                className="px-3.5 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-[11px] font-medium text-slate-600 transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-600 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Restablecer</span>
@@ -727,16 +714,16 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           </div>
         </div>
 
-        {/* Form controls grid con píldoras y etiqueta flotante */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs pt-1">
-          <div className="relative">
-            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+        {/* Form controls grid con etiquetas superiores y campos rectangulares */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
+          <div>
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
               Zona operativa
             </label>
             <select
               value={filterZona}
               onChange={(e) => setFilterZona(e.target.value)}
-              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:outline-none focus:border-[#459712] transition-colors cursor-pointer"
             >
               <option value="TODAS">Todas las zonas</option>
               <option value="SUR">Zona Sur</option>
@@ -744,14 +731,14 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          <div className="relative">
-            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+          <div>
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
               Fundo destino
             </label>
             <select
               value={filterFundo}
               onChange={(e) => setFilterFundo(e.target.value)}
-              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:outline-none focus:border-[#459712] transition-colors cursor-pointer"
             >
               <option value="TODOS">Todos los fundos</option>
               {availableFundos.map((f) => (
@@ -762,14 +749,14 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          <div className="relative">
-            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+          <div>
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
               Área solicitante
             </label>
             <select
               value={filterArea}
               onChange={(e) => setFilterArea(e.target.value)}
-              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:outline-none focus:border-[#459712] transition-colors cursor-pointer"
             >
               <option value="TODAS">Todas las áreas</option>
               {availableAreas.map((a) => (
@@ -780,14 +767,14 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          <div className="relative">
-            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+          <div>
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
               Cultivo
             </label>
             <select
               value={filterCultivo}
               onChange={(e) => setFilterCultivo(e.target.value)}
-              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:outline-none focus:border-[#459712] transition-colors cursor-pointer"
             >
               <option value="TODOS">Todos los cultivos</option>
               {availableCultivos.map((c) => (
@@ -798,14 +785,14 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          <div className="relative">
-            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+          <div>
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
               Movimiento
             </label>
             <select
               value={filterMovimiento}
               onChange={(e) => setFilterMovimiento(e.target.value)}
-              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:outline-none focus:border-[#459712] transition-colors cursor-pointer"
             >
               <option value="TODOS">Todos (Ingreso/Salida)</option>
               <option value="INGRESO">Ingreso (A Fundos)</option>
@@ -813,27 +800,27 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             </select>
           </div>
 
-          <div className="relative">
-            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+          <div>
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
               Fecha desde
             </label>
             <input
               type="date"
               value={filterFechaDesde}
               onChange={(e) => setFilterFechaDesde(e.target.value)}
-              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:outline-none focus:border-[#459712] transition-colors cursor-pointer"
             />
           </div>
 
-          <div className="relative">
-            <label className="absolute -top-1.5 left-4 bg-white px-1.5 text-[10px] leading-[12px] text-slate-500 font-medium z-10 pointer-events-none">
+          <div>
+            <label className="block text-xs font-medium text-[#334155] mb-1.5">
               Fecha hasta
             </label>
             <input
               type="date"
               value={filterFechaHasta}
               onChange={(e) => setFilterFechaHasta(e.target.value)}
-              className="w-full h-10 px-4 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 focus:outline-none focus:border-[#55A529] transition-colors cursor-pointer"
+              className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] focus:outline-none focus:border-[#459712] transition-colors cursor-pointer"
             />
           </div>
         </div>
@@ -844,7 +831,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             <span className="font-medium text-slate-600">
               Registros filtrados:
             </span>
-            <span className="font-semibold text-[#1B3A57]">
+            <span className="font-semibold text-[#1E293B]">
               {filteredRows.length} asignaciones
             </span>
             <span>·</span>
@@ -854,7 +841,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           </div>
 
           {hasActiveFilters && (
-            <span className="text-[10px] text-[#B45309] font-semibold bg-[#FFF6E0] px-2.5 py-0.5 rounded-full border border-[#FDE68A]">
+            <span className="text-[10px] text-[#B45309] font-semibold bg-[#FFF6E0] px-2.5 py-0.5 rounded-md border border-[#FDE68A]">
               Filtro activo
             </span>
           )}
@@ -866,12 +853,12 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {/* KPI 1: Personas Totales */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-[#55A529] shadow-2xs space-y-2 flex flex-col justify-between">
+        <div className="bg-white p-4 rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-500">
               Personal Total
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -882,7 +869,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
             <div className="mt-2 space-y-1">
               <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
                 <div
-                  className="h-full bg-[#55A529]"
+                  className="h-full bg-[#459712]"
                   style={{ width: `${pctIngreso}%` }}
                   title={`Ingreso: ${pctIngreso}%`}
                 />
@@ -901,17 +888,17 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         </div>
 
         {/* KPI 2: Requerimientos */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-2 flex flex-col justify-between">
+        <div className="bg-white p-4 rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-500">
               Requerimientos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#F1F5F9] text-[#1B3A57] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#1E293B] flex items-center justify-center">
               <Layers className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-[#1B3A57] tracking-tight tabular-nums">
+            <div className="text-2xl font-bold text-[#1E293B] tracking-tight tabular-nums">
               {distinctReqs}
             </div>
             <div className="text-[11px] font-medium text-slate-500 mt-1.5">
@@ -921,17 +908,17 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         </div>
 
         {/* KPI 3: Fundos Activos */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-2 flex flex-col justify-between">
+        <div className="bg-white p-4 rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-500">
               Fundos Activos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center">
               <Building className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-[#1B3A57] tracking-tight tabular-nums">
+            <div className="text-2xl font-bold text-[#1E293B] tracking-tight tabular-nums">
               {distinctFundos}
             </div>
             <div className="text-[11px] font-medium text-slate-500 mt-1.5 truncate" title={fundosRanking[0]?.fundo}>
@@ -941,17 +928,17 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         </div>
 
         {/* KPI 4: Paraderos con Demanda */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] border-l-4 border-l-[#0082B3] shadow-2xs space-y-2 flex flex-col justify-between">
+        <div className="bg-white p-4 rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-500">
               Paraderos Activos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center">
               <MapPin className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-[#0082B3] tracking-tight tabular-nums">
+            <div className="text-2xl font-bold text-[#1E293B] tracking-tight tabular-nums">
               {distinctParaderos}
             </div>
             <div className="text-[11px] font-medium text-slate-500 mt-1.5 truncate" title={paraderosRanking[0]?.paradero}>
@@ -961,12 +948,12 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
         </div>
 
         {/* KPI 5: Balance Zonal */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E5ECF2] shadow-2xs space-y-2 flex flex-col justify-between">
+        <div className="bg-white p-4 rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-2 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-500">
               Balance Zonal
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#E6F3FB] text-[#0082B3] flex items-center justify-center">
               <Compass className="w-4 h-4" />
             </div>
           </div>
@@ -1496,14 +1483,14 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
       {/* ------------------------------------------------------------- */}
       {/* 5. TABLA RELACIONAL DETALLADA                                 */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white rounded-2xl border border-[#E5ECF2] shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] overflow-hidden">
         <div className="px-5 pt-4 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-lg bg-[#EAF7E4] text-[#2F7D18] flex items-center justify-center font-bold">
               <Table className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#1B3A57] tracking-tight">
+              <h3 className="text-sm font-bold text-[#1E293B] tracking-tight">
                 Estructura de datos normalizada
               </h3>
               <p className="text-[11px] text-slate-500 font-normal">
@@ -1513,7 +1500,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Input de Búsqueda píldora */}
+            {/* Input de Búsqueda rectangular */}
             <div className="relative">
               <input
                 type="text"
@@ -1523,34 +1510,34 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                   setTablePage(1);
                 }}
                 placeholder="Buscar paradero, fundo, área..."
-                className="pl-4 pr-9 h-9 bg-white border border-[#D8E2EA] rounded-full text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#55A529] w-56 sm:w-64 transition-colors"
+                className="pl-3 pr-8 h-9 bg-white border border-[#CBD5E1] rounded-lg text-xs text-[#1E293B] placeholder-slate-400 focus:outline-none focus:border-[#459712] w-56 sm:w-64 transition-colors"
               />
-              <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-[#459712] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            <span className="text-[11px] font-semibold text-[#2F7D18] bg-[#EAF7E4] px-3 py-1 rounded-full shrink-0 border border-[#C6E9B4]">
+            <span className="text-[11px] font-semibold text-[#2F7D18] bg-[#EAF7E4] px-3 py-1.5 rounded-lg shrink-0 border border-[#C6E5B1]">
               {tableFilteredRows.length} registros
             </span>
           </div>
         </div>
 
-        {/* Tabla Responsive con cabecera celeste corporativa */}
+        {/* Tabla Responsive con cabecera verde salvia corporativa */}
         <div className="overflow-x-auto">
           <table className="w-full text-[11px] text-left">
             <thead>
-              <tr className="bg-[#E6F3FB] text-[#0082B3] font-semibold border-y border-[#D4E9F7] text-[11px]">
-                <th className="py-2.5 px-3 whitespace-nowrap">N° Req</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Fecha</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Hora</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Área</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Fundo</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Cultivo</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Mov.</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Zona</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Paradero</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Comedor</th>
-                <th className="py-2.5 px-3 whitespace-nowrap">Solicitante</th>
-                <th className="py-2.5 px-3 text-right whitespace-nowrap">Cantidad</th>
+              <tr className="bg-[#E3F1D8] text-[#1E293B] font-semibold border-y border-[#CFE3C0] text-xs">
+                <th className="py-3 px-3 whitespace-nowrap">N° Req</th>
+                <th className="py-3 px-3 whitespace-nowrap">Fecha</th>
+                <th className="py-3 px-3 whitespace-nowrap">Hora</th>
+                <th className="py-3 px-3 whitespace-nowrap">Área</th>
+                <th className="py-3 px-3 whitespace-nowrap">Fundo</th>
+                <th className="py-3 px-3 whitespace-nowrap">Cultivo</th>
+                <th className="py-3 px-3 whitespace-nowrap">Mov.</th>
+                <th className="py-3 px-3 whitespace-nowrap">Zona</th>
+                <th className="py-3 px-3 whitespace-nowrap">Paradero</th>
+                <th className="py-3 px-3 whitespace-nowrap">Comedor</th>
+                <th className="py-3 px-3 whitespace-nowrap">Solicitante</th>
+                <th className="py-3 px-3 text-right whitespace-nowrap">Cantidad</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100 text-slate-700">
@@ -1564,7 +1551,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
                 pagedRows.map((row, idx) => (
                   <tr
                     key={row.id || idx}
-                    className="hover:bg-[#F7FBFE] transition-colors"
+                    className="hover:bg-[#F7FBF3] transition-colors"
                   >
                     <td className="py-2.5 px-3 font-mono font-semibold text-[#1B3A57]">
                       {row.numeroRequerimiento}
@@ -1633,7 +1620,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               <button
                 disabled={tablePage === 1}
                 onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1 bg-white border border-[#D8E2EA] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-full font-medium text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
+                className="h-8 px-3 bg-white border border-[#CBD5E1] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Anterior</span>
@@ -1641,7 +1628,7 @@ export const PowerBIAnalyticsView: React.FC<PowerBIAnalyticsViewProps> = ({
               <button
                 disabled={tablePage >= totalPages}
                 onClick={() => setTablePage((p) => Math.min(totalPages, p + 1))}
-                className="px-3 py-1 bg-white border border-[#D8E2EA] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-full font-medium text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
+                className="h-8 px-3 bg-white border border-[#CBD5E1] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <span>Siguiente</span>
                 <ChevronRight className="w-3.5 h-3.5" />

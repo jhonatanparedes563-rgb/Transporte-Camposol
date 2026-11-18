@@ -1310,23 +1310,23 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         </div>
       )}
 
-      {/* Compact Top Toolbar */}
-      <div className="bg-white rounded-2xl px-4 py-3 border border-[#E5ECF2] shadow-xs flex flex-wrap items-center justify-between gap-3">
+      {/* Cabecera de Página */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             id="btn-back-to-home"
             onClick={onBack}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[#2F7D18] bg-[#EAF7E4] hover:bg-[#d8f1cc] border border-[#C6E9B4] px-3 py-1.5 rounded-full transition-colors cursor-pointer whitespace-nowrap"
+            className="h-9 px-3 flex items-center gap-1.5 text-xs font-semibold text-[#2F7D18] bg-[#EAF7E4] hover:bg-[#DCF1D2] border border-[#C6E5B1] rounded-lg transition-colors cursor-pointer whitespace-nowrap"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Volver</span>
           </button>
-          <h2 className="text-sm font-bold text-[#1B3A57] whitespace-nowrap">
+          <h1 className="text-2xl font-bold text-[#1A1F24] tracking-tight leading-tight whitespace-nowrap">
             Catálogos Maestros
-          </h2>
+          </h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -1338,7 +1338,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           <button
             id="btn-upload-master-excel"
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2F7D18] hover:bg-[#F3F8F0] rounded-full transition-colors cursor-pointer whitespace-nowrap"
+            className="h-9 inline-flex items-center gap-1.5 px-3 bg-white border border-[#CBD5E1] text-xs font-semibold text-[#2F7D18] hover:bg-[#F7FBF3] rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             title="Importar Excel (.xlsx, .xls, .csv)"
           >
             <Upload className="w-3.5 h-3.5" />
@@ -1348,7 +1348,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           <button
             id="btn-download-master-template"
             onClick={handleDownloadTemplate}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2F7D18] hover:bg-[#F3F8F0] rounded-full transition-colors cursor-pointer whitespace-nowrap"
+            className="h-9 inline-flex items-center gap-1.5 px-3 bg-white border border-[#CBD5E1] text-xs font-semibold text-slate-700 hover:bg-[#F7FBF3] rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             title="Descargar plantilla Excel"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -1358,7 +1358,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           <button
             id="btn-export-master-csv"
             onClick={handleExportCurrentMaster}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2F7D18] hover:bg-[#F3F8F0] rounded-full transition-colors cursor-pointer whitespace-nowrap"
+            className="h-9 inline-flex items-center gap-1.5 px-3 bg-white border border-[#CBD5E1] text-xs font-semibold text-slate-700 hover:bg-[#F7FBF3] rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             title="Exportar lista actual a CSV"
           >
             <Download className="w-3.5 h-3.5" />
@@ -1368,7 +1368,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           <button
             id="btn-reset-masters"
             onClick={() => setShowResetConfirm(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F1F5F9] hover:bg-slate-200 text-xs font-medium text-slate-600 transition-colors cursor-pointer whitespace-nowrap"
+            className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-600 transition-colors cursor-pointer whitespace-nowrap"
             title="Restablecer valores por defecto"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -1378,9 +1378,9 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
           {onNavigateToNewRequest && (
             <button
               onClick={onNavigateToNewRequest}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#22A846] hover:bg-[#1C8E3A] text-white text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
+              className="h-9 inline-flex items-center gap-1.5 px-4 rounded-lg bg-[#459712] hover:bg-[#387D0E] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer whitespace-nowrap"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
               <span>Nuevo req.</span>
             </button>
           )}
@@ -1388,7 +1388,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       </div>
 
       {/* Single Unified Navigation Tabs */}
-      <div className="bg-white p-1.5 rounded-2xl border border-[#E5ECF2] shadow-2xs flex items-center gap-1 overflow-x-auto">
+      <div className="bg-white p-1.5 rounded-xl border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] flex items-center gap-1 overflow-x-auto">
         {tabsConfig.map((t) => {
           const Icon = t.icon;
           const isCurrent = activeTab === t.id;
@@ -1402,10 +1402,10 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                 setFormError(null);
                 cancelEditing();
               }}
-              className={`flex-1 min-w-[105px] py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              className={`flex-1 min-w-[105px] py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                 isCurrent
-                  ? 'bg-[#55A529] text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-[#2F7D18] hover:bg-[#F3F8F0]'
+                  ? 'bg-[#459712] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-[#2F7D18] hover:bg-[#F7FBF3]'
               }`}
             >
               <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -1426,7 +1426,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* Left Column: Clean Sticky Add Form */}
         <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-4">
-          <div className="bg-white rounded-2xl p-4 border border-[#E5ECF2] shadow-xs space-y-3">
+          <div className="bg-white rounded-xl p-4 border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-3">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-[#EAF7E4] flex items-center justify-center text-[#2F7D18] shrink-0">
                 <Plus className="w-4 h-4" />
@@ -1622,7 +1622,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               <button
                 type="submit"
                 id="btn-submit-add-item"
-                className="w-full h-9 bg-[#22A846] hover:bg-[#1C8E3A] text-white rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                className="w-full h-10 bg-[#459712] hover:bg-[#387D0E] text-white rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Agregar</span>
@@ -1634,7 +1634,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
         {/* Right Column: Compact Filter Bar + Clean List */}
         <div className="lg:col-span-8 xl:col-span-9 space-y-3">
           {/* Unified Search + Filter Bar */}
-          <div className="bg-white rounded-2xl p-3 border border-[#E5ECF2] shadow-2xs space-y-2.5">
+          <div className="bg-white rounded-xl p-3.5 border border-[#DCE2E8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-[200px]">
                 <input
@@ -1643,7 +1643,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={`Buscar ${currentTabInfo.label.toLowerCase()}...`}
-                  className="w-full h-9 pl-3.5 pr-9 rounded-xl bg-[#F8FAFC] border border-[#D8E2EA] text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-[#55A529] placeholder:text-slate-400"
+                  className="w-full h-10 pl-3 pr-9 rounded-lg bg-white border border-[#CBD5E1] text-xs text-[#1E293B] focus:outline-none focus:border-[#459712] placeholder:text-slate-400"
                 />
                 {searchQuery ? (
                   <button
@@ -1653,7 +1653,7 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <Search className="w-4 h-4 text-[#55A529] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-4 h-4 text-[#459712] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 )}
               </div>
 
@@ -2249,14 +2249,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               <button
                 type="button"
                 onClick={() => setItemToDelete(null)}
-                className="flex-1 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
+                className="flex-1 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={confirmDelete}
-                className="flex-1 py-2 rounded-full bg-[#DC2626] hover:bg-red-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
+                className="flex-1 h-9 rounded-lg bg-[#DC2626] hover:bg-red-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
               >
                 Eliminar
               </button>
@@ -2268,11 +2268,11 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
       {/* Reset Confirmation Modal */}
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-[#E5ECF2] animate-in fade-in zoom-in duration-150">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-[#DCE2E8] animate-in fade-in zoom-in duration-150">
             <div className="w-11 h-11 rounded-2xl bg-[#FFF6E0] text-[#B45309] border border-[#FDE68A] flex items-center justify-center mx-auto mb-3">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <h3 className="text-sm font-bold text-center text-[#1B3A57]">
+            <h3 className="text-sm font-bold text-center text-[#1E293B]">
               Restablecer catálogos
             </h3>
             <p className="text-xs text-slate-500 text-center mt-1">
@@ -2283,14 +2283,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(false)}
-                className="flex-1 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
+                className="flex-1 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 font-semibold text-xs text-slate-600 cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleResetDefaults}
-                className="flex-1 py-2 rounded-full bg-amber-600 hover:bg-amber-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
+                className="flex-1 h-9 rounded-lg bg-amber-600 hover:bg-amber-700 font-semibold text-xs text-white shadow-xs cursor-pointer transition-colors"
               >
                 Restablecer
               </button>
@@ -2381,14 +2381,14 @@ export const MasterDataManagementScreen: React.FC<MasterDataManagementScreenProp
                   setShowImportModal(false);
                   setImportData(null);
                 }}
-                className="flex-1 py-2 rounded-full bg-[#F1F5F9] hover:bg-slate-200 font-semibold text-xs text-slate-600 transition-colors cursor-pointer"
+                className="flex-1 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 font-semibold text-xs text-slate-600 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleExecuteImport}
-                className="flex-1 py-2 rounded-full bg-[#22A846] hover:bg-[#1C8E3A] font-semibold text-xs text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="flex-1 h-9 rounded-lg bg-[#459712] hover:bg-[#387D0E] font-semibold text-xs text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>Guardar</span>
